@@ -31,17 +31,19 @@ t.test('fastify-oauth2', t => {
     })
     reply.redirect(authorizationUri)
   })
-  fastify.get('/', async function (request, reply) {
+  fastify.get('/', function (request, reply) {
     const code = request.query.code
 
-    const result = await this.oauth2.authorizationCode.getToken({ code })
-    const token = this.oauth2.accessToken.create(result)
-    return reply.send({
-      access_token: token.token.access_token,
-      refresh_token: token.token.refresh_token,
-      expires_in: token.token.expires_in,
-      token_type: token.token.token_type
-    })
+    return this.oauth2.authorizationCode.getToken({ code })
+      .then(result => {
+        const token = this.oauth2.accessToken.create(result)
+        return {
+          access_token: token.token.access_token,
+          refresh_token: token.token.refresh_token,
+          expires_in: token.token.expires_in,
+          token_type: token.token.token_type
+        }
+      })
   })
 
   t.test('ok', async t => {
