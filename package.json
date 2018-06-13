@@ -1,7 +1,7 @@
 {
   "name": "fastify-oauth2",
   "version": "0.1.0",
-  "description": "Enable to perform login using oauth2 protocol",
+  "description": "Perform login using oauth2 protocol",
   "main": "index.js",
   "scripts": {
     "lint": "standard | snazzy",
@@ -12,11 +12,15 @@
     "type": "git",
     "url": "git+https://github.com/fastify/fastify-oauth2.git"
   },
-  "author": "",
+  "author": "Tommaso Allevi - @allevo",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/fastify/fastify-oauth2/issues"
   },
+  "keywords": [
+    "fastify",
+    "oauth2"
+  ],
   "homepage": "https://github.com/fastify/fastify-oauth2#readme",
   "devDependencies": {
     "fastify": "^1.5.0",
