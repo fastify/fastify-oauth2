@@ -1,0 +1,34 @@
+{
+  "name": "fastify-oauth2",
+  "version": "0.0.1",
+  "description": "Enable to perform login using oauth2 protocol",
+  "main": "index.js",
+  "scripts": {
+    "lint": "standard | snazzy",
+    "unit": "tap test.js",
+    "test": "npm run lint && npm run unit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fastify/fastify-oauth2.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fastify/fastify-oauth2/issues"
+  },
+  "homepage": "https://github.com/fastify/fastify-oauth2#readme",
+  "devDependencies": {
+    "fastify": "^1.5.0",
+    "got": "^8.3.1",
+    "nock": "^9.3.2",
+    "pre-commit": "^1.2.2",
+    "snazzy": "^7.1.1",
+    "standard": "^11.0.1",
+    "tap": "^12.0.1"
+  },
+  "dependencies": {
+    "fastify-plugin": "^1.0.1",
+    "simple-oauth2": "^1.6.0"
+  }
+}
