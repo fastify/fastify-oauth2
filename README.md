@@ -51,7 +51,7 @@ fastify.get('/', async function (request, reply) {
 
 ## Example
 
-See [facebook example](./example/facebook.js) for an example.
+See [facebook example](./examples/facebook.js) for an example.
 
 ## Reference
 
