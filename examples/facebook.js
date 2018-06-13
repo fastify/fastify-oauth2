@@ -3,23 +3,21 @@
 const fastify = require('fastify')({ logger: { level: 'trace' } })
 const got = require('got')
 
-fastify.register(require('../'), {
+const oauthPlugin = require('../')
+
+fastify.register(oauthPlugin, {
+  name: 'facebookOAuth2',
   credentials: {
     client: {
       id: '<CLIENT_ID>',
       secret: '<CLIENT_SECRET>'
     },
-    auth: {
-      authorizeHost: 'https://facebook.com',
-      authorizePath: '/v3.0/dialog/oauth',
-      tokenHost: 'https://graph.facebook.com',
-      tokenPath: '/v3.0/oauth/access_token'
-    }
+    auth: oauthPlugin.FACEBOOK_CONFIGURATION
   }
 })
 
 fastify.get('/login/facebook', function (request, reply) {
-  const authorizationUri = this.oauth2.authorizationCode.authorizeURL({
+  const authorizationUri = this.facebookOAuth2.authorizationCode.authorizeURL({
     redirect_uri: 'http://localhost:3000/',
     state: '3(#0/!~'
   })
@@ -29,7 +27,7 @@ fastify.get('/', async function (request, reply) {
   const code = request.query.code
 
   try {
-    const result = await this.oauth2.authorizationCode.getToken({
+    const result = await this.facebookOAuth2.authorizationCode.getToken({
       code: code,
       redirect_uri: 'http://localhost:3000/'
     })

@@ -4,27 +4,26 @@ const t = require('tap')
 const nock = require('nock')
 const createFastify = require('fastify')
 
+const oauthPlugin = require('./index')
+
 nock.disableNetConnect()
 
-t.test('fastify-oauth2', t => {
+t.test('fastify-githubOAuth2', t => {
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(require('./index'), {
+  fastify.register(oauthPlugin, {
+    name: 'githubOAuth2',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: {
-        tokenHost: 'https://github.com',
-        tokenPath: '/login/oauth/access_token',
-        authorizePath: '/login/oauth/authorize'
-      }
+      auth: oauthPlugin.GITHUB_CONFIGURATION
     }
   })
 
   fastify.get('/login/github', function (request, reply) {
-    const authorizationUri = this.oauth2.authorizationCode.authorizeURL({
+    const authorizationUri = this.githubOAuth2.authorizationCode.authorizeURL({
       redirect_uri: 'http://localhost:3000/callback',
       scope: 'notifications',
       state: '3(#0/!~'
@@ -34,9 +33,9 @@ t.test('fastify-oauth2', t => {
   fastify.get('/', function (request, reply) {
     const code = request.query.code
 
-    return this.oauth2.authorizationCode.getToken({ code })
+    return this.githubOAuth2.authorizationCode.getToken({ code })
       .then(result => {
-        const token = this.oauth2.accessToken.create(result)
+        const token = this.githubOAuth2.accessToken.create(result)
         return {
           access_token: token.token.access_token,
           refresh_token: token.token.refresh_token,
@@ -82,4 +81,15 @@ t.test('fastify-oauth2', t => {
   })
 
   t.end()
+})
+
+t.test('options.name is required', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(require('./index'))
+    .ready(err => {
+      t.strictSame(err.message, 'options.name is required')
+    })
 })
