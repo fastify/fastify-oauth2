@@ -26,22 +26,17 @@ fastify.get('/login/facebook', function (request, reply) {
 fastify.get('/', async function (request, reply) {
   const code = request.query.code
 
-  try {
-    const result = await this.facebookOAuth2.authorizationCode.getToken({
-      code: code,
-      redirect_uri: 'http://localhost:3000/'
-    })
-    const meResponse = await got('https://graph.facebook.com/v3.0/me', {
-      headers: {
-        Authorization: 'Bearer ' + result.access_token
-      },
-      json: true
-    })
-    return meResponse.body
-  } catch (e) {
-    console.log(e)
-    throw e
-  }
+  const result = await this.facebookOAuth2.authorizationCode.getToken({
+    code: code,
+    redirect_uri: 'http://localhost:3000/'
+  })
+  const meResponse = await got('https://graph.facebook.com/v3.0/me', {
+    headers: {
+      Authorization: 'Bearer ' + result.access_token
+    },
+    json: true
+  })
+  return meResponse.body
 })
 
 fastify.listen(3000)
