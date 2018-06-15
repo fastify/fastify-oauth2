@@ -93,3 +93,25 @@ t.test('options.name is required', t => {
       t.strictSame(err.message, 'options.name is required')
     })
 })
+
+t.test('already decorated', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify
+    .decorate('githubOAuth2', false)
+    .register(require('./index'), {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: oauthPlugin.GITHUB_CONFIGURATION
+      }
+    })
+    .ready(err => {
+      t.strictSame(err.message, 'The decorator \'githubOAuth2\' has been already added!')
+    })
+})

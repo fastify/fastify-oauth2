@@ -8,7 +8,12 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   const oauth2 = oauth2Module.create(options.credentials)
 
-  fastify.decorate(options.name, oauth2)
+  try {
+    fastify.decorate(options.name, oauth2)
+  } catch (e) {
+    next(e)
+    return
+  }
 
   next()
 })
