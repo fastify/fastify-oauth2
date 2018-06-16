@@ -8,7 +8,9 @@ const oauthPlugin = require('./index')
 
 nock.disableNetConnect()
 
-t.test('fastify-githubOAuth2', t => {
+t.test('fastify-oauth2', t => {
+  t.plan(2)
+
   const fastify = createFastify({ logger: { level: 'silent' } })
 
   fastify.register(oauthPlugin, {
@@ -19,42 +21,43 @@ t.test('fastify-githubOAuth2', t => {
         secret: 'my-secret'
       },
       auth: oauthPlugin.GITHUB_CONFIGURATION
-    }
+    },
+    startRedirectPath: '/login/github',
+    callbackUri: 'http://localhost:3000/callback',
+    scope: ['notifications']
   })
 
-  fastify.get('/login/github', function (request, reply) {
-    const authorizationUri = this.githubOAuth2.authorizationCode.authorizeURL({
-      redirect_uri: 'http://localhost:3000/callback',
-      scope: 'notifications',
-      state: '3(#0/!~'
-    })
-    reply.redirect(authorizationUri)
-  })
   fastify.get('/', function (request, reply) {
-    const code = request.query.code
+    this.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
+      if (err) throw err
 
-    return this.githubOAuth2.authorizationCode.getToken({ code })
-      .then(result => {
-        const token = this.githubOAuth2.accessToken.create(result)
-        return {
-          access_token: token.token.access_token,
-          refresh_token: token.token.refresh_token,
-          expires_in: token.token.expires_in,
-          token_type: token.token.token_type
-        }
+      const token = this.githubOAuth2.accessToken.create(result)
+      reply.send({
+        access_token: token.token.access_token,
+        refresh_token: token.token.refresh_token,
+        expires_in: token.token.expires_in,
+        token_type: token.token.token_type
       })
+    })
   })
 
-  t.test('ok', t => {
-    t.plan(4)
+  t.tearDown(fastify.close.bind(fastify))
 
-    return fastify.inject({
-      method: 'GET',
-      url: '/login/github'
-    })
-      .then(responseStart => {
+  fastify.listen(0, function (err) {
+    t.error(err)
+
+    t.test('ok', t => {
+      fastify.inject({
+        method: 'GET',
+        url: '/login/github'
+      }, function (err, responseStart) {
+        t.error(err)
+
         t.equal(responseStart.statusCode, 302)
-        t.equal(responseStart.headers.location, 'https://github.com/login/oauth/authorize?response_type=code&client_id=my-client-id&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&scope=notifications&state=3(%230%2F!~')
+        const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&scope=notifications&state=(.*)/)
+        t.ok(matched)
+        const state = matched[1]
+        t.ok(state)
 
         const RESPONSE_BODY = {
           access_token: 'my-access-token',
@@ -64,23 +67,25 @@ t.test('fastify-githubOAuth2', t => {
         }
 
         const githubScope = nock('https://github.com')
-          .post('/login/oauth/access_token', 'code=my-code&grant_type=authorization_code&client_id=my-client-id&client_secret=my-secret')
+          .post('/login/oauth/access_token', 'code=my-code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&grant_type=authorization_code&client_id=my-client-id&client_secret=my-secret')
           .reply(200, RESPONSE_BODY)
 
-        return fastify.inject({
+        fastify.inject({
           method: 'GET',
-          url: '/?code=my-code'
+          url: '/?code=my-code&state=' + state
+        }, function (err, responseEnd) {
+          t.error(err)
+
+          t.equal(responseEnd.statusCode, 200)
+          t.strictSame(JSON.parse(responseEnd.payload), RESPONSE_BODY)
+
+          githubScope.done()
+
+          t.end()
         })
-          .then(responseEnd => {
-            t.equal(responseEnd.statusCode, 200)
-            t.strictSame(JSON.parse(responseEnd.payload), RESPONSE_BODY)
-
-            githubScope.done()
-          })
       })
+    })
   })
-
-  t.end()
 })
 
 t.test('options.name is required', t => {
