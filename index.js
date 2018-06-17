@@ -1,6 +1,5 @@
 'use strict'
 
-const util = require('util')
 const defaultState = require('crypto').randomBytes(10).toString('hex')
 
 const fp = require('fastify-plugin')
@@ -79,7 +78,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
       cbk(fastify[name], code, callback)
     })
   }
-  const getAccessTokenFromAuthorizationCodeFlowPromiseified = util.promisify(getAccessTokenFromAuthorizationCodeFlowCallbacked)
+  const getAccessTokenFromAuthorizationCodeFlowPromiseified = promisify(getAccessTokenFromAuthorizationCodeFlowCallbacked)
 
   function getAccessTokenFromAuthorizationCodeFlow (request, callback) {
     if (!callback) {
@@ -104,6 +103,17 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   next()
 })
+
+function promisify (func) {
+  return function (arg1) {
+    return new Promise(function (resolve, reject) {
+      func(arg1, function (err, token) {
+        if (err) reject(err)
+        else resolve(token)
+      })
+    })
+  }
+}
 
 oauthPlugin.FACEBOOK_CONFIGURATION = {
   authorizeHost: 'https://facebook.com',
