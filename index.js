@@ -1,8 +1,10 @@
 'use strict'
 
+const util = require('util')
+const defaultState = require('crypto').randomBytes(10).toString('hex')
+
 const fp = require('fastify-plugin')
 const oauth2Module = require('simple-oauth2')
-const defaultState = require('crypto').randomBytes(10).toString('hex')
 
 function defaultGenerateStateFunction () {
   return defaultState
@@ -17,7 +19,27 @@ function defaultCheckStateFunction (state, callback) {
 }
 
 const oauthPlugin = fp(function (fastify, options, next) {
-  if (!options.name) return next(new Error('options.name is required'))
+  if (typeof options.name !== 'string') {
+    return next(new Error('options.name should be a string'))
+  }
+  if (typeof options.credentials !== 'object') {
+    return next(new Error('options.credentials should be an object'))
+  }
+  if (typeof options.callbackUri !== 'string') {
+    return next(new Error('options.callbackUri should be a string'))
+  }
+  if (options.generateStateFunction && typeof options.generateStateFunction !== 'function') {
+    return next(new Error('options.generateStateFunction should be a function'))
+  }
+  if (options.checkStateFunction && typeof options.checkStateFunction !== 'function') {
+    return next(new Error('options.checkStateFunction should be a function'))
+  }
+  if (options.startRedirectPath && typeof options.startRedirectPath !== 'string') {
+    return next(new Error('options.startRedirectPath should be a string'))
+  }
+  if (!options.generateStateFunction ^ !options.checkStateFunction) {
+    return next(new Error('options.checkStateFunction and options.generateStateFunction have to be given'))
+  }
 
   const name = options.name
   const credentials = options.credentials
@@ -45,10 +67,9 @@ const oauthPlugin = fp(function (fastify, options, next) {
     }, callback)
   }
 
-  function getAccessTokenFromAuthorizationCodeFlow (request, callback) {
+  function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, callback) {
     const code = request.query.code
     const state = request.query.state
-    const fastify = this
 
     checkStateFunction(state, function (err) {
       if (err) {
@@ -57,6 +78,14 @@ const oauthPlugin = fp(function (fastify, options, next) {
       }
       cbk(fastify[name], code, callback)
     })
+  }
+  const getAccessTokenFromAuthorizationCodeFlowPromiseified = util.promisify(getAccessTokenFromAuthorizationCodeFlowCallbacked)
+
+  function getAccessTokenFromAuthorizationCodeFlow (request, callback) {
+    if (!callback) {
+      return getAccessTokenFromAuthorizationCodeFlowPromiseified(request)
+    }
+    getAccessTokenFromAuthorizationCodeFlowCallbacked(request, callback)
   }
 
   const oauth2 = oauth2Module.create(credentials)
