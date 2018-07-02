@@ -33,6 +33,7 @@
     "tap": "^12.0.1"
   },
   "dependencies": {
+    "es6-promisify": "^6.0.0",
     "fastify-plugin": "^1.0.1",
     "simple-oauth2": "^1.6.0"
   }

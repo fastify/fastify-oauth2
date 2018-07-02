@@ -5,6 +5,8 @@ const defaultState = require('crypto').randomBytes(10).toString('hex')
 const fp = require('fastify-plugin')
 const oauth2Module = require('simple-oauth2')
 
+const promisify = require('util').promisify || require('es6-promisify').promisify
+
 function defaultGenerateStateFunction () {
   return defaultState
 }
@@ -103,17 +105,6 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   next()
 })
-
-function promisify (func) {
-  return function (arg1) {
-    return new Promise(function (resolve, reject) {
-      func(arg1, function (err, token) {
-        if (err) reject(err)
-        else resolve(token)
-      })
-    })
-  }
-}
 
 oauthPlugin.FACEBOOK_CONFIGURATION = {
   authorizeHost: 'https://facebook.com',
