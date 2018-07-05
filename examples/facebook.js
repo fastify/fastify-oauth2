@@ -1,7 +1,7 @@
 'use strict'
 
 const fastify = require('fastify')({ logger: { level: 'trace' } })
-const got = require('got')
+const sget = require('simple-get')
 
 const oauthPlugin = require('../')
 
@@ -13,30 +13,33 @@ fastify.register(oauthPlugin, {
       secret: '<CLIENT_SECRET>'
     },
     auth: oauthPlugin.FACEBOOK_CONFIGURATION
-  }
+  },
+  startRedirectPath: '/login/facebook',
+  callbackUri: 'http://localhost:3000/login/facebook/callback'
 })
 
-fastify.get('/login/facebook', function (request, reply) {
-  const authorizationUri = this.facebookOAuth2.authorizationCode.authorizeURL({
-    redirect_uri: 'http://localhost:3000/',
-    state: '3(#0/!~'
-  })
-  reply.redirect(authorizationUri)
-})
-fastify.get('/', async function (request, reply) {
-  const code = request.query.code
+fastify.get('/login/facebook/callback', function (request, reply) {
+  this.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
+    if (err) {
+      reply.send(err)
+      return
+    }
 
-  const result = await this.facebookOAuth2.authorizationCode.getToken({
-    code: code,
-    redirect_uri: 'http://localhost:3000/'
+    sget.concat({
+      url: 'https://graph.facebook.com/v3.0/me',
+      method: 'GET',
+      headers: {
+        Authorization: 'Bearer ' + result.access_token
+      },
+      json: true
+    }, function (err, res, data) {
+      if (err) {
+        reply.send(err)
+        return
+      }
+      reply.send(data)
+    })
   })
-  const meResponse = await got('https://graph.facebook.com/v3.0/me', {
-    headers: {
-      Authorization: 'Bearer ' + result.access_token
-    },
-    json: true
-  })
-  return meResponse.body
 })
 
 fastify.listen(3000)
