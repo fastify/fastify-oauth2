@@ -119,4 +119,11 @@ oauthPlugin.GITHUB_CONFIGURATION = {
   authorizePath: '/login/oauth/authorize'
 }
 
+oauthPlugin.LINKEDIN_CONFIGURATION = {
+  authorizeHost: 'https://www.linkedin.com',
+  authorizePath: '/oauth/v2/authorization',
+  tokenHost: 'https://www.linkedin.com',
+  tokenPath: '/oauth/v2/accessToken'
+}
+
 module.exports = oauthPlugin
