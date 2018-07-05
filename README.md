@@ -14,7 +14,7 @@ npm i --save fastify-oauth2
 const fastify = require('fastify')({ logger: { level: 'trace' } })
 const oauthPlugin = require('fastify-oauth2')
 
-// Register the plugin
+
 fastify.register(oauthPlugin, {
   name: 'facebookOAuth2',
   credentials: {
@@ -23,30 +23,20 @@ fastify.register(oauthPlugin, {
       secret: '<CLIENT_SECRET>'
     },
     auth: oauthPlugin.FACEBOOK_CONFIGURATION
-    // auth: oauthPlugin.GITHUB_CONFIGURATION
-  }
+  },
+  // register a fastify url to start the redirect flow
+  startRedirectPath: '/login/facebook',
+  // facebook redirect here after the user login
+  callbackUri: 'http://localhost:3000/login/facebook/callback'
 })
 
-// Register the handler for the initial redirection
-fastify.get('/login/facebook', function (request, reply) {
-  const authorizationUri = this.facebookOAuth2.authorizationCode.authorizeURL({
-    redirect_uri: 'http://localhost:3000/',
-    state: 'my-state'
-  })
-  reply.redirect(authorizationUri)
-})
+fastify.get('/login/facebook/callback', async function (request, reply) {
+  const result = await this.getAccessTokenFromAuthorizationCodeFlow(request)
 
-// Exchange the code with the access_token
-fastify.get('/', async function (request, reply) {
-  const code = request.query.code
-
-  const result = await this.facebookOAuth2.authorizationCode.getToken({
-    code: code,
-    redirect_uri: 'http://localhost:3000/'
-  })
   console.log(result.access_token)
-})
 
+  reply.send({ access_token: result.access_token })
+})
 ```
 
 ## Example
