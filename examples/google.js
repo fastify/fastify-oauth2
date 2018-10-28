@@ -1,0 +1,46 @@
+'use strict'
+
+const fastify = require('fastify')({ logger: { level: 'trace' } })
+const sget = require('simple-get')
+
+const oauthPlugin = require('..')
+
+fastify.register(oauthPlugin, {
+  name: 'googleOAuth2',
+  scope: ['profile'],
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>'
+    },
+    auth: oauthPlugin.GOOGLE_CONFIGURATION
+  },
+  startRedirectPath: '/login/google',
+  callbackUri: 'http://localhost:3000/login/google/callback'
+})
+
+fastify.get('/login/google/callback', function (request, reply) {
+  this.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
+    if (err) {
+      reply.send(err)
+      return
+    }
+
+    sget.concat({
+      url: 'https://www.googleapis.com/plus/v1/people/me',
+      method: 'GET',
+      headers: {
+        Authorization: 'Bearer ' + result.access_token
+      },
+      json: true
+    }, function (err, res, data) {
+      if (err) {
+        reply.send(err)
+        return
+      }
+      reply.send(data)
+    })
+  })
+})
+
+fastify.listen(3000)

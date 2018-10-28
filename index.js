@@ -126,4 +126,11 @@ oauthPlugin.LINKEDIN_CONFIGURATION = {
   tokenPath: '/oauth/v2/accessToken'
 }
 
+oauthPlugin.GOOGLE_CONFIGURATION = {
+  authorizeHost: 'https://accounts.google.com',
+  authorizePath: '/o/oauth2/v2/auth',
+  tokenHost: 'https://www.googleapis.com',
+  tokenPath: '/oauth2/v4/token'
+}
+
 module.exports = oauthPlugin
