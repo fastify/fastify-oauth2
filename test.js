@@ -318,6 +318,6 @@ t.test('already decorated', t => {
       callbackUri: '/callback'
     })
     .ready(err => {
-      t.strictSame(err.message, 'The decorator \'githubOAuth2\' has already been added!')
+      t.strictSame(err.message, 'FST_ERR_DEC_ALREADY_PRESENT: The decorator \'githubOAuth2\' has already been added!')
     })
 })
