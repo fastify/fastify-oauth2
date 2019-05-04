@@ -124,6 +124,47 @@ t.test('fastify-oauth2', t => {
     makeRequests(t, fastify)
   })
 
+  t.test('register multiple plugins', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+    const options = {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: oauthPlugin.GITHUB_CONFIGURATION
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications']
+
+    }
+
+    fastify.register(oauthPlugin, options)
+    fastify.register(oauthPlugin, Object.assign({}, options, {
+      name: 'githubOAuth3',
+      startRedirectPath: '/login/github3'
+    }))
+
+    fastify.get('/', function (request, reply) {
+      return this.getAccessTokenFromAuthorizationCodeFlow(request)
+        .then(result => {
+          const token = this.githubOAuth2.accessToken.create(result)
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.tearDown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify)
+  })
+
   t.test('wrong state', t => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
