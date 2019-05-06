@@ -73,7 +73,7 @@ See [facebook example](./examples/facebook.js) for an example.
 ## Reference
 
 This fastify plugin decorates the fastify instance with the [`simple-oauth2`](https://github.com/lelylan/simple-oauth2)
-instance so that when you register the a plugin like `fastify.register(oauthPlugin, {name: 'foo'})` you'll have access to the
+instance using the name attribute, so when you register a plugin like `fastify.register(oauthPlugin, {name: 'foo'})` you'll have access to the
 [helpers](https://github.com/lelylan/simple-oauth2#helpers) through
 `fastify.foo.<helpers>`
 
