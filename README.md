@@ -40,11 +40,11 @@ fastify.get('/login/facebook/callback', async function (request, reply) {
 fastify.register(oauthPlugin, {
 	name: 'githubOAuth2',
 	credentials: {
-		client: {
-			id: 'my-client-id',
-			secret: 'my-secret'
-		},
-		auth: oauthPlugin.GITHUB_CONFIGURATION
+	  client: {
+	    id: 'my-client-id',
+	    secret: 'my-secret'
+    },
+	  auth: oauthPlugin.GITHUB_CONFIGURATION
 	},
 	startRedirectPath: '/login/github',
 	callbackUri: 'http://localhost:3000/login/github/callback',
@@ -53,15 +53,15 @@ fastify.register(oauthPlugin, {
 
 fastify.get('/login/github/callback', function (request, reply) {
 	return this.getAccessTokenFromAuthorizationCodeFlow(request)
-		.then(result => {
-			const token = this.githubOAuth2.accessToken.create(result)
-			return {
-				access_token: token.token.access_token,
-				refresh_token: token.token.refresh_token,
-				expires_in: token.token.expires_in,
-				token_type: token.token.token_type
-			}
-		})
+	  .then(result => {
+	    const token = this.githubOAuth2.accessToken.create(result)
+	    return {
+        access_token: token.token.access_token,
+	      refresh_token: token.token.refresh_token,
+	      expires_in: token.token.expires_in,
+	      token_type: token.token.token_type
+	    }
+	  })
 })
 
 ```
