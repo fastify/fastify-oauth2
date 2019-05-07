@@ -30,7 +30,7 @@ fastify.register(oauthPlugin, {
 })
 
 fastify.get('/login/facebook/callback', async function (request, reply) {
-  const result = await this.getAccessTokenFromAuthorizationCodeFlow(request)
+  const result = await this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
 
   console.log(result.access_token)
 
@@ -52,7 +52,7 @@ fastify.register(oauthPlugin, {
 })
 
 fastify.get('/login/github/callback', function (request, reply) {
-	return this.getAccessTokenFromAuthorizationCodeFlow(request)
+	return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
 	  .then(result => {
 	    const token = this.githubOAuth2.accessToken.create(result)
 	    return {

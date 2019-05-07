@@ -148,9 +148,9 @@ t.test('fastify-oauth2', t => {
     }))
 
     fastify.get('/', function (request, reply) {
-      return this.getAccessTokenFromAuthorizationCodeFlow(request)
+      return this.githubOAuth3.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
-          const token = this.githubOAuth2.accessToken.create(result)
+          const token = this.githubOAuth3.accessToken.create(result)
           return {
             access_token: token.token.access_token,
             refresh_token: token.token.refresh_token,
