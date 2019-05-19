@@ -52,12 +52,13 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   function startRedirectHandler (request, reply) {
     const state = generateStateFunction()
-
-    const authorizationUri = this[name].authorizationCode.authorizeURL({
-      redirect_uri: callbackUri,
+    const urlOptions = Object.assign(options.params ? options.params: {}, {
+      redirect_uri: callbackUri, 
       scope: scope,
       state: state
-    })
+    });
+
+    const authorizationUri = this[name].authorizationCode.authorizeURL(urlOptions)
     reply.redirect(authorizationUri)
   }
 
