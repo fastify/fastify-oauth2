@@ -29,6 +29,9 @@ const oauthPlugin = fp(function (fastify, options, next) {
   if (typeof options.callbackUri !== 'string') {
     return next(new Error('options.callbackUri should be a string'))
   }
+  if (options.callbackUriParams && typeof options.callbackUriParams !== 'object') {
+    return next(new Error('options.generateStateFunction should be a object'))
+  }
   if (options.generateStateFunction && typeof options.generateStateFunction !== 'function') {
     return next(new Error('options.generateStateFunction should be a function'))
   }
@@ -45,6 +48,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
   const name = options.name
   const credentials = options.credentials
   const callbackUri = options.callbackUri
+  const callbackUriParams = options.callbackUriParams || {}
   const scope = options.scope
   const generateStateFunction = options.generateStateFunction || defaultGenerateStateFunction
   const checkStateFunction = options.checkStateFunction || defaultCheckStateFunction
@@ -52,7 +56,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   function startRedirectHandler (request, reply) {
     const state = generateStateFunction()
-    const urlOptions = Object.assign(options.params ? options.params : {}, {
+    const urlOptions = Object.assign(callbackUriParams, {
       redirect_uri: callbackUri,
       scope: scope,
       state: state

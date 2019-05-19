@@ -210,6 +210,28 @@ t.test('options.callbackUri should be and object', t => {
     })
 })
 
+t.test('options.callbackUriParams should be and object', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    callbackUriParams: 1
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.generateStateFunction should be a object')
+    })
+})
+
 t.test('options.generateStateFunction should be and object', t => {
   t.plan(1)
 
