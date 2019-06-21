@@ -80,11 +80,11 @@ const oauthPlugin = fp(function (fastify, options, next) {
       cbk(fastify[name], code, callback)
     })
   }
-  const getAccessTokenFromAuthorizationCodeFlowPromiseified = promisify(getAccessTokenFromAuthorizationCodeFlowCallbacked)
+  const getAccessTokenFromAuthorizationCodeFlowPromisified = promisify(getAccessTokenFromAuthorizationCodeFlowCallbacked)
 
   function getAccessTokenFromAuthorizationCodeFlow (request, callback) {
     if (!callback) {
-      return getAccessTokenFromAuthorizationCodeFlowPromiseified(request)
+      return getAccessTokenFromAuthorizationCodeFlowPromisified(request)
     }
     getAccessTokenFromAuthorizationCodeFlowCallbacked(request, callback)
   }
