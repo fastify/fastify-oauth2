@@ -228,7 +228,7 @@ t.test('options.callbackUriParams should be and object', t => {
     callbackUriParams: 1
   })
     .ready(err => {
-      t.strictSame(err.message, 'options.generateStateFunction should be a object')
+      t.strictSame(err.message, 'options.callbackUriParams should be a object')
     })
 })
 
