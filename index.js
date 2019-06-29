@@ -30,7 +30,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
     return next(new Error('options.callbackUri should be a string'))
   }
   if (options.callbackUriParams && typeof options.callbackUriParams !== 'object') {
-    return next(new Error('options.generateStateFunction should be a object'))
+    return next(new Error('options.callbackUriParams should be a object'))
   }
   if (options.generateStateFunction && typeof options.generateStateFunction !== 'function') {
     return next(new Error('options.generateStateFunction should be a function'))
