@@ -210,6 +210,67 @@ t.test('options.callbackUri should be and object', t => {
     })
 })
 
+t.test('options.callbackUriParams should be and object', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    callbackUriParams: 1
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.callbackUriParams should be a object')
+    })
+})
+
+t.test('options.callbackUriParams', t => {
+  const fastify = createFastify({ logger: true })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    startRedirectPath: '/login/github',
+    callbackUri: '/callback',
+    callbackUriParams: {
+      access_type: 'offline'
+    },
+    scope: ['notifications']
+  })
+
+  t.tearDown(fastify.close.bind(fastify))
+
+  fastify.listen(0, function (err) {
+    t.error(err)
+
+    fastify.inject({
+      method: 'GET',
+      url: '/login/github'
+    }, function (err, responseStart) {
+      t.error(err)
+
+      t.equal(responseStart.statusCode, 302)
+      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&access_type=offline&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
+      t.ok(matched)
+      t.end()
+    })
+  })
+})
+
 t.test('options.generateStateFunction should be and object', t => {
   t.plan(1)
 
