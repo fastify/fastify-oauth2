@@ -1,17 +1,15 @@
 'use strict'
 
 const defaultState = require('crypto').randomBytes(10).toString('hex')
-
 const fp = require('fastify-plugin')
 const oauth2Module = require('simple-oauth2')
-
 const promisify = require('util').promisify || require('es6-promisify').promisify
 
-function defaultGenerateStateFunction () {
+function defaultGenerateStateFunction() {
   return defaultState
 }
 
-function defaultCheckStateFunction (state, callback) {
+function defaultCheckStateFunction(state, callback) {
   if (state === defaultState) {
     callback()
     return
@@ -44,15 +42,15 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   const name = options.name
   const credentials = options.credentials
+  const oauth2 = oauth2Module.create(credentials)
   const callbackUri = options.callbackUri
   const scope = options.scope
   const generateStateFunction = options.generateStateFunction || defaultGenerateStateFunction
   const checkStateFunction = options.checkStateFunction || defaultCheckStateFunction
   const startRedirectPath = options.startRedirectPath
 
-  function startRedirectHandler (request, reply) {
+  function startRedirectHandler(request, reply) {
     const state = generateStateFunction()
-
     const authorizationUri = this[name].authorizationCode.authorizeURL({
       redirect_uri: callbackUri,
       scope: scope,
@@ -68,10 +66,9 @@ const oauthPlugin = fp(function (fastify, options, next) {
     }, callback)
   }
 
-  function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, callback) {
+  function getAccessTokenFromAuthorizationCodeFlowCallbacked(request, callback) {
     const code = request.query.code
     const state = request.query.state
-
     checkStateFunction(state, function (err) {
       if (err) {
         callback(err)
@@ -82,22 +79,16 @@ const oauthPlugin = fp(function (fastify, options, next) {
   }
   const getAccessTokenFromAuthorizationCodeFlowPromiseified = promisify(getAccessTokenFromAuthorizationCodeFlowCallbacked)
 
-  function getAccessTokenFromAuthorizationCodeFlow (request, callback) {
+  function getAccessTokenFromAuthorizationCodeFlow(request, callback) {
     if (!callback) {
       return getAccessTokenFromAuthorizationCodeFlowPromiseified(request)
     }
     getAccessTokenFromAuthorizationCodeFlowCallbacked(request, callback)
   }
 
-  const oauth2 = oauth2Module.create(credentials)
-
   if (startRedirectPath) {
     fastify.get(startRedirectPath, startRedirectHandler)
     Object.assign(oauth2, { getAccessTokenFromAuthorizationCodeFlow })
-    if (!fastify.hasDecorator('getAccessTokenFromAuthorizationCodeFlow')) {
-      // NOTE:This is to keep it backward compatible.
-      fastify.decorate('getAccessTokenFromAuthorizationCodeFlow', getAccessTokenFromAuthorizationCodeFlow)
-    }
   }
 
   try {
@@ -106,7 +97,6 @@ const oauthPlugin = fp(function (fastify, options, next) {
     next(e)
     return
   }
-
   next()
 })
 
@@ -135,6 +125,13 @@ oauthPlugin.GOOGLE_CONFIGURATION = {
   authorizePath: '/o/oauth2/v2/auth',
   tokenHost: 'https://www.googleapis.com',
   tokenPath: '/oauth2/v4/token'
+}
+
+oauthPlugin.TWITCH_CONFIGURATION = {
+  authorizeHost: 'https://id.twitch.tv',
+  authorizePath: '/oauth2/authorize',
+  tokenHost: 'https://id.twitch.tv',
+  tokenPath: '/oauth2/token'
 }
 
 module.exports = oauthPlugin
