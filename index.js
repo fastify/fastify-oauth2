@@ -138,4 +138,11 @@ oauthPlugin.GOOGLE_CONFIGURATION = {
   tokenPath: '/oauth2/v4/token'
 }
 
+oauthPlugin.MICROSOFT_CONFIGURATION = {
+  authorizeHost: 'https://login.microsoftonline.com',
+  authorizePath: '/common/oauth2/v2.0/authorize',
+  tokenHost: 'https://login.microsoftonline.com',
+  tokenPath: '/common/oauth2/v2.0/token'
+}
+
 module.exports = oauthPlugin
