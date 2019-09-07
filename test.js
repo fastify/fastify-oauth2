@@ -31,9 +31,18 @@ function makeRequests (t, fastify) {
         expires_in: '240000'
       }
 
+      const RESPONSE_BODY_REFRESHED = {
+        access_token: 'my-access-token-refreshed',
+        refresh_token: 'my-refresh-token-refreshed',
+        token_type: 'bearer',
+        expires_in: '240000'
+      }
+
       const githubScope = nock('https://github.com')
         .post('/login/oauth/access_token', 'code=my-code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&grant_type=authorization_code&client_id=my-client-id&client_secret=my-secret')
         .reply(200, RESPONSE_BODY)
+        .post('/login/oauth/access_token', 'grant_type=refresh_token&refresh_token=my-refresh-token&client_id=my-client-id&client_secret=my-secret')
+        .reply(200, RESPONSE_BODY_REFRESHED)
 
       fastify.inject({
         method: 'GET',
@@ -42,7 +51,7 @@ function makeRequests (t, fastify) {
         t.error(err)
 
         t.equal(responseEnd.statusCode, 200)
-        t.strictSame(JSON.parse(responseEnd.payload), RESPONSE_BODY)
+        t.strictSame(JSON.parse(responseEnd.payload), RESPONSE_BODY_REFRESHED)
 
         githubScope.done()
 
@@ -74,12 +83,18 @@ t.test('fastify-oauth2', t => {
       this.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
         if (err) throw err
 
-        const token = this.githubOAuth2.accessToken.create(result)
-        reply.send({
-          access_token: token.token.access_token,
-          refresh_token: token.token.refresh_token,
-          expires_in: token.token.expires_in,
-          token_type: token.token.token_type
+        // attempts to refresh the token
+        this.getNewAccessTokenWithRefreshToken(result.refresh_token, undefined, (err, result) => {
+          if (err) throw err
+
+          const newToken = result
+
+          reply.send({
+            access_token: newToken.token.access_token,
+            refresh_token: newToken.token.refresh_token,
+            expires_in: newToken.token.expires_in,
+            token_type: newToken.token.token_type
+          })
         })
       })
     })
@@ -109,7 +124,10 @@ t.test('fastify-oauth2', t => {
     fastify.get('/', function (request, reply) {
       return this.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
-          const token = this.githubOAuth2.accessToken.create(result)
+          // attempts to refresh the token
+          return this.getNewAccessTokenWithRefreshToken(result.refresh_token)
+        })
+        .then(token => {
           return {
             access_token: token.token.access_token,
             refresh_token: token.token.refresh_token,

@@ -35,6 +35,9 @@ fastify.get('/login/facebook/callback', async function (request, reply) {
 
   console.log(result.access_token)
 
+  // if later you need to refresh the token you can use
+  // this.getNewAccessTokenWithRefreshToken(result.refresh_token)
+
   reply.send({ access_token: result.access_token })
 })
 ```
