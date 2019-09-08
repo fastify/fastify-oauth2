@@ -1,6 +1,6 @@
 {
   "name": "fastify-oauth2",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Perform login using oauth2 protocol",
   "main": "index.js",
   "scripts": {
