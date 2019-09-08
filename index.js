@@ -94,11 +94,25 @@ const oauthPlugin = fp(function (fastify, options, next) {
     getAccessTokenFromAuthorizationCodeFlowCallbacked(request, callback)
   }
 
+  function getNewAccessTokenUsingRefreshTokenCallbacked (refreshToken, params, callback) {
+    const accessToken = fastify[name].accessToken.create({ refresh_token: refreshToken })
+    accessToken.refresh(params, callback)
+  }
+  const getNewAccessTokenUsingRefreshTokenPromisified = promisify(getNewAccessTokenUsingRefreshTokenCallbacked)
+
+  function getNewAccessTokenUsingRefreshToken (refreshToken, params, callback) {
+    if (!callback) {
+      return getNewAccessTokenUsingRefreshTokenPromisified(refreshToken, params)
+    }
+    getNewAccessTokenUsingRefreshTokenCallbacked(refreshToken, params, callback)
+  }
+
   const oauth2 = oauth2Module.create(credentials)
 
   if (startRedirectPath) {
     fastify.get(startRedirectPath, startRedirectHandler)
     fastify.decorate('getAccessTokenFromAuthorizationCodeFlow', getAccessTokenFromAuthorizationCodeFlow)
+    fastify.decorate('getNewAccessTokenUsingRefreshToken', getNewAccessTokenUsingRefreshToken)
   }
 
   try {
