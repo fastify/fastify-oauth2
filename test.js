@@ -84,7 +84,7 @@ t.test('fastify-oauth2', t => {
         if (err) throw err
 
         // attempts to refresh the token
-        this.getNewAccessTokenWithRefreshToken(result.refresh_token, undefined, (err, result) => {
+        this.getNewAccessTokenUsingRefreshToken(result.refresh_token, undefined, (err, result) => {
           if (err) throw err
 
           const newToken = result
@@ -125,7 +125,7 @@ t.test('fastify-oauth2', t => {
       return this.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
           // attempts to refresh the token
-          return this.getNewAccessTokenWithRefreshToken(result.refresh_token)
+          return this.getNewAccessTokenUsingRefreshToken(result.refresh_token)
         })
         .then(token => {
           return {
