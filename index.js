@@ -159,4 +159,11 @@ oauthPlugin.MICROSOFT_CONFIGURATION = {
   tokenPath: '/common/oauth2/v2.0/token'
 }
 
+oauthPlugin.VKONTAKTE_CONFIGURATION = {
+  authorizeHost: 'https://oauth.vk.com',
+  authorizePath: '/authorize',
+  tokenHost: 'https://oauth.vk.com',
+  tokenPath: '/access_token'
+}
+
 module.exports = oauthPlugin
