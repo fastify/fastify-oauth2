@@ -42,9 +42,45 @@ fastify.get('/login/facebook/callback', async function (request, reply) {
 })
 ```
 
+### Preset configurations
+
+You can choose some default setup to assign to `auth` option.
+
+- `FACEBOOK_CONFIGURATION`
+- `GITHUB_CONFIGURATION`
+- `LINKEDIN_CONFIGURATION`
+- `GOOGLE_CONFIGURATION`
+- `MICROSOFT_CONFIGURATION`
+- `VKONTAKTE_CONFIGURATION`
+- `SPOTIFY_CONFIGURATION`
+
+### Custom configuration
+
+Of course you can set the OAUTH endpoints by yourself if a preset is not in our module:
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'customOauth2',
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>'
+    },
+    auth: {
+      authorizeHost: 'https://my-site.com',
+      authorizePath: '/authorize',
+      tokenHost: 'https://token.my-site.com',
+      tokenPath: '/api/token'
+    }
+  },
+  startRedirectPath: '/login',
+  callbackUri: 'http://localhost:3000/login/callback'
+})
+```
+
 ## Example
 
-See [facebook example](./examples/facebook.js) for an example.
+See the [`example/`](./examples/) folder for more example.
 
 ## Reference
 
