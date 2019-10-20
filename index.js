@@ -166,4 +166,11 @@ oauthPlugin.VKONTAKTE_CONFIGURATION = {
   tokenPath: '/access_token'
 }
 
+oauthPlugin.SPOTIFY_CONFIGURATION = {
+  authorizeHost: 'https://accounts.spotify.com',
+  authorizePath: '/authorize',
+  tokenHost: 'https://accounts.spotify.com',
+  tokenPath: '/api/token'
+}
+
 module.exports = oauthPlugin
