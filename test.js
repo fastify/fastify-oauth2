@@ -80,11 +80,11 @@ t.test('fastify-oauth2', t => {
     })
 
     fastify.get('/', function (request, reply) {
-      this.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
+      this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
         if (err) throw err
 
         // attempts to refresh the token
-        this.getNewAccessTokenUsingRefreshToken(result.refresh_token, undefined, (err, result) => {
+        this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.refresh_token, undefined, (err, result) => {
           if (err) throw err
 
           const newToken = result
@@ -122,10 +122,10 @@ t.test('fastify-oauth2', t => {
     })
 
     fastify.get('/', function (request, reply) {
-      return this.getAccessTokenFromAuthorizationCodeFlow(request)
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
           // attempts to refresh the token
-          return this.getNewAccessTokenUsingRefreshToken(result.refresh_token)
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.refresh_token)
         })
         .then(token => {
           return {
@@ -159,7 +159,7 @@ t.test('fastify-oauth2', t => {
     })
 
     fastify.get('/', function (request, reply) {
-      return this.getAccessTokenFromAuthorizationCodeFlow(request)
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
         .catch(e => {
           reply.code(400)
           return e.message
@@ -208,7 +208,7 @@ t.test('options.credentials should be and object', t => {
     })
 })
 
-t.test('options.callbackUri should be and object', t => {
+t.test('options.callbackUri should be an object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
@@ -228,7 +228,7 @@ t.test('options.callbackUri should be and object', t => {
     })
 })
 
-t.test('options.callbackUriParams should be and object', t => {
+t.test('options.callbackUriParams should be an object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })

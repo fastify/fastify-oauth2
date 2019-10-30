@@ -111,8 +111,8 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   if (startRedirectPath) {
     fastify.get(startRedirectPath, startRedirectHandler)
-    fastify.decorate('getAccessTokenFromAuthorizationCodeFlow', getAccessTokenFromAuthorizationCodeFlow)
-    fastify.decorate('getNewAccessTokenUsingRefreshToken', getNewAccessTokenUsingRefreshToken)
+    Object.assign(oauth2, { getAccessTokenFromAuthorizationCodeFlow })
+    Object.assign(oauth2, { getNewAccessTokenUsingRefreshToken })
   }
 
   try {
