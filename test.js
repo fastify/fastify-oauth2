@@ -195,7 +195,7 @@ t.test('options.name should be a string', t => {
     })
 })
 
-t.test('options.credentials should be and object', t => {
+t.test('options.credentials should be an object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
@@ -289,7 +289,7 @@ t.test('options.callbackUriParams', t => {
   })
 })
 
-t.test('options.generateStateFunction should be and object', t => {
+t.test('options.generateStateFunction should be an object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
@@ -311,7 +311,7 @@ t.test('options.generateStateFunction should be and object', t => {
     })
 })
 
-t.test('options.checkStateFunction should be and object', t => {
+t.test('options.checkStateFunction should be an object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
