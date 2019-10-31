@@ -1,5 +1,5 @@
 {
-  "name": "fastify-oauth2",
+  "name": "fastify-oauth2-multi",
   "version": "2.5.0",
   "description": "Perform login using oauth2 protocol",
   "main": "index.js",
