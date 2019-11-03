@@ -62,12 +62,12 @@ const oauthPlugin = fp(function (fastify, options, next) {
       state: state
     })
 
-    const authorizationUri = this[name].authorizationCode.authorizeURL(urlOptions)
+    const authorizationUri = this[name].oauth2.authorizationCode.authorizeURL(urlOptions)
     reply.redirect(authorizationUri)
   }
 
   const cbk = function (o, code, callback) {
-    return o.authorizationCode.getToken({
+    return o.oauth2.authorizationCode.getToken({
       code: code,
       redirect_uri: callbackUri
     }, callback)
@@ -95,7 +95,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
   }
 
   function getNewAccessTokenUsingRefreshTokenCallbacked (refreshToken, params, callback) {
-    const accessToken = fastify[name].accessToken.create({ refresh_token: refreshToken })
+    const accessToken = fastify[name].oauth2.accessToken.create({ refresh_token: refreshToken })
     accessToken.refresh(params, callback)
   }
   const getNewAccessTokenUsingRefreshTokenPromisified = promisify(getNewAccessTokenUsingRefreshTokenCallbacked)
@@ -111,12 +111,14 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   if (startRedirectPath) {
     fastify.get(startRedirectPath, startRedirectHandler)
-    Object.assign(oauth2, { getAccessTokenFromAuthorizationCodeFlow })
-    Object.assign(oauth2, { getNewAccessTokenUsingRefreshToken })
   }
 
   try {
-    fastify.decorate(name, oauth2)
+    fastify.decorate(name, {
+      oauth2: oauth2,
+      getAccessTokenFromAuthorizationCodeFlow,
+      getNewAccessTokenUsingRefreshToken
+    })
   } catch (e) {
     next(e)
     return
