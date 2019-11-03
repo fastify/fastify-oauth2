@@ -16,7 +16,7 @@ fastify.register(oauthPlugin, {
 })
 
 fastify.get('/login/vk/callback', async (req, reply) => {
-  const token = await fastify.getAccessTokenFromAuthorizationCodeFlow(req)
+  const token = await fastify.vkOAuth2.getAccessTokenFromAuthorizationCodeFlow(req)
 
   console.log(token)
   reply.send({ access_token: token.access_token })
