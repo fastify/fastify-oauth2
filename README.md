@@ -1,7 +1,5 @@
 # fastify-oauth2
 
-THIS IS [CLONE](https://github.com/gjovanov/fastify-oauth2) FROM: ['fastify-oauth2'](https://github.com/fastify/fastify-oauth2) with support for multiple strategies based on [PR #34](https://github.com/fastify/fastify-oauth2/pull/34) which still is neither accepted nor rejected thus not merged.
-
 Wrap around [`simple-oauth2`](https://github.com/lelylan/simple-oauth2) library.
 
 ## Install
