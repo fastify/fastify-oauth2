@@ -25,12 +25,12 @@
   "homepage": "https://github.com/fastify/fastify-oauth2#readme",
   "devDependencies": {
     "fastify": "^2.0.1",
-    "nock": "^12.0.3",
+    "nock": "^9.0.0",
     "pre-commit": "^1.2.2",
     "simple-get": "^3.0.2",
     "snazzy": "^8.0.0",
     "standard": "^14.3.3",
-    "tap": "^14.10.6"
+    "tap": "^12.0.0"
   },
   "dependencies": {
     "es6-promisify": "^6.0.0",
