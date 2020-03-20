@@ -26,7 +26,7 @@ fastify.get('/login/facebook/callback', function (request, reply) {
     }
 
     sget.concat({
-      url: 'https://graph.facebook.com/v3.0/me',
+      url: 'https://graph.facebook.com/v6.0/me',
       method: 'GET',
       headers: {
         Authorization: 'Bearer ' + result.access_token

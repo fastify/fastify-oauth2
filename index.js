@@ -129,9 +129,9 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
 oauthPlugin.FACEBOOK_CONFIGURATION = {
   authorizeHost: 'https://facebook.com',
-  authorizePath: '/v3.0/dialog/oauth',
+  authorizePath: '/v6.0/dialog/oauth',
   tokenHost: 'https://graph.facebook.com',
-  tokenPath: '/v3.0/oauth/access_token'
+  tokenPath: '/v6.0/oauth/access_token'
 }
 
 oauthPlugin.GITHUB_CONFIGURATION = {
