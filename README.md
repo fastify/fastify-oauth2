@@ -125,6 +125,21 @@ E.g. For `name: 'customOauth2'`, both helpers `getAccessTokenFromAuthorizationCo
 
 ## Usage with Typescript
 
+Type definitions are provided with package. Decoration are applied during runtime and are based on auth configuration name. One solution is leverage typescript declaration merging to add typesafe namespace.
+
+In project declarations files .d.ts
+
+```ts
+import { OAuth2Namespace } from 'fastify-oauth2';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    facebookOAuth2: OAuth2Namespace;
+    myCustomOAuth2: OAuth2Namespace;
+  }
+}
+```
+
 ## License
 
 Licensed under [MIT](./LICENSE).
