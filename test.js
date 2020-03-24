@@ -290,6 +290,7 @@ t.test('options.callbackUriParams', t => {
 })
 
 t.test('options.generateStateFunction with request', t => {
+  t.plan(5)
   const fastify = createFastify({ logger: true })
 
   fastify.register(oauthPlugin, {
@@ -303,7 +304,10 @@ t.test('options.generateStateFunction with request', t => {
     },
     startRedirectPath: '/login/github',
     callbackUri: '/callback',
-    generateStateFunction: (request) => request.query.code,
+    generateStateFunction: (request) => {
+      t.ok(request, 'the request param has been set')
+      return request.query.code
+    },
     checkStateFunction: () => true,
     scope: ['notifications']
   })
@@ -322,7 +326,6 @@ t.test('options.generateStateFunction with request', t => {
       t.equal(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
       t.ok(matched)
-      t.end()
     })
   })
 })
