@@ -289,6 +289,44 @@ t.test('options.callbackUriParams', t => {
   })
 })
 
+t.test('options.generateStateFunction with request', t => {
+  const fastify = createFastify({ logger: true })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    startRedirectPath: '/login/github',
+    callbackUri: '/callback',
+    generateStateFunction: (request) => request.query.code,
+    checkStateFunction: () => true,
+    scope: ['notifications']
+  })
+
+  t.tearDown(fastify.close.bind(fastify))
+
+  fastify.listen(0, function (err) {
+    t.error(err)
+
+    fastify.inject({
+      method: 'GET',
+      url: '/login/github',
+      query: { code: 'generated_code' }
+    }, function (err, responseStart) {
+      t.error(err)
+      t.equal(responseStart.statusCode, 302)
+      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
+      t.ok(matched)
+      t.end()
+    })
+  })
+})
+
 t.test('options.generateStateFunction should be an object', t => {
   t.plan(1)
 
