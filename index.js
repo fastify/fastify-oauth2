@@ -55,7 +55,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
   const startRedirectPath = options.startRedirectPath
 
   function startRedirectHandler (request, reply) {
-    const state = generateStateFunction()
+    const state = generateStateFunction(request)
     const urlOptions = Object.assign({}, callbackUriParams, {
       redirect_uri: callbackUri,
       scope: scope,

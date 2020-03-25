@@ -78,6 +78,44 @@ fastify.register(oauthPlugin, {
 })
 ```
 
+## Set custom state
+
+The `generateStateFunction` accepts a function to generate the `state` parameter for the OAUTH flow. This function receives the Fastify's `request` object as parameter.
+When you set it, it is required to provide the function `checkStateFunction` also in order to validate the states generated.
+
+```js
+  const validStates = new Set()
+
+  fastify.register(oauthPlugin, {
+    name: 'facebookOAuth2',
+    credentials: {
+      client: {
+        id: '<CLIENT_ID>',
+        secret: '<CLIENT_SECRET>'
+      },
+      auth: oauthPlugin.FACEBOOK_CONFIGURATION
+    },
+    // register a fastify url to start the redirect flow
+    startRedirectPath: '/login/facebook',
+    // facebook redirect here after the user login
+    callbackUri: 'http://localhost:3000/login/facebook/callback',
+    // custom function to generate the state
+    generateStateFunction: (request) => {
+      const state = request.query.customCode
+      validStates.add(state)
+      return state
+    },
+    // custom function to check the state is valid
+    checkStateFunction: (returnedState, callback) => {
+      if (validStates.has(returnedState)) {
+        callback()
+        return
+      }
+      callback(new Error('Invalid state'))
+    }
+  })
+```
+
 ## Example
 
 See the [`example/`](./examples/) folder for more example.
