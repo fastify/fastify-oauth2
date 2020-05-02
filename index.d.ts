@@ -4,7 +4,7 @@ import * as http from 'http';
 declare function fastifyOauth2(
   instance: fastify.FastifyInstance<http.Server, http.IncomingMessage, http.ServerResponse>,
   options: fastifyOauth2.FastifyOAuth2Options,
-  callback: (err?: fastify.FastifyError) => void
+  callback: (err?: fastify.FastifyError) => void,
 ): void;
 
 declare namespace fastifyOauth2 {
@@ -16,33 +16,30 @@ declare namespace fastifyOauth2 {
   const SPOTIFY_CONFIGURATION: ProviderConfiguration;
   const VKONTAKTE_CONFIGURATION: ProviderConfiguration;
 
-  interface OAuth2Token{
+  interface OAuth2Token {
     token_type: 'bearer';
     access_token: string;
     refresh_token?: string;
-    expires_in: number
+    expires_in: number;
   }
 
-  interface OAuth2Namespace{
+  interface OAuth2Namespace {
     getAccessTokenFromAuthorizationCodeFlow(
       request: fastify.FastifyRequest<http.IncomingMessage>,
-    ): Promise<OAuth2Token>
+    ): Promise<OAuth2Token>;
 
     getAccessTokenFromAuthorizationCodeFlow(
       request: fastify.FastifyRequest<http.IncomingMessage>,
-      callback: (token: OAuth2Token) => void
-    ): void
+      callback: (token: OAuth2Token) => void,
+    ): void;
 
     getNewAccessTokenUsingRefreshToken(
       refreshToken: string,
       params: Object,
-      callback: (token: OAuth2Token) => void
-    ): void
+      callback: (token: OAuth2Token) => void,
+    ): void;
 
-    getNewAccessTokenUsingRefreshToken(
-      refreshToken: string,
-      params: Object,
-    ): Promise<OAuth2Token>
+    getNewAccessTokenUsingRefreshToken(refreshToken: string, params: Object): Promise<OAuth2Token>;
   }
 
   interface ProviderConfiguration {
