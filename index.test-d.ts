@@ -42,11 +42,10 @@ declare module 'fastify' {
 expectType<fastifyOauth2.ProviderConfiguration>(auth);
 expectType<string[]>(scope);
 expectType<fastifyOauth2.Credentials>(credentials);
-expectType<fastifyOauth2.Credentials>(credentials);
 
 expectType<void>(fastifyOauth2(server, OAuth2Options, () => {}));
 expectError(fastifyOauth2()); // error because missing required arguments
-expectError(fastifyOauth2(server, {}, () => {})); // error because missing required plugin options
+expectError(fastifyOauth2(server, {}, () => {})); // error because missing required options
 
 expectAssignable<fastifyOauth2.ProviderConfiguration>(fastifyOauth2.FACEBOOK_CONFIGURATION);
 expectAssignable<fastifyOauth2.ProviderConfiguration>(fastifyOauth2.GITHUB_CONFIGURATION);
@@ -59,8 +58,8 @@ expectAssignable<fastifyOauth2.ProviderConfiguration>(fastifyOauth2.VKONTAKTE_CO
 server.get('/testOauth/callback', async request => {
   expectType<fastifyOauth2.OAuth2Namespace>(server.testOAuthName);
 
-  const token = await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request);
-  expectType<fastifyOauth2.OAuth2Token>(token);
+  expectType<fastifyOauth2.OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
+  expectType<Promise<fastifyOauth2.OAuth2Token>>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
   expectType<void>(
     server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (t: fastifyOauth2.OAuth2Token): void => {}),
   );
@@ -71,9 +70,13 @@ server.get('/testOauth/callback', async request => {
   ); // error because non-Promise function call should return void and have a callback argument
   expectError<void>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)); // error because function call does not pass a callback as second argument.
 
+  const token = await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request);
   if (token.refresh_token) {
     expectType<fastifyOauth2.OAuth2Token>(
       await server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {}),
+    );
+    expectType<Promise<fastifyOauth2.OAuth2Token>>(
+      server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {}),
     );
     expectType<void>(
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(
