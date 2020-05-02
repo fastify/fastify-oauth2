@@ -332,7 +332,7 @@ t.test('options.generateStateFunction with request', t => {
 
 t.test('generateAuthorizationUri redirect with request object', t => {
   t.plan(4)
-  const fastify = createFastify({ logger: true })
+  const fastify = createFastify()
 
   fastify.register(oauthPlugin, {
     name: 'theName',
