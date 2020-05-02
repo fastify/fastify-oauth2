@@ -6,7 +6,8 @@
   "scripts": {
     "lint": "standard | snazzy",
     "unit": "tap test.js",
-    "test": "npm run lint && npm run unit",
+    "test": "npm run lint && npm run unit && npm run test:typescript",
+    "test:typescript": "tsd",
     "coverage": "npm run unit -- --cov --coverage-report=html"
   },
   "repository": {
@@ -30,7 +31,8 @@
     "simple-get": "^3.0.2",
     "snazzy": "^8.0.0",
     "standard": "^14.3.3",
-    "tap": "^12.0.0"
+    "tap": "^12.0.0",
+    "tsd": "^0.11.0"
   },
   "dependencies": {
     "es6-promisify": "^6.0.0",
