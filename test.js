@@ -330,6 +330,47 @@ t.test('options.generateStateFunction with request', t => {
   })
 })
 
+t.test('generateAuthorizationUri redirect with request object', t => {
+  t.plan(4)
+  const fastify = createFastify({ logger: true })
+
+  fastify.register(oauthPlugin, {
+    name: 'theName',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    generateStateFunction: (request) => {
+      t.ok(request, 'the request param has been set')
+      return request.query.code
+    },
+    checkStateFunction: () => true,
+    scope: ['notifications']
+  })
+
+  fastify.get('/gh', function (request, reply) {
+    const redirectUrl = this.theName.generateAuthorizationUri(request)
+    return reply.redirect(redirectUrl)
+  })
+
+  t.tearDown(fastify.close.bind(fastify))
+
+  fastify.inject({
+    method: 'GET',
+    url: '/gh',
+    query: { code: 'generated_code' }
+  }, function (err, responseStart) {
+    t.error(err)
+    t.equal(responseStart.statusCode, 302)
+    const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
+    t.ok(matched)
+  })
+})
+
 t.test('options.generateStateFunction should be an object', t => {
   t.plan(1)
 
@@ -367,7 +408,7 @@ t.test('options.checkStateFunction should be an object', t => {
       auth: oauthPlugin.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
-    generateStateFunction: () => {},
+    generateStateFunction: () => { },
     checkStateFunction: 42
   })
     .ready(err => {
@@ -412,7 +453,7 @@ t.test('options.generateStateFunction ^ options.checkStateFunction', t => {
       auth: oauthPlugin.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
-    checkStateFunction: () => {}
+    checkStateFunction: () => { }
   })
     .ready(err => {
       t.strictSame(err.message, 'options.checkStateFunction and options.generateStateFunction have to be given')
