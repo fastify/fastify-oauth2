@@ -147,7 +147,7 @@ Assuming we have registered multiple OAuth providers like this:
 
 ## Utilities
 
-This fastify plugin adds 2 utility decorators to your fastify instance using the same **namespace**:
+This fastify plugin adds 3 utility decorators to your fastify instance using the same **namespace**:
 
 - `getAccessTokenFromAuthorizationCodeFlow(request, callback)`: A function that uses the Authorization code flow to fetch an OAuth2 token using the data in the last request of the flow. If the callback is not passed it will return a promise. The object resulting from the callback call or the promise resolution is a *token response* object containing the following keys:
   - `access_token`
@@ -155,8 +155,16 @@ This fastify plugin adds 2 utility decorators to your fastify instance using the
   - `token_type` (generally `'bearer'`)
   - `expires_in` (number of seconds for the token to expire, e.g. `240000`)
 - `getNewAccessTokenUsingRefreshToken(refreshToken, params, callback)`: A function that takes a refresh token and retrieves a new *token response* object. This is generally useful with background processing workers to re-issue a new token when the original token has expired. The `params` argument is optional and it's an object that can be used to pass in extra parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a promise. The object resulting from the callback call or the promise resolution is a new *token response* object (see fields above).
+- `generateAuthorizationUri(requestObject)`: A function that returns the authorization uri. This is generally useful when you want to handle the redirect yourself in a specific route. The `requestObject` argument passes the request object to the `generateStateFunction`). You **don't** need to declare a `startRedirectPath` if you use this approach. Example of how you would use it:
 
-E.g. For `name: 'customOauth2'`, both helpers `getAccessTokenFromAuthorizationCodeFlow` and `getNewAccessTokenUsingRefreshToken` will become accessible like this:
+```js
+fastify.get('/external', { /* Hooks can be used here */ }, async (req, reply) => {
+  const authorizationEndpoint = fastify.customOAuth2.generateAuthorizationUri(req);
+  reply.redirect(authorizationEndpoint)
+});
+```
+
+E.g. For `name: 'customOauth2'`, the helpers `getAccessTokenFromAuthorizationCodeFlow` and `getNewAccessTokenUsingRefreshToken` will become accessible like this:
 
 - `fastify.customOauth2.getAccessTokenFromAuthorizationCodeFlow`
 - `fastify.customOauth2.getNewAccessTokenUsingRefreshToken`
