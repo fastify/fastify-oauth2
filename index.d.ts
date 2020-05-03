@@ -56,7 +56,6 @@ export interface FastifyOAuth2Options {
   startRedirectPath: string;
 }
 
-
 declare const fastifyOauth2: FastifyPlugin<FastifyOAuth2Options>
 
 declare namespace fastifyOauth2 {

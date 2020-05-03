@@ -19,7 +19,7 @@ function defaultCheckStateFunction (state, callback) {
   callback(new Error('Invalid state'))
 }
 
-const oauthPlugin = fp(function (fastify, options, next) {
+const oauthPlugin = function (fastify, options, next) {
   if (typeof options.name !== 'string') {
     return next(new Error('options.name should be a string'))
   }
@@ -125,7 +125,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
   }
 
   next()
-})
+}
 
 oauthPlugin.FACEBOOK_CONFIGURATION = {
   authorizeHost: 'https://facebook.com',
@@ -175,4 +175,7 @@ oauthPlugin.SPOTIFY_CONFIGURATION = {
   tokenPath: '/api/token'
 }
 
-module.exports = oauthPlugin
+module.exports = fp(oauthPlugin, {
+  fastify: '>=3.x',
+  name: 'fastify-oauth2'
+})
