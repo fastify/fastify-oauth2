@@ -1,6 +1,7 @@
-import * as fastify from 'fastify';
+import fastify, { FastifyInstance } from 'fastify';
 import * as fastifyOauth2 from '.';
 import { expectType, expectError, expectAssignable } from 'tsd';
+import { Server, IncomingMessage, ServerResponse } from 'http';
 
 /**
  * Preparing some data for testing.
@@ -43,7 +44,6 @@ expectType<fastifyOauth2.ProviderConfiguration>(auth);
 expectType<string[]>(scope);
 expectType<fastifyOauth2.Credentials>(credentials);
 
-expectType<void>(fastifyOauth2(server, OAuth2Options, () => {}));
 expectError(fastifyOauth2()); // error because missing required arguments
 expectError(fastifyOauth2(server, {}, () => {})); // error because missing required options
 
