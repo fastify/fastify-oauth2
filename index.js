@@ -54,15 +54,21 @@ const oauthPlugin = fp(function (fastify, options, next) {
   const checkStateFunction = options.checkStateFunction || defaultCheckStateFunction
   const startRedirectPath = options.startRedirectPath
 
-  function startRedirectHandler (request, reply) {
-    const state = generateStateFunction(request)
+  function generateAuthorizationUri (requestObject) {
+    const state = generateStateFunction(requestObject)
     const urlOptions = Object.assign({}, callbackUriParams, {
       redirect_uri: callbackUri,
       scope: scope,
       state: state
     })
 
-    const authorizationUri = this[name].oauth2.authorizationCode.authorizeURL(urlOptions)
+    const authorizationUri = oauth2.authorizationCode.authorizeURL(urlOptions)
+    return authorizationUri
+  }
+
+  function startRedirectHandler (request, reply) {
+    const authorizationUri = generateAuthorizationUri(request)
+
     reply.redirect(authorizationUri)
   }
 
@@ -117,7 +123,8 @@ const oauthPlugin = fp(function (fastify, options, next) {
     fastify.decorate(name, {
       oauth2: oauth2,
       getAccessTokenFromAuthorizationCodeFlow,
-      getNewAccessTokenUsingRefreshToken
+      getNewAccessTokenUsingRefreshToken,
+      generateAuthorizationUri
     })
   } catch (e) {
     next(e)
