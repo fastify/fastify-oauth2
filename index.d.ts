@@ -1,10 +1,9 @@
-import * as fastify from 'fastify';
-import * as http from 'http';
+import { FastifyRequest, FastifyInstance, RawServerBase, RawRequestDefaultExpression, RawReplyDefaultExpression, FastifyError } from 'fastify';
 
-declare function fastifyOauth2(
-  instance: fastify.FastifyInstance<http.Server, http.IncomingMessage, http.ServerResponse>,
-  options: fastifyOauth2.FastifyOAuth2Options,
-  callback: (err?: fastify.FastifyError) => void,
+declare function fastifyOauth2 (
+  instance: FastifyInstance<RawServerBase, RawRequestDefaultExpression<RawServerBase>, RawReplyDefaultExpression<RawServerBase>>,
+  opts: fastifyOauth2.FastifyOAuth2Options,
+  next: (err?: FastifyError) => void
 ): void;
 
 declare namespace fastifyOauth2 {
@@ -25,11 +24,11 @@ declare namespace fastifyOauth2 {
 
   interface OAuth2Namespace {
     getAccessTokenFromAuthorizationCodeFlow(
-      request: fastify.FastifyRequest<http.IncomingMessage>,
+      request: FastifyRequest,
     ): Promise<OAuth2Token>;
 
     getAccessTokenFromAuthorizationCodeFlow(
-      request: fastify.FastifyRequest<http.IncomingMessage>,
+      request: FastifyRequest,
       callback: (token: OAuth2Token) => void,
     ): void;
 

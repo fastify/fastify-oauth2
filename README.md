@@ -1,5 +1,7 @@
 # fastify-oauth2
 
+![CI workflow](https://github.com/fastify/fastify-oauth2/workflows/CI%20workflow/badge.svg)
+
 Wrap around [`simple-oauth2`](https://github.com/lelylan/simple-oauth2) library.
 
 ## Install
