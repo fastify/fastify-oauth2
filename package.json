@@ -37,6 +37,6 @@
   "dependencies": {
     "es6-promisify": "^6.0.0",
     "fastify-plugin": "^2.0.0",
-    "simple-oauth2": "^1.6.0"
+    "simple-oauth2": "^3.4.0"
   }
 }
