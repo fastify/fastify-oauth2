@@ -28,7 +28,7 @@
     "fastify": "^3.0.0-rc.1",
     "nock": "^9.0.0",
     "pre-commit": "^1.2.2",
-    "simple-get": "^3.0.2",
+    "simple-get": "^4.0.0",
     "snazzy": "^8.0.0",
     "standard": "^14.3.3",
     "tap": "^12.0.0",
