@@ -6,6 +6,7 @@ const fp = require('fastify-plugin')
 const oauth2Module = require('simple-oauth2')
 
 const promisify = require('util').promisify || require('es6-promisify').promisify
+const callbackify = require('util').callbackify
 
 function defaultGenerateStateFunction () {
   return defaultState
@@ -73,10 +74,10 @@ const oauthPlugin = fp(function (fastify, options, next) {
   }
 
   const cbk = function (o, code, callback) {
-    return o.oauth2.authorizationCode.getToken({
+    return callbackify(o.oauth2.authorizationCode.getToken.bind(o.oauth2.authorizationCode, {
       code: code,
       redirect_uri: callbackUri
-    }, callback)
+    }))(callback)
   }
 
   function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, callback) {
@@ -102,7 +103,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   function getNewAccessTokenUsingRefreshTokenCallbacked (refreshToken, params, callback) {
     const accessToken = fastify[name].oauth2.accessToken.create({ refresh_token: refreshToken })
-    accessToken.refresh(params, callback)
+    callbackify(accessToken.refresh.bind(accessToken, params))(callback)
   }
   const getNewAccessTokenUsingRefreshTokenPromisified = promisify(getNewAccessTokenUsingRefreshTokenCallbacked)
 
@@ -112,7 +113,6 @@ const oauthPlugin = fp(function (fastify, options, next) {
     }
     getNewAccessTokenUsingRefreshTokenCallbacked(refreshToken, params, callback)
   }
-
   const oauth2 = oauth2Module.create(credentials)
 
   if (startRedirectPath) {
