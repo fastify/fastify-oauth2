@@ -39,9 +39,17 @@ function makeRequests (t, fastify) {
       }
 
       const githubScope = nock('https://github.com')
-        .post('/login/oauth/access_token', 'code=my-code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&grant_type=authorization_code&client_id=my-client-id&client_secret=my-secret')
+        .post('/login/oauth/access_token', 'grant_type=authorization_code&code=my-code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback', {
+          reqheaders: {
+            authorization: 'Basic bXktY2xpZW50LWlkOm15LXNlY3JldA=='
+          }
+        })
         .reply(200, RESPONSE_BODY)
-        .post('/login/oauth/access_token', 'grant_type=refresh_token&refresh_token=my-refresh-token&client_id=my-client-id&client_secret=my-secret')
+        .post('/login/oauth/access_token', 'grant_type=refresh_token&refresh_token=my-refresh-token', {
+          reqheaders: {
+            authorization: 'Basic bXktY2xpZW50LWlkOm15LXNlY3JldA=='
+          }
+        })
         .reply(200, RESPONSE_BODY_REFRESHED)
 
       fastify.inject({
