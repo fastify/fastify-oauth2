@@ -259,7 +259,7 @@ t.test('options.callbackUriParams should be an object', t => {
 })
 
 t.test('options.callbackUriParams', t => {
-  const fastify = createFastify({ logger: true })
+  const fastify = createFastify({ logger: { level: 'silent' } })
 
   fastify.register(oauthPlugin, {
     name: 'the-name',
@@ -299,7 +299,7 @@ t.test('options.callbackUriParams', t => {
 
 t.test('options.generateStateFunction with request', t => {
   t.plan(5)
-  const fastify = createFastify({ logger: true })
+  const fastify = createFastify()
 
   fastify.register(oauthPlugin, {
     name: 'the-name',
