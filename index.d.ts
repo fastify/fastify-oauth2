@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyInstance, RawServerBase, RawRequestDefaultExpression, RawReplyDefaultExpression, FastifyError } from 'fastify';
 
 declare function fastifyOauth2 (
-  instance: FastifyInstance<RawServerBase, RawRequestDefaultExpression<RawServerBase>, RawReplyDefaultExpression<RawServerBase>>,
+  instance: FastifyInstance,
   opts: fastifyOauth2.FastifyOAuth2Options,
   next: (err?: FastifyError) => void
 ): void;
