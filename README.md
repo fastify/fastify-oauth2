@@ -48,6 +48,7 @@ fastify.get('/login/facebook/callback', async function (request, reply) {
 
 You can choose some default setup to assign to `auth` option.
 
+- `APPLE_CONFIGURATION`
 - `FACEBOOK_CONFIGURATION`
 - `GITHUB_CONFIGURATION`
 - `LINKEDIN_CONFIGURATION`

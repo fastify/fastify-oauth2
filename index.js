@@ -137,6 +137,13 @@ const oauthPlugin = fp(function (fastify, options, next) {
   name: 'fastify-oauth2'
 })
 
+oauthPlugin.APPLE_CONFIGURATION = {
+  authorizeHost: 'https://appleid.apple.com',
+  authorizePath: '/auth/authorize',
+  tokenHost: 'https://appleid.apple.com',
+  tokenPath: '/auth/token'
+}
+
 oauthPlugin.FACEBOOK_CONFIGURATION = {
   authorizeHost: 'https://facebook.com',
   authorizePath: '/v6.0/dialog/oauth',

@@ -7,6 +7,7 @@ declare function fastifyOauth2 (
 ): void;
 
 declare namespace fastifyOauth2 {
+  const APPLE_CONFIGURATION: ProviderConfiguration;
   const FACEBOOK_CONFIGURATION: ProviderConfiguration;
   const GITHUB_CONFIGURATION: ProviderConfiguration;
   const LINKEDIN_CONFIGURATION: ProviderConfiguration;
