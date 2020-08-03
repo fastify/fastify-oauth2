@@ -4,6 +4,9 @@
 
 Wrap around [`simple-oauth2`](https://github.com/lelylan/simple-oauth2) library.
 
+v4.x of this module support Fastify v3.x
+[v3.x](https://github.com/fastify/fastify-oauth2/tree/3.x) of this module support Fastify v2.x
+
 ## Install
 
 ```
