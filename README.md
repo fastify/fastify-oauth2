@@ -59,6 +59,7 @@ You can choose some default setup to assign to `auth` option.
 - `MICROSOFT_CONFIGURATION`
 - `VKONTAKTE_CONFIGURATION`
 - `SPOTIFY_CONFIGURATION`
+- `DISCORD_CONFIGURATION`
 
 ### Custom configuration
 
