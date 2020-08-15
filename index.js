@@ -192,4 +192,11 @@ oauthPlugin.SPOTIFY_CONFIGURATION = {
   tokenPath: '/api/token'
 }
 
+oauthPlugin.DISCORD_CONFIGURATION = {
+  authorizeHost: 'https://discord.com',
+  authorizePath: '/api/oauth2/authorize',
+  tokenHost: 'https://discord.com',
+  tokenPath: '/api/oauth2/token'
+}
+
 module.exports = oauthPlugin
