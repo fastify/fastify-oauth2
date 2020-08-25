@@ -66,6 +66,8 @@ declare namespace fastifyOauth2 {
     generateStateFunction?: Function;
     checkStateFunction?: Function;
     startRedirectPath: string;
+    tags?: string[];
+    schema?: Object;
   }
 }
 

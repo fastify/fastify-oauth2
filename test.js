@@ -468,6 +468,92 @@ t.test('options.generateStateFunction ^ options.checkStateFunction', t => {
     })
 })
 
+t.test('options.tags should be a array', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    tags: 'invalid tags'
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.tags should be a array')
+    })
+})
+
+t.test('options.schema should be a object', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    schema: 1
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.schema should be a object')
+    })
+})
+
+t.test('options.schema', t => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    startRedirectPath: '/login/github',
+    callbackUri: '/callback',
+    callbackUriParams: {
+      access_type: 'offline'
+    },
+    scope: ['notifications'],
+    schema: {
+      tags: ['oauth2', 'oauth']
+    }
+  })
+
+  t.tearDown(fastify.close.bind(fastify))
+
+  fastify.listen(0, function (err) {
+    t.error(err)
+
+    fastify.inject({
+      method: 'GET',
+      url: '/login/github'
+    }, function (err, responseStart) {
+      t.error(err)
+
+      t.equal(responseStart.statusCode, 302)
+      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&access_type=offline&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
+      t.ok(matched)
+      t.end()
+    })
+  })
+})
+
 t.test('already decorated', t => {
   t.plan(1)
 

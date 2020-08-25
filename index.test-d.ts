@@ -8,6 +8,10 @@ import { Server, IncomingMessage, ServerResponse } from 'http';
  */
 const auth = fastifyOauth2.GOOGLE_CONFIGURATION;
 const scope = ['r_emailaddress', 'r_basicprofile'];
+const tags = ['oauth2', 'oauth'];
+const schema = {
+  tags
+}
 const credentials = {
   client: {
     id: 'test_id',
