@@ -515,6 +515,11 @@ t.test('options.schema should be a object', t => {
 t.test('options.schema', t => {
   const fastify = createFastify({ logger: { level: 'silent' } })
 
+  fastify.addHook('onRoute', function (routeOptions) {
+    t.strictSame(routeOptions.schema, { tags: ['oauth2', 'oauth'] })
+    t.end()
+  })
+
   fastify.register(oauthPlugin, {
     name: 'the-name',
     credentials: {
@@ -535,23 +540,7 @@ t.test('options.schema', t => {
     }
   })
 
-  t.tearDown(fastify.close.bind(fastify))
-
-  fastify.listen(0, function (err) {
-    t.error(err)
-
-    fastify.inject({
-      method: 'GET',
-      url: '/login/github'
-    }, function (err, responseStart) {
-      t.error(err)
-
-      t.equal(responseStart.statusCode, 302)
-      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&access_type=offline&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
-      t.ok(matched)
-      t.end()
-    })
-  })
+  fastify.ready()
 })
 
 t.test('already decorated', t => {
