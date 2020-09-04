@@ -87,8 +87,8 @@ fastify.register(oauthPlugin, {
 
 ### Schema configuration
 
-You can specify your own schema for the startRedirectPath end-point. It allow you to create a well documented document when using fastify-swagger togather.
-Note: schema option will override the tags option. Please use either one of them.
+You can specify your own schema for the `startRedirectPath` end-point. It allows you to create a well-documented document when using `fastify-swagger` together.
+Note: `schema` option will override the `tags` option without merge them.
 
 ```js
 fastify.register(oauthPlugin, {
@@ -108,7 +108,7 @@ fastify.register(oauthPlugin, {
   tags: ['facebook', 'oauth2'],
   // add schema
   schema: {
-    tags: ['facebook', 'oauth2']
+    tags: ['facebook', 'oauth2'] // this will take the precedence
   }
 })
 ```
