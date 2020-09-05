@@ -22,6 +22,8 @@ export interface FastifyOAuth2Options {
   generateStateFunction?: Function;
   checkStateFunction?: Function;
   startRedirectPath: string;
+  tags?: string[];
+  schema?: object;
 }
 
 export interface OAuth2Token {

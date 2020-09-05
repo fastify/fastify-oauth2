@@ -85,6 +85,34 @@ fastify.register(oauthPlugin, {
 })
 ```
 
+### Schema configuration
+
+You can specify your own schema for the `startRedirectPath` end-point. It allows you to create a well-documented document when using `fastify-swagger` together.
+Note: `schema` option will override the `tags` option without merge them.
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'facebookOAuth2',
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>'
+    },
+    auth: oauthPlugin.FACEBOOK_CONFIGURATION
+  },
+  // register a fastify url to start the redirect flow
+  startRedirectPath: '/login/facebook',
+  // facebook redirect here after the user login
+  callbackUri: 'http://localhost:3000/login/facebook/callback',
+  // add tags for the schema
+  tags: ['facebook', 'oauth2'],
+  // add schema
+  schema: {
+    tags: ['facebook', 'oauth2'] // this will take the precedence
+  }
+})
+```
+
 ## Set custom state
 
 The `generateStateFunction` accepts a function to generate the `state` parameter for the OAUTH flow. This function receives the Fastify's `request` object as parameter.

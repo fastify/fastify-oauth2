@@ -45,6 +45,12 @@ const oauthPlugin = fp(function (fastify, options, next) {
   if (!options.generateStateFunction ^ !options.checkStateFunction) {
     return next(new Error('options.checkStateFunction and options.generateStateFunction have to be given'))
   }
+  if (options.tags && !Array.isArray(options.tags)) {
+    return next(new Error('options.tags should be a array'))
+  }
+  if (options.schema && typeof options.schema !== 'object') {
+    return next(new Error('options.schema should be a object'))
+  }
 
   const name = options.name
   const credentials = options.credentials
@@ -54,6 +60,8 @@ const oauthPlugin = fp(function (fastify, options, next) {
   const generateStateFunction = options.generateStateFunction || defaultGenerateStateFunction
   const checkStateFunction = options.checkStateFunction || defaultCheckStateFunction
   const startRedirectPath = options.startRedirectPath
+  const tags = options.tags || []
+  const schema = options.schema || { tags: tags }
 
   function generateAuthorizationUri (requestObject) {
     const state = generateStateFunction(requestObject)
@@ -116,7 +124,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
   const oauth2 = oauth2Module.create(credentials)
 
   if (startRedirectPath) {
-    fastify.get(startRedirectPath, startRedirectHandler)
+    fastify.get(startRedirectPath, { schema }, startRedirectHandler)
   }
 
   try {

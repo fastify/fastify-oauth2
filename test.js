@@ -468,6 +468,81 @@ t.test('options.generateStateFunction ^ options.checkStateFunction', t => {
     })
 })
 
+t.test('options.tags should be a array', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    tags: 'invalid tags'
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.tags should be a array')
+    })
+})
+
+t.test('options.schema should be a object', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    schema: 1
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.schema should be a object')
+    })
+})
+
+t.test('options.schema', t => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.addHook('onRoute', function (routeOptions) {
+    t.strictSame(routeOptions.schema, { tags: ['oauth2', 'oauth'] })
+    t.end()
+  })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    startRedirectPath: '/login/github',
+    callbackUri: '/callback',
+    callbackUriParams: {
+      access_type: 'offline'
+    },
+    scope: ['notifications'],
+    schema: {
+      tags: ['oauth2', 'oauth']
+    }
+  })
+
+  fastify.ready()
+})
+
 t.test('already decorated', t => {
   t.plan(1)
 
