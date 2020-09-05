@@ -8,6 +8,7 @@ import { Server, IncomingMessage, ServerResponse } from 'http';
  */
 const auth = fastifyOauth2.GOOGLE_CONFIGURATION;
 const scope = ['r_emailaddress', 'r_basicprofile'];
+const tags = ['oauth2', 'oauth'];
 const credentials = {
   client: {
     id: 'test_id',
@@ -42,6 +43,7 @@ declare module 'fastify' {
  */
 expectType<fastifyOauth2.ProviderConfiguration>(auth);
 expectType<string[]>(scope);
+expectType<string[]>(tags);
 expectType<fastifyOauth2.Credentials>(credentials);
 
 expectError(fastifyOauth2()); // error because missing required arguments
