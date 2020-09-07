@@ -1,5 +1,5 @@
 import fastify, { FastifyInstance } from 'fastify';
-import * as fastifyOauth2 from '.';
+import fastifyOauth2, { OAuth2Namespace, ProviderConfiguration, Credentials, OAuth2Token } from '.';
 import { expectType, expectError, expectAssignable } from 'tsd';
 import { Server, IncomingMessage, ServerResponse } from 'http';
 
@@ -34,66 +34,66 @@ server.register(fastifyOauth2, OAuth2Options);
 declare module 'fastify' {
   // Developers need to define this in their code like they have to do with all decorators.
   interface FastifyInstance {
-    testOAuthName: fastifyOauth2.OAuth2Namespace;
+    testOAuthName: OAuth2Namespace;
   }
 }
 
 /**
  * Actual testing.
  */
-expectType<fastifyOauth2.ProviderConfiguration>(auth);
+expectType<ProviderConfiguration>(auth);
 expectType<string[]>(scope);
 expectType<string[]>(tags);
-expectType<fastifyOauth2.Credentials>(credentials);
+expectType<Credentials>(credentials);
 
 expectError(fastifyOauth2()); // error because missing required arguments
 expectError(fastifyOauth2(server, {}, () => {})); // error because missing required options
 
-expectAssignable<fastifyOauth2.ProviderConfiguration>(fastifyOauth2.FACEBOOK_CONFIGURATION);
-expectAssignable<fastifyOauth2.ProviderConfiguration>(fastifyOauth2.GITHUB_CONFIGURATION);
-expectAssignable<fastifyOauth2.ProviderConfiguration>(fastifyOauth2.GOOGLE_CONFIGURATION);
-expectAssignable<fastifyOauth2.ProviderConfiguration>(fastifyOauth2.LINKEDIN_CONFIGURATION);
-expectAssignable<fastifyOauth2.ProviderConfiguration>(fastifyOauth2.MICROSOFT_CONFIGURATION);
-expectAssignable<fastifyOauth2.ProviderConfiguration>(fastifyOauth2.SPOTIFY_CONFIGURATION);
-expectAssignable<fastifyOauth2.ProviderConfiguration>(fastifyOauth2.VKONTAKTE_CONFIGURATION);
+expectAssignable<ProviderConfiguration>(fastifyOauth2.FACEBOOK_CONFIGURATION);
+expectAssignable<ProviderConfiguration>(fastifyOauth2.GITHUB_CONFIGURATION);
+expectAssignable<ProviderConfiguration>(fastifyOauth2.GOOGLE_CONFIGURATION);
+expectAssignable<ProviderConfiguration>(fastifyOauth2.LINKEDIN_CONFIGURATION);
+expectAssignable<ProviderConfiguration>(fastifyOauth2.MICROSOFT_CONFIGURATION);
+expectAssignable<ProviderConfiguration>(fastifyOauth2.SPOTIFY_CONFIGURATION);
+expectAssignable<ProviderConfiguration>(fastifyOauth2.VKONTAKTE_CONFIGURATION);
 
 server.get('/testOauth/callback', async request => {
-  expectType<fastifyOauth2.OAuth2Namespace>(server.testOAuthName);
+  expectType<OAuth2Namespace>(server.testOAuthName);
 
-  expectType<fastifyOauth2.OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
-  expectType<Promise<fastifyOauth2.OAuth2Token>>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
+  expectType<OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
+  expectType<Promise<OAuth2Token>>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
   expectType<void>(
-    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (t: fastifyOauth2.OAuth2Token): void => {}),
+    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (err: any, t: OAuth2Token): void => {}),
   );
 
   expectError<void>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)); // error because Promise should not return void
-  expectError<fastifyOauth2.OAuth2Token>(
-    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (t: fastifyOauth2.OAuth2Token): void => {}),
+  expectError<OAuth2Token>(
+    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (err: any, t: OAuth2Token): void => {}),
   ); // error because non-Promise function call should return void and have a callback argument
   expectError<void>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)); // error because function call does not pass a callback as second argument.
 
   const token = await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request);
   if (token.refresh_token) {
-    expectType<fastifyOauth2.OAuth2Token>(
+    expectType<OAuth2Token>(
       await server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {}),
     );
-    expectType<Promise<fastifyOauth2.OAuth2Token>>(
+    expectType<Promise<OAuth2Token>>(
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {}),
     );
     expectType<void>(
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(
         token.refresh_token,
         {},
-        (t: fastifyOauth2.OAuth2Token): void => {},
+        (err: any, t: OAuth2Token): void => { },
       ),
     );
 
     expectError<void>(await server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {})); // error because Promise should not return void
-    expectError<fastifyOauth2.OAuth2Token>(
+    expectError<OAuth2Token>(
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(
         token.refresh_token,
         {},
-        (t: fastifyOauth2.OAuth2Token): void => {},
+        (err: any, t: OAuth2Token): void => { },
       ),
     ); // error because non-Promise function call should return void and have a callback argument
     expectError<void>(server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {})); // error because function call does not pass a callback as second argument.
