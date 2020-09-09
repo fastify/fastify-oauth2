@@ -5,7 +5,7 @@ const defaultState = require('crypto').randomBytes(10).toString('hex')
 const fp = require('fastify-plugin')
 const oauth2Module = require('simple-oauth2')
 
-const promisify = require('util').promisify || require('es6-promisify').promisify
+const promisify = require('util').promisify
 const callbackify = require('util').callbackify
 
 function defaultGenerateStateFunction () {

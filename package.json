@@ -35,7 +35,6 @@
     "tsd": "^0.11.0"
   },
   "dependencies": {
-    "es6-promisify": "^6.0.0",
     "fastify-plugin": "^2.0.1",
     "simple-oauth2": "^3.4.0"
   }
