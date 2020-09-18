@@ -9,13 +9,20 @@ import { Server, IncomingMessage, ServerResponse } from 'http';
 const auth = fastifyOauth2.GOOGLE_CONFIGURATION;
 const scope = ['r_emailaddress', 'r_basicprofile'];
 const tags = ['oauth2', 'oauth'];
-const credentials = {
+const credentials: Credentials = { // force typings because tsd will throw false positive error
   client: {
     id: 'test_id',
     secret: 'test_secret',
   },
   auth: auth,
 };
+const credentialsWithOptions: Credentials = { // force typings because tsd will throw false positive error
+  ...credentials,
+  options: {
+    bodyFormat: 'json',
+    authorizationMethod: 'header'
+  }
+}
 const OAuth2Options = {
   name: 'testOAuthName',
   scope: scope,
@@ -45,7 +52,19 @@ expectType<ProviderConfiguration>(auth);
 expectType<string[]>(scope);
 expectType<string[]>(tags);
 expectType<Credentials>(credentials);
+expectType<Credentials>(credentialsWithOptions);
 
+expectError<Credentials>({
+  ...credentials,
+  options: '' // error because invalid type
+})
+expectError<Credentials>({
+  ...credentials,
+  options: {
+    bodyFormat: 'foo', // error because invalid string
+    authorizationMethod: 'bar' // error because invalid string
+  }
+})
 expectError(fastifyOauth2()); // error because missing required arguments
 expectError(fastifyOauth2(server, {}, () => {})); // error because missing required options
 

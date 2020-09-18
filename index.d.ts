@@ -34,18 +34,25 @@ export interface OAuth2Token {
 }
 
 export interface ProviderConfiguration {
-  authorizeHost: string;
-  authorizePath: string;
+  authorizeHost?: string;
+  authorizePath?: string;
+  revokePath?: string;
   tokenHost: string;
-  tokenPath: string;
+  tokenPath?: string;
 }
 
 export interface Credentials {
   client: {
     id: string;
     secret: string;
+    secretParamName?: string;
+    idParamName?: string;
   };
   auth: ProviderConfiguration;
+  options?: {
+    bodyFormat?: "json" | "form";
+    authorizationMethod?: "header" | "body";
+  }
 }
 
 export interface OAuth2Namespace {
