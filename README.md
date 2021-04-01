@@ -1,8 +1,11 @@
 # fastify-oauth2
 
-![CI workflow](https://github.com/fastify/fastify-oauth2/workflows/CI%20workflow/badge.svg)
+![CI](https://github.com/fastify/fastify-oauth2/workflows/CI/badge.svg)
+[![NPM version](https://img.shields.io/npm/v/fastify-oauth2.svg?style=flat)](https://www.npmjs.com/package/fastify-oauth2)
+[![Known Vulnerabilities](https://snyk.io/test/github/fastify/fastify-oauth2/badge.svg)](https://snyk.io/test/github/fastify/fastify-oauth2)
+[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 
-Wrap around [`simple-oauth2`](https://github.com/lelylan/simple-oauth2) library.
+Wrapper around the [`simple-oauth2`](https://github.com/lelylan/simple-oauth2) library.
 
 v4.x of this module support Fastify v3.x
 [v3.x](https://github.com/fastify/fastify-oauth2/tree/3.x) of this module support Fastify v2.x
@@ -63,7 +66,7 @@ You can choose some default setup to assign to `auth` option.
 
 ### Custom configuration
 
-Of course you can set the OAUTH endpoints by yourself if a preset is not in our module:
+Of course, you can set the OAUTH endpoints by yourself if a preset is not in our module:
 
 ```js
 fastify.register(oauthPlugin, {
@@ -157,7 +160,7 @@ See the [`example/`](./examples/) folder for more example.
 
 ## Reference
 
-This fastify plugin decorates the fastify instance with the [`simple-oauth2`](https://github.com/lelylan/simple-oauth2)
+This Fastify plugin decorates the fastify instance with the [`simple-oauth2`](https://github.com/lelylan/simple-oauth2)
 instance inside a **namespace** specified by the property `name`.
 
 E.g. For `name: 'customOauth2'`, the `simple-oauth2` instance will become accessible like this:
@@ -189,8 +192,8 @@ This fastify plugin adds 3 utility decorators to your fastify instance using the
   - `refresh_token` (optional, only if the `offline scope` was originally requested)
   - `token_type` (generally `'bearer'`)
   - `expires_in` (number of seconds for the token to expire, e.g. `240000`)
-- `getNewAccessTokenUsingRefreshToken(refreshToken, params, callback)`: A function that takes a refresh token and retrieves a new *token response* object. This is generally useful with background processing workers to re-issue a new token when the original token has expired. The `params` argument is optional and it's an object that can be used to pass in extra parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a promise. The object resulting from the callback call or the promise resolution is a new *token response* object (see fields above).
-- `generateAuthorizationUri(requestObject)`: A function that returns the authorization uri. This is generally useful when you want to handle the redirect yourself in a specific route. The `requestObject` argument passes the request object to the `generateStateFunction`). You **don't** need to declare a `startRedirectPath` if you use this approach. Example of how you would use it:
+- `getNewAccessTokenUsingRefreshToken(refreshToken, params, callback)`: A function that takes a refresh token and retrieves a new *token response* object. This is generally useful with background processing workers to re-issue a new token when the original token has expired. The `params` argument is optional and it is an object that can be used to pass in extra parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a promise. The object resulting from the callback call or the promise resolution is a new *token response* object (see fields above).
+- `generateAuthorizationUri(requestObject)`: A function that returns the authorization uri. This is generally useful when you want to handle the redirect yourself in a specific route. The `requestObject` argument passes the request object to the `generateStateFunction`). You **do not** need to declare a `startRedirectPath` if you use this approach. Example of how you would use it:
 
 ```js
 fastify.get('/external', { /* Hooks can be used here */ }, async (req, reply) => {
@@ -204,9 +207,9 @@ E.g. For `name: 'customOauth2'`, the helpers `getAccessTokenFromAuthorizationCod
 - `fastify.customOauth2.getAccessTokenFromAuthorizationCodeFlow`
 - `fastify.customOauth2.getNewAccessTokenUsingRefreshToken`
 
-## Usage with Typescript
+## Usage with TypeScript
 
-Type definitions are provided with package. Decoration are applied during runtime and are based on auth configuration name. One solution is leverage typescript declaration merging to add type-safe namespace.
+Type definitions are provided with the package. Decorations are applied during runtime and are based on auth configuration name. One solution is to leverage TypeScript declaration merging to add type-safe namespace.
 
 In project declarations files .d.ts
 
