@@ -91,7 +91,7 @@ fastify.register(oauthPlugin, {
 ### Schema configuration
 
 You can specify your own schema for the `startRedirectPath` end-point. It allows you to create a well-documented document when using `fastify-swagger` together.
-Note: `schema` option will override the `tags` option without merge them.
+Note: `schema` option will override the `tags` option without merging them.
 
 ```js
 fastify.register(oauthPlugin, {
@@ -118,8 +118,8 @@ fastify.register(oauthPlugin, {
 
 ## Set custom state
 
-The `generateStateFunction` accepts a function to generate the `state` parameter for the OAUTH flow. This function receives the Fastify's `request` object as parameter.
-When you set it, it is required to provide the function `checkStateFunction` also in order to validate the states generated.
+The `generateStateFunction` accepts a function to generate the `state` parameter for the OAUTH flow. This function receives the Fastify instance's `request` object as parameter.
+When you set it, it is required to provide the function `checkStateFunction` in order to validate the states generated.
 
 ```js
   const validStates = new Set()
@@ -154,9 +154,9 @@ When you set it, it is required to provide the function `checkStateFunction` als
   })
 ```
 
-## Example
+## Examples
 
-See the [`example/`](./examples/) folder for more example.
+See the [`example/`](./examples/) folder for more examples.
 
 ## Reference
 
@@ -228,4 +228,4 @@ declare module 'fastify' {
 
 Licensed under [MIT](./LICENSE).
 
-*NB:* See [`simple-oauth2`](https://github.com/lelylan/simple-oauth2) license too
+*NB* See [`simple-oauth2`](https://github.com/lelylan/simple-oauth2) license too
