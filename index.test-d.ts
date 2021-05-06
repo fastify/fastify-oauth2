@@ -49,6 +49,7 @@ expectType<Credentials>(credentials);
 expectError(fastifyOauth2()); // error because missing required arguments
 expectError(fastifyOauth2(server, {}, () => {})); // error because missing required options
 
+expectAssignable<ProviderConfiguration>(fastifyOauth2.DISCORD_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.FACEBOOK_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.GITHUB_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.GOOGLE_CONFIGURATION);
