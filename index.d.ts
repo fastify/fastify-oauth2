@@ -2,6 +2,7 @@ import { FastifyPlugin, FastifyRequest } from 'fastify';
 
 interface FastifyOAuth2 {
   APPLE_CONFIGURATION: ProviderConfiguration;
+  DISCORD_CONFIGURATION: ProviderConfiguration;
   FACEBOOK_CONFIGURATION: ProviderConfiguration;
   GITHUB_CONFIGURATION: ProviderConfiguration;
   LINKEDIN_CONFIGURATION: ProviderConfiguration;
