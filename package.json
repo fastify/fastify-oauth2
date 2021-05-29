@@ -37,6 +37,6 @@
   },
   "dependencies": {
     "fastify-plugin": "^3.0.0",
-    "simple-oauth2": "^3.4.0"
+    "simple-oauth2": "^4.2.0"
   }
 }
