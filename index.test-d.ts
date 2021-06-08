@@ -100,6 +100,8 @@ server.get('/testOauth/callback', async request => {
     expectError<void>(server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {})); // error because function call does not pass a callback as second argument.
   }
 
+  expectType<string>(server.testOAuthName.generateAuthorizationUri(request));
+
   return {
     access_token: token.access_token,
   };

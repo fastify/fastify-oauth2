@@ -66,6 +66,10 @@ export interface OAuth2Namespace {
   ): void;
 
   getNewAccessTokenUsingRefreshToken(refreshToken: string, params: Object): Promise<OAuth2Token>;
+
+  generateAuthorizationUri(
+    request: FastifyRequest,
+  ): string;
 }
 
 export default fastifyOauth2;
