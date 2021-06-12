@@ -27,7 +27,7 @@ fastify.get('/login/google/callback', function (request, reply) {
     }
 
     sget.concat({
-      url: 'https://www.googleapis.com/oauth2/v1/userinfo?alt=json',
+      url: 'https://www.googleapis.com/oauth2/v2/userinfo',
       method: 'GET',
       headers: {
         Authorization: 'Bearer ' + result.access_token
