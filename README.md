@@ -84,7 +84,10 @@ fastify.register(oauthPlugin, {
     }
   },
   startRedirectPath: '/login',
-  callbackUri: 'http://localhost:3000/login/callback'
+  callbackUri: 'http://localhost:3000/login/callback',
+  callbackUriParams: {
+    exampleParam: 'example param value'
+  }
 })
 ```
 
@@ -154,6 +157,30 @@ When you set it, it is required to provide the function `checkStateFunction` in 
   })
 ```
 
+## Set custom callbackUri Parameters
+
+The `callbackUriParams` accepts an object that will be translated to query parameters for the callback OAUTH flow. The default value is {}.
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'googleOAuth2',
+  scope: ['profile', 'email'],
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>',
+    },
+    auth: oauthPlugin.GOOGLE_CONFIGURATION,
+  },
+  startRedirectPath: '/login/google',
+  callbackUri: 'http://localhost:3000/login/google/callback',
+  callbackUriParams: {
+    // custom query param that will be passed to callbackUri
+    access_type: 'offline', // will tell Google to send a refreshToken too
+  },
+});
+```
+
 ## Examples
 
 See the [`example/`](./examples/) folder for more examples.
@@ -189,7 +216,7 @@ This fastify plugin adds 3 utility decorators to your fastify instance using the
 
 - `getAccessTokenFromAuthorizationCodeFlow(request, callback)`: A function that uses the Authorization code flow to fetch an OAuth2 token using the data in the last request of the flow. If the callback is not passed it will return a promise. The object resulting from the callback call or the promise resolution is a *token response* object containing the following keys:
   - `access_token`
-  - `refresh_token` (optional, only if the `offline scope` was originally requested)
+  - `refresh_token` (optional, only if the `offline scope` was originally requested, as seen in the callbackUriParams example)
   - `token_type` (generally `'bearer'`)
   - `expires_in` (number of seconds for the token to expire, e.g. `240000`)
 - `getNewAccessTokenUsingRefreshToken(refreshToken, params, callback)`: A function that takes a refresh token and retrieves a new *token response* object. This is generally useful with background processing workers to re-issue a new token when the original token has expired. The `params` argument is optional and it is an object that can be used to pass in extra parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a promise. The object resulting from the callback call or the promise resolution is a new *token response* object (see fields above).
