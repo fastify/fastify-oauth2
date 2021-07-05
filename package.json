@@ -25,7 +25,7 @@
   ],
   "homepage": "https://github.com/fastify/fastify-oauth2#readme",
   "devDependencies": {
-    "@types/node": "^15.6.1",
+    "@types/node": "^16.0.0",
     "fastify": "^3.0.3",
     "nock": "^13.0.0",
     "pre-commit": "^1.2.2",
