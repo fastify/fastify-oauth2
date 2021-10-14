@@ -65,12 +65,14 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   function generateAuthorizationUri (requestObject) {
     const state = generateStateFunction(requestObject)
+    const scopeName = Array.isArray(scope) ? scope.join(' ') : scope;
+    const hasResponseMode = scopeName.includes('email') || scopeName.includes('name');
     const urlOptions = Object.assign({}, callbackUriParams, {
       redirect_uri: callbackUri,
       scope: scope,
-      state: state
+      state: state,
+      ...(hasResponseMode && { response_mode: 'form_post' }),
     })
-
     const authorizationUri = oauth2.authorizationCode.authorizeURL(urlOptions)
     return authorizationUri
   }
