@@ -4,6 +4,7 @@ const defaultState = require('crypto').randomBytes(10).toString('hex')
 
 const fp = require('fastify-plugin')
 const oauth2Module = require('simple-oauth2')
+const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-uri-params')
 
 const promisify = require('util').promisify
 const callbackify = require('util').callbackify
@@ -18,6 +19,10 @@ function defaultCheckStateFunction (state, callback) {
     return
   }
   callback(new Error('Invalid state'))
+}
+
+function defaultGenerateCallbackUriParams (callbackUriParams) {
+  return callbackUriParams
 }
 
 const oauthPlugin = fp(function (fastify, options, next) {
@@ -59,13 +64,14 @@ const oauthPlugin = fp(function (fastify, options, next) {
   const scope = options.scope
   const generateStateFunction = options.generateStateFunction || defaultGenerateStateFunction
   const checkStateFunction = options.checkStateFunction || defaultCheckStateFunction
+  const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
   const startRedirectPath = options.startRedirectPath
   const tags = options.tags || []
   const schema = options.schema || { tags: tags }
 
   function generateAuthorizationUri (requestObject) {
     const state = generateStateFunction(requestObject)
-    const urlOptions = Object.assign({}, callbackUriParams, {
+    const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, requestObject, scope, state), {
       redirect_uri: callbackUri,
       scope: scope,
       state: state
@@ -149,7 +155,15 @@ oauthPlugin.APPLE_CONFIGURATION = {
   authorizeHost: 'https://appleid.apple.com',
   authorizePath: '/auth/authorize',
   tokenHost: 'https://appleid.apple.com',
-  tokenPath: '/auth/token'
+  tokenPath: '/auth/token',
+  [kGenerateCallbackUriParams]: function (callbackUriParams, requestObject, scope, state) {
+    const stringifyScope = Array.isArray(scope) ? scope.join(' ') : scope
+    // `response_mode` must be `form_post` when scope include `email` or `name`
+    if (stringifyScope.includes('email') || stringifyScope.includes('name')) {
+      callbackUriParams.response_mode = 'form_post'
+    }
+    return callbackUriParams
+  }
 }
 
 oauthPlugin.FACEBOOK_CONFIGURATION = {

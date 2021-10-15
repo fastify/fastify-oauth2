@@ -565,3 +565,115 @@ t.test('already decorated', t => {
       t.strictSame(err.message, 'The decorator \'githubOAuth2\' has already been added!')
     })
 })
+
+t.test('preset configuration generate-callback-uri-params', t => {
+  t.plan(3)
+
+  t.test('array scope', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(oauthPlugin, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: oauthPlugin.APPLE_CONFIGURATION
+      },
+      startRedirectPath: '/login/apple',
+      callbackUri: '/callback',
+      scope: ['email']
+    })
+
+    t.tearDown(fastify.close.bind(fastify))
+
+    fastify.listen(0, function (err) {
+      t.error(err)
+
+      fastify.inject({
+        method: 'GET',
+        url: '/login/apple'
+      }, function (err, responseStart) {
+        t.error(err)
+
+        t.equal(responseStart.statusCode, 302)
+        const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&response_mode=form_post&redirect_uri=%2Fcallback&scope=email&state=(.*)/)
+        t.ok(matched)
+        t.end()
+      })
+    })
+  })
+
+  t.test('string scope', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(oauthPlugin, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: oauthPlugin.APPLE_CONFIGURATION
+      },
+      startRedirectPath: '/login/apple',
+      callbackUri: '/callback',
+      scope: 'name'
+    })
+
+    t.tearDown(fastify.close.bind(fastify))
+
+    fastify.listen(0, function (err) {
+      t.error(err)
+
+      fastify.inject({
+        method: 'GET',
+        url: '/login/apple'
+      }, function (err, responseStart) {
+        t.error(err)
+
+        t.equal(responseStart.statusCode, 302)
+        const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&response_mode=form_post&redirect_uri=%2Fcallback&scope=name&state=(.*)/)
+        t.ok(matched)
+        t.end()
+      })
+    })
+  })
+
+  t.test('no scope', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(oauthPlugin, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: oauthPlugin.APPLE_CONFIGURATION
+      },
+      startRedirectPath: '/login/apple',
+      callbackUri: '/callback',
+      scope: ''
+    })
+
+    t.tearDown(fastify.close.bind(fastify))
+
+    fastify.listen(0, function (err) {
+      t.error(err)
+
+      fastify.inject({
+        method: 'GET',
+        url: '/login/apple'
+      }, function (err, responseStart) {
+        t.error(err)
+
+        t.equal(responseStart.statusCode, 302)
+        const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=&state=(.*)/)
+        t.ok(matched)
+        t.end()
+      })
+    })
+  })
+})
