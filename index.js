@@ -156,8 +156,17 @@ oauthPlugin.APPLE_CONFIGURATION = {
   authorizePath: '/auth/authorize',
   tokenHost: 'https://appleid.apple.com',
   tokenPath: '/auth/token',
+  // kGenerateCallbackUriParams is used for dedicated behavior for each OAuth2.0 provider
+  // It can update the callbackUriParams based on requestObject, scope and state
+  //
+  // Symbol used in here because we would not like the user to modify this behavior and
+  // do not want to mess up with property name collision
   [kGenerateCallbackUriParams]: function (callbackUriParams, requestObject, scope, state) {
     const stringifyScope = Array.isArray(scope) ? scope.join(' ') : scope
+    // This behavior is not documented on Apple Developer Docs but it display through runtime error.
+    // Related Docs: https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_js/incorporating_sign_in_with_apple_into_other_platforms
+    // Related Issue: https://github.com/fastify/fastify-oauth2/issues/116
+    //
     // `response_mode` must be `form_post` when scope include `email` or `name`
     if (stringifyScope.includes('email') || stringifyScope.includes('name')) {
       callbackUriParams.response_mode = 'form_post'
