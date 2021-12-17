@@ -63,6 +63,7 @@ You can choose some default setup to assign to `auth` option.
 - `VKONTAKTE_CONFIGURATION`
 - `SPOTIFY_CONFIGURATION`
 - `DISCORD_CONFIGURATION`
+- `TWITCH_CONFIGURATION`
 
 ### Custom configuration
 

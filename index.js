@@ -230,4 +230,11 @@ oauthPlugin.DISCORD_CONFIGURATION = {
   tokenPath: '/api/oauth2/token'
 }
 
+oauthPlugin.TWITCH_CONFIGURATION = {
+  authorizeHost: 'https://id.twitch.tv',
+  authorizePath: '/oauth2/authorize',
+  tokenHost: 'https://id.twitch.tv',
+  tokenPath: '/oauth2/token'
+}
+
 module.exports = oauthPlugin

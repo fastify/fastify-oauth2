@@ -57,6 +57,7 @@ expectAssignable<ProviderConfiguration>(fastifyOauth2.LINKEDIN_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.MICROSOFT_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.SPOTIFY_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.VKONTAKTE_CONFIGURATION);
+expectAssignable<ProviderConfiguration>(fastifyOauth2.TWITCH_CONFIGURATION);
 
 server.get('/testOauth/callback', async request => {
   expectType<OAuth2Namespace>(server.testOAuthName);
