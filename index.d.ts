@@ -10,6 +10,7 @@ interface FastifyOAuth2 {
   MICROSOFT_CONFIGURATION: ProviderConfiguration;
   SPOTIFY_CONFIGURATION: ProviderConfiguration;
   VKONTAKTE_CONFIGURATION: ProviderConfiguration;
+  TWITCH_CONFIGURATIONS: ProviderConfiguration;
 }
 
 export const fastifyOauth2: FastifyPlugin<FastifyOAuth2Options> & FastifyOAuth2
