@@ -1,7 +1,6 @@
-import fastify, { FastifyInstance } from 'fastify';
-import fastifyOauth2, { OAuth2Namespace, ProviderConfiguration, Credentials, OAuth2Token } from '.';
-import { expectType, expectError, expectAssignable } from 'tsd';
-import { Server, IncomingMessage, ServerResponse } from 'http';
+import fastify from 'fastify';
+import { expectAssignable, expectError, expectType } from 'tsd';
+import fastifyOauth2, { Credentials, OAuth2Namespace, OAuth2Token, ProviderConfiguration } from '.';
 
 /**
  * Preparing some data for testing.
