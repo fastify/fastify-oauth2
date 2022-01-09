@@ -1,4 +1,4 @@
-import { FastifyPlugin, FastifyRequest } from 'fastify';
+import { FastifyPluginCallback, FastifyRequest } from 'fastify';
 
 interface FastifyOAuth2 {
   APPLE_CONFIGURATION: ProviderConfiguration;
@@ -13,7 +13,7 @@ interface FastifyOAuth2 {
   TWITCH_CONFIGURATION: ProviderConfiguration;
 }
 
-export const fastifyOauth2: FastifyPlugin<FastifyOAuth2Options> & FastifyOAuth2
+export const fastifyOauth2: FastifyPluginCallback<FastifyOAuth2Options> & FastifyOAuth2
 
 export interface FastifyOAuth2Options {
   name: string;
