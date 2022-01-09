@@ -1,6 +1,6 @@
 import fastify from 'fastify';
 import { expectAssignable, expectError, expectType } from 'tsd';
-import fastifyOauth2, { Credentials, OAuth2Namespace, OAuth2Token, ProviderConfiguration } from '.';
+import fastifyOauth2, { Credentials, OAuth2Namespace, OAuth2Token, ProviderConfiguration } from '../..';
 
 /**
  * Preparing some data for testing.

@@ -4,7 +4,7 @@ const t = require('tap')
 const nock = require('nock')
 const createFastify = require('fastify')
 
-const oauthPlugin = require('./index')
+const oauthPlugin = require('..')
 
 nock.disableNetConnect()
 
