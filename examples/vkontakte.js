@@ -1,5 +1,7 @@
 const fastify = require('fastify')({ logger: { level: 'trace' } })
-const oauthPlugin = require('fastify-oauth2')
+
+// const oauthPlugin = require('fastify-oauth2')
+const oauthPlugin = require('..')
 
 fastify.register(oauthPlugin, {
   name: 'vkOAuth2',

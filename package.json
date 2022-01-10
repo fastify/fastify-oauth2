@@ -3,12 +3,13 @@
   "version": "4.4.0",
   "description": "Perform login using oauth2 protocol",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "coverage": "npm run unit -- --cov --coverage-report=html",
     "lint": "standard | snazzy",
     "test": "npm run lint && npm run unit && npm run test:typescript",
     "test:typescript": "tsd",
-    "unit": "tap test.js"
+    "unit": "tap -J \"test/*.test.js\""
   },
   "repository": {
     "type": "git",
@@ -25,18 +26,21 @@
   ],
   "homepage": "https://github.com/fastify/fastify-oauth2#readme",
   "devDependencies": {
-    "@types/node": "^17.0.0",
-    "fastify": "^3.0.3",
-    "nock": "^13.0.0",
+    "@types/node": "^17.0.8",
+    "fastify": "^3.25.3",
+    "nock": "^13.2.1",
     "pre-commit": "^1.2.2",
     "simple-get": "^4.0.0",
     "snazzy": "^9.0.0",
-    "standard": "^16.0.0",
-    "tap": "^15.0.0",
-    "tsd": "^0.19.0"
+    "standard": "^16.0.4",
+    "tap": "^15.1.6",
+    "tsd": "^0.19.1"
   },
   "dependencies": {
     "fastify-plugin": "^3.0.0",
     "simple-oauth2": "^3.4.0"
+  },
+  "tsd": {
+    "directory": "test/types"
   }
 }

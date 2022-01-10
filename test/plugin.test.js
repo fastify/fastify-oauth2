@@ -4,7 +4,7 @@ const t = require('tap')
 const nock = require('nock')
 const createFastify = require('fastify')
 
-const oauthPlugin = require('./index')
+const oauthPlugin = require('..')
 
 nock.disableNetConnect()
 
@@ -107,7 +107,7 @@ t.test('fastify-oauth2', t => {
       })
     })
 
-    t.tearDown(fastify.close.bind(fastify))
+    t.teardown(fastify.close.bind(fastify))
 
     makeRequests(t, fastify)
   })
@@ -145,7 +145,7 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.tearDown(fastify.close.bind(fastify))
+    t.teardown(fastify.close.bind(fastify))
 
     makeRequests(t, fastify)
   })
@@ -174,7 +174,7 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.tearDown(fastify.close.bind(fastify))
+    t.teardown(fastify.close.bind(fastify))
 
     fastify.inject({
       method: 'GET',
@@ -278,7 +278,7 @@ t.test('options.callbackUriParams', t => {
     scope: ['notifications']
   })
 
-  t.tearDown(fastify.close.bind(fastify))
+  t.teardown(fastify.close.bind(fastify))
 
   fastify.listen(0, function (err) {
     t.error(err)
@@ -320,7 +320,7 @@ t.test('options.generateStateFunction with request', t => {
     scope: ['notifications']
   })
 
-  t.tearDown(fastify.close.bind(fastify))
+  t.teardown(fastify.close.bind(fastify))
 
   fastify.listen(0, function (err) {
     t.error(err)
@@ -365,7 +365,7 @@ t.test('generateAuthorizationUri redirect with request object', t => {
     return reply.redirect(redirectUrl)
   })
 
-  t.tearDown(fastify.close.bind(fastify))
+  t.teardown(fastify.close.bind(fastify))
 
   fastify.inject({
     method: 'GET',
@@ -586,7 +586,7 @@ t.test('preset configuration generate-callback-uri-params', t => {
       scope: ['email']
     })
 
-    t.tearDown(fastify.close.bind(fastify))
+    t.teardown(fastify.close.bind(fastify))
 
     fastify.listen(0, function (err) {
       t.error(err)
@@ -622,7 +622,7 @@ t.test('preset configuration generate-callback-uri-params', t => {
       scope: 'name'
     })
 
-    t.tearDown(fastify.close.bind(fastify))
+    t.teardown(fastify.close.bind(fastify))
 
     fastify.listen(0, function (err) {
       t.error(err)
@@ -658,7 +658,7 @@ t.test('preset configuration generate-callback-uri-params', t => {
       scope: ''
     })
 
-    t.tearDown(fastify.close.bind(fastify))
+    t.teardown(fastify.close.bind(fastify))
 
     fastify.listen(0, function (err) {
       t.error(err)

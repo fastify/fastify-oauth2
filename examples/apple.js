@@ -10,6 +10,7 @@
 const fastify = require('fastify')({ logger: { level: 'trace' } })
 const appleSignin = require('apple-signin')
 
+// const oauthPlugin = require('fastify-oauth2')
 const oauthPlugin = require('..')
 
 const CLIENT_ID = '<CLIENT_ID>'
