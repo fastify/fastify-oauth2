@@ -236,5 +236,11 @@ oauthPlugin.TWITCH_CONFIGURATION = {
   tokenHost: 'https://id.twitch.tv',
   tokenPath: '/oauth2/token'
 }
+oauthPlugin.VATSIMOAUTH_CONFIGURATION = {
+  authorizeHost: 'https://auth.vatsim.net',
+  authorizePath: '/oauth/authorize',
+  tokenHost: 'https://auth.vatsim.net',
+  tokenPath: '/oauth/token'
+}
 
 module.exports = oauthPlugin
