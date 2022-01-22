@@ -23,7 +23,7 @@ export interface FastifyOAuth2Options {
   callbackUriParams?: Object;
   generateStateFunction?: Function;
   checkStateFunction?: Function;
-  startRedirectPath: string;
+  startRedirectPath?: string;
   tags?: string[];
   schema?: object;
 }
