@@ -64,6 +64,8 @@ You can choose some default setup to assign to `auth` option.
 - `SPOTIFY_CONFIGURATION`
 - `DISCORD_CONFIGURATION`
 - `TWITCH_CONFIGURATION`
+- `VATSIM_CONFIGURATION`
+- `VATSIM_DEV_CONFIGURATION`
 
 ### Custom configuration
 
