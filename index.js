@@ -237,4 +237,18 @@ oauthPlugin.TWITCH_CONFIGURATION = {
   tokenPath: '/oauth2/token'
 }
 
+oauthPlugin.VATSIM_CONFIGURATION = {
+  authorizeHost: 'https://auth.vatsim.net',
+  authorizePath: '/oauth/authorize',
+  tokenHost: 'https://auth.vatsim.net',
+  tokenPath: '/oauth/token'
+}
+
+oauthPlugin.VATSIM_DEV_CONFIGURATION = {
+  authorizeHost: 'https://auth-dev.vatsim.net',
+  authorizePath: '/oauth/authorize',
+  tokenHost: 'https://auth-dev.vatsim.net',
+  tokenPath: '/oauth/token'
+}
+
 module.exports = oauthPlugin
