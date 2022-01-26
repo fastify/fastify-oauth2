@@ -11,6 +11,8 @@ interface FastifyOAuth2 {
   SPOTIFY_CONFIGURATION: ProviderConfiguration;
   VKONTAKTE_CONFIGURATION: ProviderConfiguration;
   TWITCH_CONFIGURATION: ProviderConfiguration;
+  VATSIM_CONFIGURATION: ProviderConfiguration;
+  VATSIM_DEV_CONFIGURATION: ProviderConfiguration;
 }
 
 export const fastifyOauth2: FastifyPluginCallback<FastifyOAuth2Options> & FastifyOAuth2
