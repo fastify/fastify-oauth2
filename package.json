@@ -34,7 +34,7 @@
     "snazzy": "^9.0.0",
     "standard": "^16.0.4",
     "tap": "^16.0.0",
-    "tsd": "^0.19.1"
+    "tsd": "^0.20.0"
   },
   "dependencies": {
     "fastify-plugin": "^3.0.0",
