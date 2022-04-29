@@ -1,7 +1,7 @@
-# fastify-oauth2
+# @fastify/oauth2
 
 ![CI](https://github.com/fastify/fastify-oauth2/workflows/CI/badge.svg)
-[![NPM version](https://img.shields.io/npm/v/fastify-oauth2.svg?style=flat)](https://www.npmjs.com/package/fastify-oauth2)
+[![NPM version](https://img.shields.io/npm/v/@fastify/oauth2.svg?style=flat)](https://www.npmjs.com/package/@fastify/oauth2)
 [![Known Vulnerabilities](https://snyk.io/test/github/fastify/fastify-oauth2/badge.svg)](https://snyk.io/test/github/fastify/fastify-oauth2)
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 
@@ -13,14 +13,14 @@ v4.x of this module support Fastify v3.x
 ## Install
 
 ```
-npm i --save fastify-oauth2
+npm i --save @fastify/oauth2
 ```
 
 ## Usage
 
 ```js
 const fastify = require('fastify')({ logger: { level: 'trace' } })
-const oauthPlugin = require('fastify-oauth2')
+const oauthPlugin = require('@fastify/oauth2')
 
 
 fastify.register(oauthPlugin, {
@@ -96,7 +96,7 @@ fastify.register(oauthPlugin, {
 
 ### Schema configuration
 
-You can specify your own schema for the `startRedirectPath` end-point. It allows you to create a well-documented document when using `fastify-swagger` together.
+You can specify your own schema for the `startRedirectPath` end-point. It allows you to create a well-documented document when using `@fastify/swagger` together.
 Note: `schema` option will override the `tags` option without merging them.
 
 ```js
@@ -244,7 +244,7 @@ Type definitions are provided with the package. Decorations are applied during r
 In project declarations files .d.ts
 
 ```ts
-import { OAuth2Namespace } from 'fastify-oauth2';
+import { OAuth2Namespace } from '@fastify/oauth2';
 
 declare module 'fastify' {
   interface FastifyInstance {
