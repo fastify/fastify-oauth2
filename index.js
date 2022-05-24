@@ -148,7 +148,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
   next()
 }, {
   fastify: '>=3.x',
-  name: 'fastify-oauth2'
+  name: '@fastify/oauth2'
 })
 
 oauthPlugin.APPLE_CONFIGURATION = {
