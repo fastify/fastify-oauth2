@@ -67,14 +67,14 @@ const oauthPlugin = fp(function (fastify, options, next) {
   const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
   const startRedirectPath = options.startRedirectPath
   const tags = options.tags || []
-  const schema = options.schema || { tags: tags }
+  const schema = options.schema || { tags }
 
   function generateAuthorizationUri (requestObject) {
     const state = generateStateFunction(requestObject)
     const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, requestObject, scope, state), {
       redirect_uri: callbackUri,
-      scope: scope,
-      state: state
+      scope,
+      state
     })
 
     const authorizationUri = oauth2.authorizationCode.authorizeURL(urlOptions)
@@ -89,7 +89,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   const cbk = function (o, code, callback) {
     return callbackify(o.oauth2.authorizationCode.getToken.bind(o.oauth2.authorizationCode, {
-      code: code,
+      code,
       redirect_uri: callbackUri
     }))(callback)
   }
@@ -135,7 +135,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   try {
     fastify.decorate(name, {
-      oauth2: oauth2,
+      oauth2,
       getAccessTokenFromAuthorizationCodeFlow,
       getNewAccessTokenUsingRefreshToken,
       generateAuthorizationUri
