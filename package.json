@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "fastify-plugin": "^4.0.0",
-    "simple-oauth2": "^3.4.0"
+    "simple-oauth2": "^4.3.0"
   },
   "tsd": {
     "directory": "test/types"
