@@ -12,7 +12,7 @@ v4.x of this module support Fastify v3.x
 ## Install
 
 ```
-npm i --save @fastify/oauth2
+npm i @fastify/oauth2
 ```
 
 ## Usage
