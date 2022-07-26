@@ -24,7 +24,7 @@ fastify.get('/login/eg/callback', async (req, reply) => {
   reply.send({ access_token: token.access_token })
 })
 
-fastify.listen(9_000, (err, address) => {
+fastify.listen(process.env.PORT, (err, address) => {
   if (err) {
     fastify.log.error(err)
     process.exit(1)
