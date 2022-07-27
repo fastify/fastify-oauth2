@@ -59,6 +59,7 @@ expectAssignable<ProviderConfiguration>(fastifyOauth2.VKONTAKTE_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.TWITCH_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.VATSIM_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.VATSIM_DEV_CONFIGURATION);
+expectAssignable<ProviderConfiguration>(fastifyOauth2.EPIC_GAMES_CONFIGURATION);
 
 server.get('/testOauth/callback', async request => {
   expectType<OAuth2Namespace>(server.testOAuthName);

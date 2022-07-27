@@ -13,6 +13,7 @@ interface FastifyOAuth2 {
   TWITCH_CONFIGURATION: ProviderConfiguration;
   VATSIM_CONFIGURATION: ProviderConfiguration;
   VATSIM_DEV_CONFIGURATION: ProviderConfiguration;
+  EPIC_GAMES_CONFIGURATION: ProviderConfiguration;
 }
 
 export const fastifyOauth2: FastifyPluginCallback<FastifyOAuth2Options> & FastifyOAuth2

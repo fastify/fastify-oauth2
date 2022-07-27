@@ -65,6 +65,7 @@ You can choose some default setup to assign to `auth` option.
 - `TWITCH_CONFIGURATION`
 - `VATSIM_CONFIGURATION`
 - `VATSIM_DEV_CONFIGURATION`
+- `EPIC_GAMES_CONFIGURATION`
 
 ### Custom configuration
 

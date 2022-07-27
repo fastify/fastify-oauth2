@@ -251,4 +251,11 @@ oauthPlugin.VATSIM_DEV_CONFIGURATION = {
   tokenPath: '/oauth/token'
 }
 
+oauthPlugin.EPIC_GAMES_CONFIGURATION = {
+  authorizeHost: 'https://www.epicgames.com',
+  authorizePath: '/id/authorize',
+  tokenHost: 'https://api.epicgames.dev',
+  tokenPath: '/epic/oauth/v1/token'
+}
+
 module.exports = oauthPlugin
