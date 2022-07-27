@@ -147,7 +147,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
 
   next()
 }, {
-  fastify: '>=3.x',
+  fastify: '4.x',
   name: '@fastify/oauth2'
 })
 
