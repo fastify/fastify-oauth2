@@ -9,7 +9,7 @@ const oauthPlugin = require('..')
 nock.disableNetConnect()
 
 function makeRequests (t, fastify) {
-  fastify.listen(0, function (err) {
+  fastify.listen({ port: 0 }, function (err) {
     t.error(err)
 
     fastify.inject({
@@ -280,7 +280,7 @@ t.test('options.callbackUriParams', t => {
 
   t.teardown(fastify.close.bind(fastify))
 
-  fastify.listen(0, function (err) {
+  fastify.listen({ port: 0 }, function (err) {
     t.error(err)
 
     fastify.inject({
@@ -322,7 +322,7 @@ t.test('options.generateStateFunction with request', t => {
 
   t.teardown(fastify.close.bind(fastify))
 
-  fastify.listen(0, function (err) {
+  fastify.listen({ port: 0 }, function (err) {
     t.error(err)
 
     fastify.inject({
@@ -513,7 +513,7 @@ t.test('options.schema should be a object', t => {
 })
 
 t.test('options.schema', t => {
-  const fastify = createFastify({ logger: { level: 'silent' } })
+  const fastify = createFastify({ logger: { level: 'silent' }, exposeHeadRoutes: false })
 
   fastify.addHook('onRoute', function (routeOptions) {
     t.strictSame(routeOptions.schema, { tags: ['oauth2', 'oauth'] })
@@ -588,7 +588,7 @@ t.test('preset configuration generate-callback-uri-params', t => {
 
     t.teardown(fastify.close.bind(fastify))
 
-    fastify.listen(0, function (err) {
+    fastify.listen({ port: 0 }, function (err) {
       t.error(err)
 
       fastify.inject({
@@ -624,7 +624,7 @@ t.test('preset configuration generate-callback-uri-params', t => {
 
     t.teardown(fastify.close.bind(fastify))
 
-    fastify.listen(0, function (err) {
+    fastify.listen({ port: 0 }, function (err) {
       t.error(err)
 
       fastify.inject({
@@ -660,7 +660,7 @@ t.test('preset configuration generate-callback-uri-params', t => {
 
     t.teardown(fastify.close.bind(fastify))
 
-    fastify.listen(0, function (err) {
+    fastify.listen({ port: 0 }, function (err) {
       t.error(err)
 
       fastify.inject({

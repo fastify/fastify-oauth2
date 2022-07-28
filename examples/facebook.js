@@ -43,4 +43,4 @@ fastify.get('/login/facebook/callback', function (request, reply) {
   })
 })
 
-fastify.listen(3000)
+fastify.listen({ port: 3000 })
