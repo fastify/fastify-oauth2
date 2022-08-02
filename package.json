@@ -26,10 +26,10 @@
   ],
   "homepage": "https://github.com/fastify/fastify-oauth2#readme",
   "devDependencies": {
+    "@fastify/pre-commit": "^2.0.2",
     "@types/node": "^18.0.0",
     "fastify": "^3.25.3",
     "nock": "^13.2.1",
-    "pre-commit": "^1.2.2",
     "simple-get": "^4.0.0",
     "snazzy": "^9.0.0",
     "standard": "^17.0.0",
