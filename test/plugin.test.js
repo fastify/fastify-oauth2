@@ -92,7 +92,7 @@ t.test('fastify-oauth2', t => {
         if (err) throw err
 
         // attempts to refresh the token
-        this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.refresh_token, undefined, (err, result) => {
+        this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token, undefined, (err, result) => {
           if (err) throw err
 
           const newToken = result
@@ -133,7 +133,7 @@ t.test('fastify-oauth2', t => {
       return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
           // attempts to refresh the token
-          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.refresh_token)
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
         })
         .then(token => {
           return {
