@@ -54,10 +54,10 @@ export interface OAuth2Token {
   expired(expirationWindowSeconds?: number): boolean;
 
   /** Refresh the access token */
-  refresh(params?: {}): Promise<AccessToken>;
+  refresh(params?: {}): Promise<OAuth2Token>;
 
   /** Revoke access or refresh token */
-  revoke(tokenType: TokenType): Promise<void>;
+  revoke(tokenType: 'access_token' | 'refresh_token'): Promise<void>;
 
   /** Revoke both the existing access and refresh tokens */
   revokeAll(): Promise<void>;
@@ -117,7 +117,7 @@ export interface OAuth2Namespace {
   ): void;
 
   getNewAccessTokenUsingRefreshToken(
-    refreshToken: string,
+    refreshToken: Token,
     params: Object,
     callback: (err: any, token: OAuth2Token) => void,
   ): void;

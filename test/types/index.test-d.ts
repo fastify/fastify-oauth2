@@ -8,7 +8,7 @@ import fastifyOauth2, { Credentials, OAuth2Namespace, OAuth2Token, ProviderConfi
 const auth = fastifyOauth2.GOOGLE_CONFIGURATION;
 const scope = ['r_emailaddress', 'r_basicprofile'];
 const tags = ['oauth2', 'oauth'];
-const credentials = {
+const credentials: Credentials = {
   client: {
     id: 'test_id',
     secret: 'test_secret',
@@ -77,35 +77,35 @@ server.get('/testOauth/callback', async request => {
   expectError<void>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)); // error because function call does not pass a callback as second argument.
 
   const token = await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request);
-  if (token.refresh_token) {
+  if (token.token.refresh_token) {
     expectType<OAuth2Token>(
-      await server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {}),
+      await server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {}),
     );
     expectType<Promise<OAuth2Token>>(
-      server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {}),
+      server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {}),
     );
     expectType<void>(
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(
-        token.refresh_token,
+        token.token,
         {},
         (err: any, t: OAuth2Token): void => { },
       ),
     );
 
-    expectError<void>(await server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {})); // error because Promise should not return void
+    expectError<void>(await server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {})); // error because Promise should not return void
     expectError<OAuth2Token>(
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(
-        token.refresh_token,
+        token.token,
         {},
         (err: any, t: OAuth2Token): void => { },
       ),
     ); // error because non-Promise function call should return void and have a callback argument
-    expectError<void>(server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.refresh_token, {})); // error because function call does not pass a callback as second argument.
+    expectError<void>(server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {})); // error because function call does not pass a callback as second argument.
   }
 
   expectType<string>(server.testOAuthName.generateAuthorizationUri(request));
 
   return {
-    access_token: token.access_token,
+    access_token: token.token.access_token,
   };
 });
