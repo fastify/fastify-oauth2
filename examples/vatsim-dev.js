@@ -50,4 +50,4 @@ fastify.get('/login/vatsim/callback', function (request, reply) {
   )
 })
 
-fastify.listen(3000)
+fastify.listen({ port: 3000 })
