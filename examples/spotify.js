@@ -24,9 +24,4 @@ fastify.get('/login/spotify/callback', async (req, reply) => {
   reply.send({ access_token: result.token.access_token })
 })
 
-fastify.listen(process.env.PORT, (err) => {
-  if (err) {
-    fastify.log.error(err)
-    process.exit(1)
-  }
-})
+fastify.listen({ port: process.env.PORT })
