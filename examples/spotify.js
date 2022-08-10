@@ -18,15 +18,10 @@ fastify.register(oauthPlugin, {
 })
 
 fastify.get('/login/spotify/callback', async (req, reply) => {
-  const token = await fastify.Spotify.getAccessTokenFromAuthorizationCodeFlow(req)
+  const result = await fastify.Spotify.getAccessTokenFromAuthorizationCodeFlow(req)
 
-  req.log.info('The Spotify token is %o', token)
-  reply.send({ access_token: token.access_token })
+  req.log.info('The Spotify token is %o', result.token)
+  reply.send({ access_token: result.token.access_token })
 })
 
-fastify.listen(process.env.PORT, (err) => {
-  if (err) {
-    fastify.log.error(err)
-    process.exit(1)
-  }
-})
+fastify.listen({ port: process.env.PORT })

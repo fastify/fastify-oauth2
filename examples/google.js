@@ -31,7 +31,7 @@ fastify.get('/login/google/callback', function (request, reply) {
       url: 'https://www.googleapis.com/oauth2/v2/userinfo',
       method: 'GET',
       headers: {
-        Authorization: 'Bearer ' + result.access_token
+        Authorization: 'Bearer ' + result.token.access_token
       },
       json: true
     }, function (err, res, data) {
