@@ -20,42 +20,51 @@ fastify.register(oauthPlugin, {
   callbackUri: 'http://localhost:3000/login/github/callback'
 })
 
-let refreshToken = ''
+const memStore = new Map()
 
-fastify.get('/login/github/callback', function (request, reply) {
-  this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(
-    request,
-    (err, result) => {
-      if (err) {
-        reply.send(err)
-        return
-      }
+async function saveAccessToken (token) {
+  memStore.set(token.refresh_token, token)
+}
 
-      refreshToken = result.token.refresh_token
+async function retrieveAccessToken (token) {
+  // remove Bearer if needed
+  if (token.startsWith('Bearer ')) {
+    token = token.substring(6)
+  }
+  // any database or in-memory operation here
+  // we use in-memory variable here
+  if (memStore.has(token)) {
+    memStore.get(token)
+  }
+  throw new Error('invalid refresh token')
+}
 
-      sget.concat(
-        {
-          url: 'https://api.github.com/user',
-          method: 'GET',
-          headers: {
-            Authorization: 'token ' + result.token.access_token
-          },
-          json: true
-        },
-        function (err, res, data) {
-          if (err) {
-            reply.send(err)
-            return
-          }
-          reply.send(data)
-        }
-      )
-    }
-  )
+fastify.get('/login/github/callback', async function (request, reply) {
+  const token = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+
+  console.log(token.access_token)
+
+  // you should store the `token` for further usage
+  await saveAccessToken(token)
+
+  reply.send({ access_token: token.access_token })
 })
 
+fastify.get('/login/github/refreshAccessToken', async function (request, reply) {
+  // we assume the token is passed by authorization header
+  const refreshToken = await retrieveAccessToken(request.headers.authorization)
+  const newToken = await this.githubOAuth2.getAccessTokenFromRefreshToken(refreshToken, {})
+
+  // we save the token again
+  await saveAccessToken(newToken)
+
+  reply.send({ access_token: newToken.access_token })
+})
+
+// Check access token: https://docs.github.com/en/rest/apps/oauth-applications#check-a-token
 fastify.get('/login/github/verifyAccessToken', function (request, reply) {
   const { accessToken } = request.query
+
   sget.concat(
     {
       url: 'https://api.github.com/applications/<CLIENT_ID>/token',
@@ -68,28 +77,6 @@ fastify.get('/login/github/verifyAccessToken', function (request, reply) {
           )
       },
       body: JSON.stringify({ access_token: accessToken }),
-      json: true
-    },
-    function (err, res, data) {
-      if (err) {
-        reply.send(err)
-        return
-      }
-      reply.send(data)
-    }
-  )
-})
-
-fastify.get('/login/github/refreshToken', function (request, reply) {
-  // this.githubOAuth2.getAccessTokenFromRefreshToken(refresh_token, {}, (err, result) => {})
-
-  sget.concat(
-    {
-      url: 'https://github.com/login/oauth/access_token',
-      method: 'POST',
-      form: {
-        refresh_token: refreshToken
-      },
       json: true
     },
     function (err, res, data) {
