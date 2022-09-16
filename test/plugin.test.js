@@ -319,6 +319,70 @@ t.test('options.getTokenParams should be an object', t => {
     })
 })
 
+t.test('options.getTokenParams', t => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+  const oAuthCode = '123456789'
+
+  fastify.register(oauthPlugin, {
+    name: 'githubOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    startRedirectPath: '/login/github',
+    callbackUri: 'http://localhost:3000/callback',
+    generateStateFunction: function () {
+      return 'dummy'
+    },
+    checkStateFunction: function(state, callback) {
+      callback()
+    },
+    getTokenParams: {
+      param1: '123'
+    },
+    scope: ['notifications']
+  })
+
+  const githubScope = nock('https://github.com')
+    .post(
+      '/login/oauth/access_token',
+      'grant_type=authorization_code&param1=123&code=123456789&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback',
+      {
+        reqheaders: {
+          authorization: 'Basic bXktY2xpZW50LWlkOm15LXNlY3JldA=='
+        }
+      }
+    )
+    .reply(200, {})
+
+  fastify.get('/callback', function (request, reply) {
+    return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+      .catch(e => {
+        reply.code(400)
+        return e.message
+      })
+  })
+
+  t.teardown(fastify.close.bind(fastify))
+
+  fastify.listen({ port: 0 }, function (err) {
+    t.error(err)
+
+    fastify.inject({
+      method: 'GET',
+      url: '/callback?code=' + oAuthCode
+    }, function (err, responseStart) {
+      t.error(err)
+
+      githubScope.done()
+      t.end()
+    })
+  })
+})
+
 t.test('options.generateStateFunction with request', t => {
   t.plan(5)
   const fastify = createFastify()
