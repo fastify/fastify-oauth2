@@ -5,6 +5,7 @@ const defaultState = require('crypto').randomBytes(10).toString('hex')
 const fp = require('fastify-plugin')
 const { AuthorizationCode } = require('simple-oauth2')
 const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-uri-params')
+const kGenerateGetTokenParams = Symbol.for('fastify-oauth2.generate-get-token-params')
 
 const promisify = require('util').promisify
 const callbackify = require('util').callbackify
@@ -25,6 +26,10 @@ function defaultGenerateCallbackUriParams (callbackUriParams) {
   return callbackUriParams
 }
 
+function defaultGenerateGetTokenParams (getTokenParams) {
+  return getTokenParams
+}
+
 const oauthPlugin = fp(function (fastify, options, next) {
   if (typeof options.name !== 'string') {
     return next(new Error('options.name should be a string'))
@@ -37,6 +42,9 @@ const oauthPlugin = fp(function (fastify, options, next) {
   }
   if (options.callbackUriParams && typeof options.callbackUriParams !== 'object') {
     return next(new Error('options.callbackUriParams should be a object'))
+  }
+  if (options.getTokenParams && typeof options.getTokenParams !== 'object') {
+    return next(new Error('options.getTokenParams should be a object'))
   }
   if (options.generateStateFunction && typeof options.generateStateFunction !== 'function') {
     return next(new Error('options.generateStateFunction should be a function'))
@@ -61,10 +69,12 @@ const oauthPlugin = fp(function (fastify, options, next) {
   const credentials = options.credentials
   const callbackUri = options.callbackUri
   const callbackUriParams = options.callbackUriParams || {}
+  const getTokenParams = options.getTokenParams || {}
   const scope = options.scope
   const generateStateFunction = options.generateStateFunction || defaultGenerateStateFunction
   const checkStateFunction = options.checkStateFunction || defaultCheckStateFunction
   const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
+  const generateGetTokenParams = (credentials.auth && credentials.auth[kGenerateGetTokenParams]) || defaultGenerateGetTokenParams
   const startRedirectPath = options.startRedirectPath
   const tags = options.tags || []
   const schema = options.schema || { tags }
@@ -88,10 +98,12 @@ const oauthPlugin = fp(function (fastify, options, next) {
   }
 
   const cbk = function (o, code, callback) {
-    return callbackify(o.oauth2.getToken.bind(o.oauth2, {
+    const urlOptions = Object.assign({}, generateGetTokenParams(getTokenParams), {
       code,
       redirect_uri: callbackUri
-    }))(callback)
+    })
+
+    return callbackify(o.oauth2.getToken.bind(o.oauth2, urlOptions))(callback)
   }
 
   function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, callback) {

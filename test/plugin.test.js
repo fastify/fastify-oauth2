@@ -297,6 +297,28 @@ t.test('options.callbackUriParams', t => {
   })
 })
 
+t.test('options.getTokenParams should be an object', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(oauthPlugin, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: oauthPlugin.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    getTokenParams: 1
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.getTokenParams should be a object')
+    })
+})
+
 t.test('options.generateStateFunction with request', t => {
   t.plan(5)
   const fastify = createFastify()
