@@ -24,7 +24,7 @@ export interface FastifyOAuth2Options {
   credentials: Credentials;
   callbackUri: string;
   callbackUriParams?: Object;
-  getTokenParams?: Object;
+  tokenRequestParams?: Object;
   generateStateFunction?: Function;
   checkStateFunction?: Function;
   startRedirectPath: string;

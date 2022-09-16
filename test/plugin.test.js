@@ -297,7 +297,7 @@ t.test('options.callbackUriParams', t => {
   })
 })
 
-t.test('options.getTokenParams should be an object', t => {
+t.test('options.tokenRequestParams should be an object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
@@ -312,14 +312,14 @@ t.test('options.getTokenParams should be an object', t => {
       auth: oauthPlugin.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
-    getTokenParams: 1
+    tokenRequestParams: 1
   })
     .ready(err => {
-      t.strictSame(err.message, 'options.getTokenParams should be a object')
+      t.strictSame(err.message, 'options.tokenRequestParams should be a object')
     })
 })
 
-t.test('options.getTokenParams', t => {
+t.test('options.tokenRequestParams', t => {
   const fastify = createFastify({ logger: { level: 'silent' } })
   const oAuthCode = '123456789'
 
@@ -340,7 +340,7 @@ t.test('options.getTokenParams', t => {
     checkStateFunction: function(state, callback) {
       callback()
     },
-    getTokenParams: {
+    tokenRequestParams: {
       param1: '123'
     },
     scope: ['notifications']
