@@ -320,6 +320,8 @@ t.test('options.tokenRequestParams should be an object', t => {
 })
 
 t.test('options.tokenRequestParams', t => {
+  t.plan(2)
+
   const fastify = createFastify({ logger: { level: 'silent' } })
   const oAuthCode = '123456789'
 
@@ -337,7 +339,7 @@ t.test('options.tokenRequestParams', t => {
     generateStateFunction: function () {
       return 'dummy'
     },
-    checkStateFunction: function(state, callback) {
+    checkStateFunction: function (state, callback) {
       callback()
     },
     tokenRequestParams: {
@@ -378,7 +380,6 @@ t.test('options.tokenRequestParams', t => {
       t.error(err)
 
       githubScope.done()
-      t.end()
     })
   })
 })
