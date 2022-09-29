@@ -5,7 +5,6 @@ const defaultState = require('crypto').randomBytes(10).toString('hex')
 const fp = require('fastify-plugin')
 const { AuthorizationCode } = require('simple-oauth2')
 const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-uri-params')
-const kGenerateTokenRequestParams = Symbol.for('fastify-oauth2.generate-token-request-params')
 
 const promisify = require('util').promisify
 const callbackify = require('util').callbackify
@@ -24,10 +23,6 @@ function defaultCheckStateFunction (state, callback) {
 
 function defaultGenerateCallbackUriParams (callbackUriParams) {
   return callbackUriParams
-}
-
-function defaultGenerateTokenRequestParams (tokenRequestParams) {
-  return tokenRequestParams
 }
 
 const oauthPlugin = fp(function (fastify, options, next) {
@@ -74,7 +69,6 @@ const oauthPlugin = fp(function (fastify, options, next) {
   const generateStateFunction = options.generateStateFunction || defaultGenerateStateFunction
   const checkStateFunction = options.checkStateFunction || defaultCheckStateFunction
   const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
-  const generateTokenRequestParams = (credentials.auth && credentials.auth[kGenerateTokenRequestParams]) || defaultGenerateTokenRequestParams
   const startRedirectPath = options.startRedirectPath
   const tags = options.tags || []
   const schema = options.schema || { tags }
@@ -98,7 +92,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
   }
 
   const cbk = function (o, code, callback) {
-    const body = Object.assign({}, generateTokenRequestParams(tokenRequestParams), {
+    const body = Object.assign({}, tokenRequestParams, {
       code,
       redirect_uri: callbackUri
     })
