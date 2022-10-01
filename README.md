@@ -184,6 +184,11 @@ fastify.register(oauthPlugin, {
 });
 ```
 
+## Set custom tokenRequest body Parameters
+
+The `tokenRequestParams` parameter accepts an object that will be translated to additional parameters in the POST body
+when requesting access tokens via the service’s token endpoint.
+
 ## Examples
 
 See the [`example/`](./examples/) folder for more examples.

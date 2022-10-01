@@ -38,6 +38,9 @@ const oauthPlugin = fp(function (fastify, options, next) {
   if (options.callbackUriParams && typeof options.callbackUriParams !== 'object') {
     return next(new Error('options.callbackUriParams should be a object'))
   }
+  if (options.tokenRequestParams && typeof options.tokenRequestParams !== 'object') {
+    return next(new Error('options.tokenRequestParams should be a object'))
+  }
   if (options.generateStateFunction && typeof options.generateStateFunction !== 'function') {
     return next(new Error('options.generateStateFunction should be a function'))
   }
@@ -61,6 +64,7 @@ const oauthPlugin = fp(function (fastify, options, next) {
   const credentials = options.credentials
   const callbackUri = options.callbackUri
   const callbackUriParams = options.callbackUriParams || {}
+  const tokenRequestParams = options.tokenRequestParams || {}
   const scope = options.scope
   const generateStateFunction = options.generateStateFunction || defaultGenerateStateFunction
   const checkStateFunction = options.checkStateFunction || defaultCheckStateFunction
@@ -88,10 +92,12 @@ const oauthPlugin = fp(function (fastify, options, next) {
   }
 
   const cbk = function (o, code, callback) {
-    return callbackify(o.oauth2.getToken.bind(o.oauth2, {
+    const body = Object.assign({}, tokenRequestParams, {
       code,
       redirect_uri: callbackUri
-    }))(callback)
+    })
+
+    return callbackify(o.oauth2.getToken.bind(o.oauth2, body))(callback)
   }
 
   function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, callback) {
