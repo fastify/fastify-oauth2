@@ -1,6 +1,6 @@
 import fastify from 'fastify';
 import { expectAssignable, expectError, expectType } from 'tsd';
-import fastifyOauth2, { Credentials, OAuth2Namespace, OAuth2Token, ProviderConfiguration } from '../..';
+import fastifyOauth2, { FastifyOAuth2Options, Credentials, OAuth2Namespace, OAuth2Token, ProviderConfiguration } from '../..';
 
 /**
  * Preparing some data for testing.
@@ -15,7 +15,7 @@ const credentials: Credentials = {
   },
   auth: auth,
 };
-const OAuth2Options = {
+const OAuth2Options: FastifyOAuth2Options = {
   name: 'testOAuthName',
   scope: scope,
   credentials: credentials,
@@ -29,6 +29,23 @@ const OAuth2Options = {
 const server = fastify();
 
 server.register(fastifyOauth2, OAuth2Options);
+
+server.register(fastifyOauth2, {
+  name: 'testOAuthName',
+  scope: scope,
+  credentials: credentials,
+  callbackUri: 'http://localhost/testOauth/callback',
+  checkStateFunction: () => {},
+})
+
+expectError(server.register(fastifyOauth2, {
+  name: 'testOAuthName',
+  scope: scope,
+  credentials: credentials,
+  callbackUri: 'http://localhost/testOauth/callback',
+  checkStateFunction: () => {},
+  startRedirectPath: 2,
+}))
 
 declare module 'fastify' {
   // Developers need to define this in their code like they have to do with all decorators.
