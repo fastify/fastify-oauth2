@@ -25,7 +25,7 @@ function defaultGenerateCallbackUriParams (callbackUriParams) {
   return callbackUriParams
 }
 
-const oauthPlugin = fp(function (fastify, options, next) {
+function fastifyOauth2 (fastify, options, next) {
   if (typeof options.name !== 'string') {
     return next(new Error('options.name should be a string'))
   }
@@ -152,12 +152,9 @@ const oauthPlugin = fp(function (fastify, options, next) {
   }
 
   next()
-}, {
-  fastify: '4.x',
-  name: '@fastify/oauth2'
-})
+}
 
-oauthPlugin.APPLE_CONFIGURATION = {
+fastifyOauth2.APPLE_CONFIGURATION = {
   authorizeHost: 'https://appleid.apple.com',
   authorizePath: '/auth/authorize',
   tokenHost: 'https://appleid.apple.com',
@@ -181,87 +178,92 @@ oauthPlugin.APPLE_CONFIGURATION = {
   }
 }
 
-oauthPlugin.FACEBOOK_CONFIGURATION = {
+fastifyOauth2.FACEBOOK_CONFIGURATION = {
   authorizeHost: 'https://facebook.com',
   authorizePath: '/v6.0/dialog/oauth',
   tokenHost: 'https://graph.facebook.com',
   tokenPath: '/v6.0/oauth/access_token'
 }
 
-oauthPlugin.GITHUB_CONFIGURATION = {
+fastifyOauth2.GITHUB_CONFIGURATION = {
   tokenHost: 'https://github.com',
   tokenPath: '/login/oauth/access_token',
   authorizePath: '/login/oauth/authorize'
 }
 
-oauthPlugin.LINKEDIN_CONFIGURATION = {
+fastifyOauth2.LINKEDIN_CONFIGURATION = {
   authorizeHost: 'https://www.linkedin.com',
   authorizePath: '/oauth/v2/authorization',
   tokenHost: 'https://www.linkedin.com',
   tokenPath: '/oauth/v2/accessToken'
 }
 
-oauthPlugin.GOOGLE_CONFIGURATION = {
+fastifyOauth2.GOOGLE_CONFIGURATION = {
   authorizeHost: 'https://accounts.google.com',
   authorizePath: '/o/oauth2/v2/auth',
   tokenHost: 'https://www.googleapis.com',
   tokenPath: '/oauth2/v4/token'
 }
 
-oauthPlugin.MICROSOFT_CONFIGURATION = {
+fastifyOauth2.MICROSOFT_CONFIGURATION = {
   authorizeHost: 'https://login.microsoftonline.com',
   authorizePath: '/common/oauth2/v2.0/authorize',
   tokenHost: 'https://login.microsoftonline.com',
   tokenPath: '/common/oauth2/v2.0/token'
 }
 
-oauthPlugin.VKONTAKTE_CONFIGURATION = {
+fastifyOauth2.VKONTAKTE_CONFIGURATION = {
   authorizeHost: 'https://oauth.vk.com',
   authorizePath: '/authorize',
   tokenHost: 'https://oauth.vk.com',
   tokenPath: '/access_token'
 }
 
-oauthPlugin.SPOTIFY_CONFIGURATION = {
+fastifyOauth2.SPOTIFY_CONFIGURATION = {
   authorizeHost: 'https://accounts.spotify.com',
   authorizePath: '/authorize',
   tokenHost: 'https://accounts.spotify.com',
   tokenPath: '/api/token'
 }
 
-oauthPlugin.DISCORD_CONFIGURATION = {
+fastifyOauth2.DISCORD_CONFIGURATION = {
   authorizeHost: 'https://discord.com',
   authorizePath: '/api/oauth2/authorize',
   tokenHost: 'https://discord.com',
   tokenPath: '/api/oauth2/token'
 }
 
-oauthPlugin.TWITCH_CONFIGURATION = {
+fastifyOauth2.TWITCH_CONFIGURATION = {
   authorizeHost: 'https://id.twitch.tv',
   authorizePath: '/oauth2/authorize',
   tokenHost: 'https://id.twitch.tv',
   tokenPath: '/oauth2/token'
 }
 
-oauthPlugin.VATSIM_CONFIGURATION = {
+fastifyOauth2.VATSIM_CONFIGURATION = {
   authorizeHost: 'https://auth.vatsim.net',
   authorizePath: '/oauth/authorize',
   tokenHost: 'https://auth.vatsim.net',
   tokenPath: '/oauth/token'
 }
 
-oauthPlugin.VATSIM_DEV_CONFIGURATION = {
+fastifyOauth2.VATSIM_DEV_CONFIGURATION = {
   authorizeHost: 'https://auth-dev.vatsim.net',
   authorizePath: '/oauth/authorize',
   tokenHost: 'https://auth-dev.vatsim.net',
   tokenPath: '/oauth/token'
 }
 
-oauthPlugin.EPIC_GAMES_CONFIGURATION = {
+fastifyOauth2.EPIC_GAMES_CONFIGURATION = {
   authorizeHost: 'https://www.epicgames.com',
   authorizePath: '/id/authorize',
   tokenHost: 'https://api.epicgames.dev',
   tokenPath: '/epic/oauth/v1/token'
 }
 
-module.exports = oauthPlugin
+module.exports = fp(fastifyOauth2, {
+  fastify: '4.x',
+  name: '@fastify/oauth2'
+})
+module.exports.default = fastifyOauth2
+module.exports.fastifyOauth2 = fastifyOauth2

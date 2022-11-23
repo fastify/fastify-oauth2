@@ -4,7 +4,7 @@ const t = require('tap')
 const nock = require('nock')
 const createFastify = require('fastify')
 
-const oauthPlugin = require('..')
+const fastifyOauth2 = require('..')
 
 nock.disableNetConnect()
 
@@ -73,14 +73,14 @@ t.test('fastify-oauth2', t => {
   t.test('callback', t => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify.register(oauthPlugin, {
+    fastify.register(fastifyOauth2, {
       name: 'githubOAuth2',
       credentials: {
         client: {
           id: 'my-client-id',
           secret: 'my-secret'
         },
-        auth: oauthPlugin.GITHUB_CONFIGURATION
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
       },
       startRedirectPath: '/login/github',
       callbackUri: 'http://localhost:3000/callback',
@@ -115,14 +115,14 @@ t.test('fastify-oauth2', t => {
   t.test('promise', t => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify.register(oauthPlugin, {
+    fastify.register(fastifyOauth2, {
       name: 'githubOAuth2',
       credentials: {
         client: {
           id: 'my-client-id',
           secret: 'my-secret'
         },
-        auth: oauthPlugin.GITHUB_CONFIGURATION
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
       },
       startRedirectPath: '/login/github',
       callbackUri: 'http://localhost:3000/callback',
@@ -153,14 +153,14 @@ t.test('fastify-oauth2', t => {
   t.test('wrong state', t => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify.register(oauthPlugin, {
+    fastify.register(fastifyOauth2, {
       name: 'githubOAuth2',
       credentials: {
         client: {
           id: 'my-client-id',
           secret: 'my-secret'
         },
-        auth: oauthPlugin.GITHUB_CONFIGURATION
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
       },
       startRedirectPath: '/login/github',
       callbackUri: '/callback'
@@ -197,7 +197,7 @@ t.test('options.name should be a string', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin)
+  fastify.register(fastifyOauth2)
     .ready(err => {
       t.strictSame(err.message, 'options.name should be a string')
     })
@@ -208,7 +208,7 @@ t.test('options.credentials should be an object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name'
   })
     .ready(err => {
@@ -221,14 +221,14 @@ t.test('options.callbackUri should be an object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     }
   })
     .ready(err => {
@@ -241,14 +241,14 @@ t.test('options.callbackUriParams should be an object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
     callbackUriParams: 1
@@ -261,14 +261,14 @@ t.test('options.callbackUriParams should be an object', t => {
 t.test('options.callbackUriParams', t => {
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     startRedirectPath: '/login/github',
     callbackUri: '/callback',
@@ -302,14 +302,14 @@ t.test('options.tokenRequestParams should be an object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
     tokenRequestParams: 1
@@ -325,14 +325,14 @@ t.test('options.tokenRequestParams', t => {
   const fastify = createFastify({ logger: { level: 'silent' } })
   const oAuthCode = '123456789'
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'githubOAuth2',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     startRedirectPath: '/login/github',
     callbackUri: 'http://localhost:3000/callback',
@@ -388,14 +388,14 @@ t.test('options.generateStateFunction with request', t => {
   t.plan(5)
   const fastify = createFastify()
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     startRedirectPath: '/login/github',
     callbackUri: '/callback',
@@ -429,14 +429,14 @@ t.test('generateAuthorizationUri redirect with request object', t => {
   t.plan(4)
   const fastify = createFastify()
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'theName',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
     generateStateFunction: (request) => {
@@ -471,14 +471,14 @@ t.test('options.generateStateFunction should be an object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
     generateStateFunction: 42
@@ -493,14 +493,14 @@ t.test('options.checkStateFunction should be an object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
     generateStateFunction: () => { },
@@ -516,14 +516,14 @@ t.test('options.startRedirectPath should be a string', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
     startRedirectPath: 42
@@ -538,14 +538,14 @@ t.test('options.generateStateFunction ^ options.checkStateFunction', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
     checkStateFunction: () => { }
@@ -560,14 +560,14 @@ t.test('options.tags should be a array', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
     tags: 'invalid tags'
@@ -582,14 +582,14 @@ t.test('options.schema should be a object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
     schema: 1
@@ -607,14 +607,14 @@ t.test('options.schema', t => {
     t.end()
   })
 
-  fastify.register(oauthPlugin, {
+  fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
         id: 'my-client-id',
         secret: 'my-secret'
       },
-      auth: oauthPlugin.GITHUB_CONFIGURATION
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     startRedirectPath: '/login/github',
     callbackUri: '/callback',
@@ -637,14 +637,14 @@ t.test('already decorated', t => {
 
   fastify
     .decorate('githubOAuth2', false)
-    .register(oauthPlugin, {
+    .register(fastifyOauth2, {
       name: 'githubOAuth2',
       credentials: {
         client: {
           id: 'my-client-id',
           secret: 'my-secret'
         },
-        auth: oauthPlugin.GITHUB_CONFIGURATION
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
       },
       callbackUri: '/callback'
     })
@@ -659,14 +659,14 @@ t.test('preset configuration generate-callback-uri-params', t => {
   t.test('array scope', t => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify.register(oauthPlugin, {
+    fastify.register(fastifyOauth2, {
       name: 'the-name',
       credentials: {
         client: {
           id: 'my-client-id',
           secret: 'my-secret'
         },
-        auth: oauthPlugin.APPLE_CONFIGURATION
+        auth: fastifyOauth2.APPLE_CONFIGURATION
       },
       startRedirectPath: '/login/apple',
       callbackUri: '/callback',
@@ -695,14 +695,14 @@ t.test('preset configuration generate-callback-uri-params', t => {
   t.test('string scope', t => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify.register(oauthPlugin, {
+    fastify.register(fastifyOauth2, {
       name: 'the-name',
       credentials: {
         client: {
           id: 'my-client-id',
           secret: 'my-secret'
         },
-        auth: oauthPlugin.APPLE_CONFIGURATION
+        auth: fastifyOauth2.APPLE_CONFIGURATION
       },
       startRedirectPath: '/login/apple',
       callbackUri: '/callback',
@@ -731,14 +731,14 @@ t.test('preset configuration generate-callback-uri-params', t => {
   t.test('no scope', t => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify.register(oauthPlugin, {
+    fastify.register(fastifyOauth2, {
       name: 'the-name',
       credentials: {
         client: {
           id: 'my-client-id',
           secret: 'my-secret'
         },
-        auth: oauthPlugin.APPLE_CONFIGURATION
+        auth: fastifyOauth2.APPLE_CONFIGURATION
       },
       startRedirectPath: '/login/apple',
       callbackUri: '/callback',
@@ -763,4 +763,30 @@ t.test('preset configuration generate-callback-uri-params', t => {
       })
     })
   })
+})
+
+t.test('preset configuration generate-callback-uri-params', t => {
+  t.plan(48)
+
+  const presetConfigs = [
+    'FACEBOOK_CONFIGURATION',
+    'GITHUB_CONFIGURATION',
+    'LINKEDIN_CONFIGURATION',
+    'GOOGLE_CONFIGURATION',
+    'MICROSOFT_CONFIGURATION',
+    'VKONTAKTE_CONFIGURATION',
+    'SPOTIFY_CONFIGURATION',
+    'DISCORD_CONFIGURATION',
+    'TWITCH_CONFIGURATION',
+    'VATSIM_CONFIGURATION',
+    'VATSIM_DEV_CONFIGURATION',
+    'EPIC_GAMES_CONFIGURATION'
+  ]
+
+  for (const configName of presetConfigs) {
+    t.ok(fastifyOauth2[configName])
+    t.equal(typeof fastifyOauth2[configName].tokenHost, 'string')
+    t.equal(typeof fastifyOauth2[configName].tokenPath, 'string')
+    t.equal(typeof fastifyOauth2[configName].authorizePath, 'string')
+  }
 })
