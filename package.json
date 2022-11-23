@@ -3,14 +3,14 @@
   "version": "6.1.0",
   "description": "Perform login using oauth2 protocol",
   "main": "index.js",
-  "types": "index.d.ts",
+  "types": "types/index.d.ts",
   "scripts": {
-    "coverage": "npm run unit -- --cov --coverage-report=html",
     "lint": "standard | snazzy",
     "lint:fix": "standard --fix",
-    "test": "npm run unit && npm run test:typescript",
+    "test": "npm run test:unit && npm run test:typescript",
+    "test:coverage": "npm run unit -- --cov --coverage-report=html",
     "test:typescript": "tsd",
-    "unit": "tap -J \"test/*.test.js\""
+    "test:unit": "tap"
   },
   "repository": {
     "type": "git",
@@ -41,10 +41,11 @@
     "fastify-plugin": "^4.0.0",
     "simple-oauth2": "^5.0.0"
   },
-  "tsd": {
-    "directory": "test/types"
-  },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "pre-commit": [
+    "lint",
+    "test"
+  ]
 }
