@@ -38,12 +38,12 @@ fastify.register(oauthPlugin, {
 })
 
 fastify.get('/login/facebook/callback', async function (request, reply) {
-  const token = await this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+  const { token } = await this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
 
   console.log(token.access_token)
 
   // if later you need to refresh the token you can use
-  // const newToken = await this.getNewAccessTokenUsingRefreshToken(token.refresh_token)
+  // const { token: newToken } = await this.getNewAccessTokenUsingRefreshToken(token.refresh_token)
 
   reply.send({ access_token: token.access_token })
 })
@@ -222,12 +222,12 @@ Assuming we have registered multiple OAuth providers like this:
 
 This fastify plugin adds 3 utility decorators to your fastify instance using the same **namespace**:
 
-- `getAccessTokenFromAuthorizationCodeFlow(request, callback)`: A function that uses the Authorization code flow to fetch an OAuth2 token using the data in the last request of the flow. If the callback is not passed it will return a promise. The object resulting from the callback call or the promise resolution is a *token response* object containing the following keys:
+- `getAccessTokenFromAuthorizationCodeFlow(request, callback)`: A function that uses the Authorization code flow to fetch an OAuth2 token using the data in the last request of the flow. If the callback is not passed it will return a promise. The callback call or promise resolution returns an [AccessToken](https://github.com/lelylan/simple-oauth2/blob/master/API.md#accesstoken) object, which has an `AccessToken.token` property with the following keys:
   - `access_token`
   - `refresh_token` (optional, only if the `offline scope` was originally requested, as seen in the callbackUriParams example)
   - `token_type` (generally `'bearer'`)
   - `expires_in` (number of seconds for the token to expire, e.g. `240000`)
-- `getNewAccessTokenUsingRefreshToken(refreshToken, params, callback)`: A function that takes a refresh token and retrieves a new *token response* object. This is generally useful with background processing workers to re-issue a new token when the original token has expired. The `params` argument is optional and it is an object that can be used to pass in extra parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a promise. The object resulting from the callback call or the promise resolution is a new *token response* object (see fields above).
+- `getNewAccessTokenUsingRefreshToken(refreshToken, params, callback)`: A function that takes a refresh token and retrieves a new `AccessToken` object. This is generally useful with background processing workers to re-issue a new token when the original token has expired. The `params` argument is optional and it is an object that can be used to pass in extra parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a promise. The object resulting from the callback call or the promise resolution is a new `AccessToken` object (see above).
 - `generateAuthorizationUri(requestObject)`: A function that returns the authorization uri. This is generally useful when you want to handle the redirect yourself in a specific route. The `requestObject` argument passes the request object to the `generateStateFunction`). You **do not** need to declare a `startRedirectPath` if you use this approach. Example of how you would use it:
 
 ```js
