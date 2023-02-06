@@ -222,7 +222,7 @@ Assuming we have registered multiple OAuth providers like this:
 
 This fastify plugin adds 3 utility decorators to your fastify instance using the same **namespace**:
 
-- `getAccessTokenFromAuthorizationCodeFlow(request, callback)`: A function that uses the Authorization code flow to fetch an OAuth2 token using the data in the last request of the flow. If the callback is not passed it will return a promise. The object resulting from the callback call or the promise resolution is an [AccessToken](https://github.com/lelylan/simple-oauth2/blob/master/API.md#accesstoken) object having `AccessToken.token` property with the following keys:
+- `getAccessTokenFromAuthorizationCodeFlow(request, callback)`: A function that uses the Authorization code flow to fetch an OAuth2 token using the data in the last request of the flow. If the callback is not passed it will return a promise. The callback call or promise resolution returns an [AccessToken](https://github.com/lelylan/simple-oauth2/blob/master/API.md#accesstoken) object, which has an `AccessToken.token` property with the following keys:
   - `access_token`
   - `refresh_token` (optional, only if the `offline scope` was originally requested, as seen in the callbackUriParams example)
   - `token_type` (generally `'bearer'`)
