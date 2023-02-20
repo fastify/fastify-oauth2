@@ -33,7 +33,7 @@ fastify.register(oauthPlugin, {
        * Based on offical Apple OAuth2 docs, an HTTP POST request is sent to the redirectURI for the `form_post` value.
        * And the result of the authorization is stored in the body as application/x-www-form-urlencoded content type.
        * See {@link https://developer.apple.com/documentation/sign_in_with_apple/request_an_authorization_to_the_sign_in_with_apple_server}
-       */ 
+       */
       authorizationMethod: 'body'
     }
   },
