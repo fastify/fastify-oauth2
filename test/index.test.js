@@ -666,7 +666,10 @@ t.test('preset configuration generate-callback-uri-params', t => {
           id: 'my-client-id',
           secret: 'my-secret'
         },
-        auth: fastifyOauth2.APPLE_CONFIGURATION
+        auth: fastifyOauth2.APPLE_CONFIGURATION,
+        options: {
+          authorizationMethod: 'body'
+        }
       },
       startRedirectPath: '/login/apple',
       callbackUri: '/callback',
@@ -702,7 +705,10 @@ t.test('preset configuration generate-callback-uri-params', t => {
           id: 'my-client-id',
           secret: 'my-secret'
         },
-        auth: fastifyOauth2.APPLE_CONFIGURATION
+        auth: fastifyOauth2.APPLE_CONFIGURATION,
+        options: {
+          authorizationMethod: 'body'
+        }
       },
       startRedirectPath: '/login/apple',
       callbackUri: '/callback',
@@ -738,7 +744,10 @@ t.test('preset configuration generate-callback-uri-params', t => {
           id: 'my-client-id',
           secret: 'my-secret'
         },
-        auth: fastifyOauth2.APPLE_CONFIGURATION
+        auth: fastifyOauth2.APPLE_CONFIGURATION,
+        options: {
+          authorizationMethod: 'body'
+        }
       },
       startRedirectPath: '/login/apple',
       callbackUri: '/callback',
