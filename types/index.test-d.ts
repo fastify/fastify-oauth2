@@ -35,6 +35,7 @@ const OAuth2Options: FastifyOAuth2Options = {
 
 const server = fastify();
 
+server.register(fastifyOauth2, OAuth2NoneOptional)
 server.register(fastifyOauth2, OAuth2Options);
 
 server.register(fastifyOauth2, {
