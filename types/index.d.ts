@@ -19,7 +19,7 @@ interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth
 declare namespace fastifyOauth2 {
   export interface FastifyOAuth2Options {
     name: string;
-    scope: string[];
+    scope?: string[];
     credentials: Credentials;
     callbackUri: string;
     callbackUriParams?: Object;

@@ -15,6 +15,13 @@ const credentials: Credentials = {
   },
   auth: auth,
 };
+
+const OAuth2NoneOptional: FastifyOAuth2Options = {
+  name: 'testOAuthName',
+  credentials: credentials,
+  callbackUri: 'http://localhost/testOauth/callback'
+};
+
 const OAuth2Options: FastifyOAuth2Options = {
   name: 'testOAuthName',
   scope: scope,
@@ -28,6 +35,7 @@ const OAuth2Options: FastifyOAuth2Options = {
 
 const server = fastify();
 
+server.register(fastifyOauth2, OAuth2NoneOptional)
 server.register(fastifyOauth2, OAuth2Options);
 
 server.register(fastifyOauth2, {
