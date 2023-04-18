@@ -244,7 +244,7 @@ E.g. For `name: 'customOauth2'`, the helpers `getAccessTokenFromAuthorizationCod
 
 ## Usage with TypeScript
 
-Type definitions are provided with the package. Decorations are applied during runtime and are based on auth configuration name. One solution is to leverage TypeScript declaration merging to add type-safe namespace.
+Type definitions are provided with the package. Decorations are applied during runtime and are based on auth configuration name. One solution is to leverage TypeScript declaration merging to add type-safe namespace. Make sure you have `@types/node` installed for this to work correctly.
 
 In project declarations files .d.ts
 
