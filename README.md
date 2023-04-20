@@ -261,7 +261,7 @@ declare module 'fastify' {
 
 ## Provider Quirks
 
-This is a list of known quirks of some providers that needed additional work to get everything set up correctly.
+The following providers require additional work to be set up correctly.   
 
 ### Twitch
 
