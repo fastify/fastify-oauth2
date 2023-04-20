@@ -266,7 +266,8 @@ This is a list of known quirks of some providers that needed additional work to 
 ### Twitch
 
 Twitch requires that the request for a token in the oauth2 flow contains the `client_id` and `client_secret` property.
-Unfortunately, this library cannot set this up automatically. Howevever, it's easy to configure:
+Unfortunately, this library cannot set this up automatically. When authenticating via Twitch, include the
+`client_id` and `client_secret` in `tokenRequestParams`:
 
 ```js
 fastify.register(oauthPlugin, {
