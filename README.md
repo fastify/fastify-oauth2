@@ -284,7 +284,7 @@ fastify.register(oauthPlugin, {
   },
   // register a fastify url to start the redirect flow
   startRedirectPath: '/login/twitch',
-  // facebook redirect here after the user login
+  // twitch redirect here after the user login
   callbackUri: 'http://localhost:3000/login/twitch/callback'
 })
 ```
