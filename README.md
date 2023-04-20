@@ -259,6 +259,36 @@ declare module 'fastify' {
 }
 ```
 
+## Provider Quirks
+
+This is a list of known quirks of some providers that needed additional work to get everything set up correctly.
+
+### Twitch
+
+Twitch requires that the request for a token in the oauth2 flow contains the `client_id` and `client_secret` property.
+Unfortunately, this library cannot set this up automatically. Howevever, it's easy to configure:
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'twitchOauth2',
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>'
+    },
+    auth: oauthPlugin.TWITCH_CONFIGURATION
+  },
+  tokenRequestParams: {
+    client_id: '<CLIENT_ID>',
+    client_secret: '<CLIENT_SECRET>',
+  },
+  // register a fastify url to start the redirect flow
+  startRedirectPath: '/login/twitch',
+  // facebook redirect here after the user login
+  callbackUri: 'http://localhost:3000/login/twitch/callback'
+})
+```
+
 ## License
 
 Licensed under [MIT](./LICENSE).
