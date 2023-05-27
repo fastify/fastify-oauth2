@@ -201,8 +201,9 @@ fastifyOauth2.LINKEDIN_CONFIGURATION = {
 fastifyOauth2.GOOGLE_CONFIGURATION = {
   authorizeHost: 'https://accounts.google.com',
   authorizePath: '/o/oauth2/v2/auth',
-  tokenHost: 'https://www.googleapis.com',
-  tokenPath: '/oauth2/v4/token'
+  tokenHost: 'https://oauth2.googleapis.com',
+  tokenPath: '/token',
+  revokePath: '/revoke'
 }
 
 fastifyOauth2.MICROSOFT_CONFIGURATION = {
