@@ -228,7 +228,6 @@ This fastify plugin adds 3 utility decorators to your fastify instance using the
   - `token_type` (generally `'bearer'`)
   - `expires_in` (number of seconds for the token to expire, e.g. `240000`)
 - `getNewAccessTokenUsingRefreshToken(AccessToken, params, callback)`: A function that takes a AccessToken and retrieves a new `AccessToken` object. This is generally useful with background processing workers to re-issue a new token when the original token has expired. The `params` argument is optional and it is an object that can be used to pass in extra parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a promise. The object resulting from the callback call or the promise resolution is a new `AccessToken` object (see above). Example of how you would use it for `name:googleOAuth2`:
-- 
 ```js
 fastify.googleOAuth2.getNewAccessTokenUsingRefreshToken(accessToken,(err, accessToken) => {
    //Handle new accessToken
