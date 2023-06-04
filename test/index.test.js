@@ -27,14 +27,14 @@ function makeRequests (t, fastify) {
       const RESPONSE_BODY = {
         access_token: 'my-access-token',
         refresh_token: 'my-refresh-token',
-        token_type: 'bearer',
+        token_type: 'Bearer',
         expires_in: '240000'
       }
 
       const RESPONSE_BODY_REFRESHED = {
         access_token: 'my-access-token-refreshed',
         refresh_token: 'my-refresh-token-refreshed',
-        token_type: 'bearer',
+        token_type: 'Bearer',
         expires_in: '240000'
       }
 
