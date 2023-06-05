@@ -225,7 +225,7 @@ This fastify plugin adds 3 utility decorators to your fastify instance using the
 - `getAccessTokenFromAuthorizationCodeFlow(request, callback)`: A function that uses the Authorization code flow to fetch an OAuth2 token using the data in the last request of the flow. If the callback is not passed it will return a promise. The callback call or promise resolution returns an [AccessToken](https://github.com/lelylan/simple-oauth2/blob/master/API.md#accesstoken) object, which has an `AccessToken.token` property with the following keys:
   - `access_token`
   - `refresh_token` (optional, only if the `offline scope` was originally requested, as seen in the callbackUriParams example)
-  - `token_type` (generally `'bearer'`)
+  - `token_type` (generally `'Bearer'`)
   - `expires_in` (number of seconds for the token to expire, e.g. `240000`)
 - `getNewAccessTokenUsingRefreshToken(Token, params, callback)`: A function that takes a `AccessToken`-Object as `Token` and retrieves a new `AccessToken`-Object. This is generally useful with background processing workers to re-issue a new AccessToken when the previous AccessToken has expired. The `params` argument is optional and it is an object that can be used to pass in additional parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a Promise. The object resulting from the callback call or the resolved Promise is a new `AccessToken` object (see above). Example of how you would use it for `name:googleOAuth2`:
 ```js

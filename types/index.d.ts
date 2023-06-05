@@ -32,7 +32,7 @@ declare namespace fastifyOauth2 {
   }
 
   export interface Token {
-    token_type: 'bearer';
+    token_type: 'Bearer';
     access_token: string;
     refresh_token?: string;
     id_token?: string;
