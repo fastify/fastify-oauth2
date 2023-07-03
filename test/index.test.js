@@ -3,7 +3,7 @@
 const t = require('tap')
 const nock = require('nock')
 const createFastify = require('fastify')
-
+const crypto = require('crypto')
 const fastifyOauth2 = require('..')
 
 nock.disableNetConnect()
@@ -54,7 +54,10 @@ function makeRequests (t, fastify) {
 
       fastify.inject({
         method: 'GET',
-        url: '/?code=my-code&state=' + state
+        url: '/?code=my-code&state=' + state,
+        cookies: {
+          'oauth2-redirect-state': state
+        }
       }, function (err, responseEnd) {
         t.error(err)
 
@@ -426,7 +429,6 @@ t.test('options.generateStateFunction with request', t => {
 })
 
 t.test('generateAuthorizationUri redirect with request object', t => {
-  t.plan(4)
   const fastify = createFastify()
 
   fastify.register(fastifyOauth2, {
@@ -448,7 +450,7 @@ t.test('generateAuthorizationUri redirect with request object', t => {
   })
 
   fastify.get('/gh', function (request, reply) {
-    const redirectUrl = this.theName.generateAuthorizationUri(request)
+    const redirectUrl = this.theName.generateAuthorizationUri(request, 'generated_code')
     return reply.redirect(redirectUrl)
   })
 
@@ -463,6 +465,7 @@ t.test('generateAuthorizationUri redirect with request object', t => {
     t.equal(responseStart.statusCode, 302)
     const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
     t.ok(matched)
+    t.end()
   })
 })
 
@@ -798,4 +801,54 @@ t.test('preset configuration generate-callback-uri-params', t => {
     t.equal(typeof fastifyOauth2[configName].tokenPath, 'string')
     t.equal(typeof fastifyOauth2[configName].authorizePath, 'string')
   }
+})
+
+t.test('options.generateStateFunction with signing key', t => {
+  t.plan(5)
+  const fastify = createFastify()
+
+  const hmacKey = 'hello'
+  const expectedState = crypto.createHmac('sha1', hmacKey).update('foo').digest('hex')
+
+  fastify.register(require('@fastify/cookie'))
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    startRedirectPath: '/login/github',
+    callbackUri: '/callback',
+    generateStateFunction: (request) => {
+      const state = crypto.createHmac('sha1', hmacKey).update(request.headers.foo).digest('hex')
+      t.ok(request, 'the request param has been set')
+      return state
+    },
+    checkStateFunction: (request) => {
+      const generatedState = crypto.createHmac('sha1', hmacKey).update(request.headers.foo).digest('hex')
+      return generatedState === request.query.state
+    },
+    scope: ['notifications']
+  })
+
+  t.teardown(fastify.close.bind(fastify))
+
+  fastify.listen({ port: 0 }, function (err) {
+    t.error(err)
+    fastify.inject({
+      method: 'GET',
+      url: '/login/github',
+      query: { code: expectedState },
+      headers: { foo: 'foo' }
+    }, function (err, responseStart) {
+      t.error(err)
+      t.equal(responseStart.statusCode, 302)
+      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=1e864fbd840212c1ed9ce60175d373f3a48681b2/)
+      t.ok(matched)
+    })
+  })
 })

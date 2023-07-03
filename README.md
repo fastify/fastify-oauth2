@@ -125,11 +125,10 @@ fastify.register(oauthPlugin, {
 ## Set custom state
 
 The `generateStateFunction` accepts a function to generate the `state` parameter for the OAUTH flow. This function receives the Fastify instance's `request` object as parameter.
+The `state` parameter will be also set into a `httpOnly`, `sameSite: Lax` cookie.
 When you set it, it is required to provide the function `checkStateFunction` in order to validate the states generated.
 
 ```js
-  const validStates = new Set()
-
   fastify.register(oauthPlugin, {
     name: 'facebookOAuth2',
     credentials: {
@@ -146,12 +145,12 @@ When you set it, it is required to provide the function `checkStateFunction` in 
     // custom function to generate the state
     generateStateFunction: (request) => {
       const state = request.query.customCode
-      validStates.add(state)
+      request.session.state = state
       return state
     },
     // custom function to check the state is valid
-    checkStateFunction: (returnedState, callback) => {
-      if (validStates.has(returnedState)) {
+    checkStateFunction: (request, callback) => {
+      if (request.query.state === request.session.state) {
         callback()
         return
       }

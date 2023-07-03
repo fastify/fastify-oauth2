@@ -1,6 +1,6 @@
 'use strict'
 
-const defaultState = require('crypto').randomBytes(10).toString('hex')
+const crypto = require('crypto')
 
 const fp = require('fastify-plugin')
 const { AuthorizationCode } = require('simple-oauth2')
@@ -10,11 +10,13 @@ const promisify = require('util').promisify
 const callbackify = require('util').callbackify
 
 function defaultGenerateStateFunction () {
-  return defaultState
+  return crypto.randomBytes(16).toString('base64url')
 }
 
-function defaultCheckStateFunction (state, callback) {
-  if (state === defaultState) {
+function defaultCheckStateFunction (request, callback) {
+  const state = request.query.state
+  const stateCookie = request.cookies['oauth2-redirect-state']
+  if (stateCookie && state === stateCookie) {
     callback()
     return
   }
@@ -60,6 +62,10 @@ function fastifyOauth2 (fastify, options, next) {
     return next(new Error('options.schema should be a object'))
   }
 
+  if (!fastify.hasReplyDecorator('cookie')) {
+    fastify.register(require('@fastify/cookie'))
+  }
+
   const name = options.name
   const credentials = options.credentials
   const callbackUri = options.callbackUri
@@ -73,9 +79,8 @@ function fastifyOauth2 (fastify, options, next) {
   const tags = options.tags || []
   const schema = options.schema || { tags }
 
-  function generateAuthorizationUri (requestObject) {
-    const state = generateStateFunction(requestObject)
-    const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, requestObject, scope, state), {
+  function generateAuthorizationUri (request, state) {
+    const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
       redirect_uri: callbackUri,
       scope,
       state
@@ -86,9 +91,13 @@ function fastifyOauth2 (fastify, options, next) {
   }
 
   function startRedirectHandler (request, reply) {
-    const authorizationUri = generateAuthorizationUri(request)
+    const state = generateStateFunction(request)
+    const authorizationUri = generateAuthorizationUri(request, state)
 
-    reply.redirect(authorizationUri)
+    reply.setCookie('oauth2-redirect-state', state, {
+      httpOnly: true,
+      sameSite: 'lax'
+    }).redirect(authorizationUri)
   }
 
   const cbk = function (o, code, callback) {
@@ -102,9 +111,8 @@ function fastifyOauth2 (fastify, options, next) {
 
   function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, callback) {
     const code = request.query.code
-    const state = request.query.state
 
-    checkStateFunction(state, function (err) {
+    checkStateFunction(request, function (err) {
       if (err) {
         callback(err)
         return
