@@ -450,7 +450,7 @@ t.test('generateAuthorizationUri redirect with request object', t => {
   })
 
   fastify.get('/gh', function (request, reply) {
-    const redirectUrl = this.theName.generateAuthorizationUri(request, 'generated_code')
+    const redirectUrl = this.theName.generateAuthorizationUri(request, reply)
     return reply.redirect(redirectUrl)
   })
 
