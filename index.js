@@ -79,25 +79,27 @@ function fastifyOauth2 (fastify, options, next) {
   const tags = options.tags || []
   const schema = options.schema || { tags }
 
-  function generateAuthorizationUri (request, state) {
+  function generateAuthorizationUri (request, reply) {
+    const state = generateStateFunction(request)
+
+    reply.setCookie('oauth2-redirect-state', state, {
+      httpOnly: true,
+      sameSite: 'lax'
+    })
+
     const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
       redirect_uri: callbackUri,
       scope,
       state
     })
 
-    const authorizationUri = oauth2.authorizeURL(urlOptions)
-    return authorizationUri
+    return oauth2.authorizeURL(urlOptions)
   }
 
   function startRedirectHandler (request, reply) {
-    const state = generateStateFunction(request)
-    const authorizationUri = generateAuthorizationUri(request, state)
+    const authorizationUri = generateAuthorizationUri(request, reply)
 
-    reply.setCookie('oauth2-redirect-state', state, {
-      httpOnly: true,
-      sameSite: 'lax'
-    }).redirect(authorizationUri)
+    reply.redirect(authorizationUri)
   }
 
   const cbk = function (o, code, callback) {
