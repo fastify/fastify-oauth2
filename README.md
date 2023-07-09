@@ -1,6 +1,6 @@
 # @fastify/oauth2
 
-![CI](https://github.com/fastify/fastify-oauth2/workflows/CI/badge.svg)
+![CI](https://g@ithub.com/fastify/fastify-oauth2/workflows/CI/badge.svg)
 [![NPM version](https://img.shields.io/npm/v/@fastify/oauth2.svg?style=flat)](https://www.npmjs.com/package/@fastify/oauth2)
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 
@@ -20,7 +20,6 @@ npm i @fastify/oauth2
 ```js
 const fastify = require('fastify')({ logger: { level: 'trace' } })
 const oauthPlugin = require('@fastify/oauth2')
-
 
 fastify.register(oauthPlugin, {
   name: 'facebookOAuth2',
@@ -47,6 +46,19 @@ fastify.get('/login/facebook/callback', async function (request, reply) {
 
   reply.send({ access_token: token.access_token })
 })
+```
+
+### Usage with `@fastify/cookie`
+
+Since v7.2.0, `@fastify/oauth2` requires the use of cookies to securely implement the OAuth2 exchange. Therefore, if you need `@fastify/cookie` yoursself,
+you'd need to register  it up _before_ `@fastify/oauth2`.
+
+```js
+const fastify = require('fastify')({ logger: { level: 'trace' } })
+const oauthPlugin = require('@fastify/oauth2')
+
+fastify.register(require('@fastify/cookie'), cookieOptions)
+fastify.register(oauthPlugin, oauthOptions)
 ```
 
 ### Preset configurations
