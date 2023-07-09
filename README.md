@@ -50,8 +50,8 @@ fastify.get('/login/facebook/callback', async function (request, reply) {
 
 ### Usage with `@fastify/cookie`
 
-Since v7.2.0, `@fastify/oauth2` requires the use of cookies to securely implement the OAuth2 exchange. Therefore, if you need `@fastify/cookie` yoursself,
-you'd need to register  it up _before_ `@fastify/oauth2`.
+Since v7.2.0, `@fastify/oauth2` requires the use of cookies to securely implement the OAuth2 exchange. Therefore, if you need `@fastify/cookie` yourself,
+you will need to register it  _before_ `@fastify/oauth2`.
 
 ```js
 const fastify = require('fastify')({ logger: { level: 'trace' } })
