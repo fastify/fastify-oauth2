@@ -1,6 +1,6 @@
 # @fastify/oauth2
 
-![CI](https://g@ithub.com/fastify/fastify-oauth2/workflows/CI/badge.svg)
+![CI](https://github.com/fastify/fastify-oauth2/workflows/CI/badge.svg)
 [![NPM version](https://img.shields.io/npm/v/@fastify/oauth2.svg?style=flat)](https://www.npmjs.com/package/@fastify/oauth2)
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 
