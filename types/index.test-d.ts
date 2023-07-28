@@ -86,7 +86,7 @@ expectAssignable<ProviderConfiguration>(fastifyOauth2.VATSIM_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.VATSIM_DEV_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.EPIC_GAMES_CONFIGURATION);
 
-server.get('/testOauth/callback', async request => {
+server.get('/testOauth/callback', async (request, reply) => {
   expectType<OAuth2Namespace>(server.testOAuthName);
 
   expectType<OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
@@ -128,7 +128,8 @@ server.get('/testOauth/callback', async request => {
     expectError<void>(server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {})); // error because function call does not pass a callback as second argument.
   }
 
-  expectType<string>(server.testOAuthName.generateAuthorizationUri(request));
+  expectType<string>(server.testOAuthName.generateAuthorizationUri(request, reply));
+  expectError<string>(server.testOAuthName.generateAuthorizationUri(request)); // error because missing reply argument
 
   return {
     access_token: token.token.access_token,

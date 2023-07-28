@@ -1,4 +1,4 @@
-import { FastifyPluginCallback, FastifyRequest } from 'fastify';
+import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 
 interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth2Options> {
   APPLE_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
@@ -127,6 +127,7 @@ declare namespace fastifyOauth2 {
 
     generateAuthorizationUri(
       request: FastifyRequest,
+      reply: FastifyReply,
     ): string;
   }
 
