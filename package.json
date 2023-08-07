@@ -38,7 +38,7 @@
     "tsd": "^0.28.0"
   },
   "dependencies": {
-    "@fastify/cookie": "^8.3.0",
+    "@fastify/cookie": "^9.0.4",
     "fastify-plugin": "^4.0.0",
     "simple-oauth2": "^5.0.0"
   },
