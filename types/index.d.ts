@@ -5,6 +5,7 @@ interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth
   DISCORD_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
   FACEBOOK_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
   GITHUB_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
+  GITLAB_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
   LINKEDIN_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
   GOOGLE_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
   MICROSOFT_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
