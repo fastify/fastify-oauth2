@@ -232,7 +232,7 @@ Assuming we have registered multiple OAuth providers like this:
 
 ## Utilities
 
-This fastify plugin adds 3 utility decorators to your fastify instance using the same **namespace**:
+This fastify plugin adds 4 utility decorators to your fastify instance using the same **namespace**:
 
 - `getAccessTokenFromAuthorizationCodeFlow(request, callback)`: A function that uses the Authorization code flow to fetch an OAuth2 token using the data in the last request of the flow. If the callback is not passed it will return a promise. The callback call or promise resolution returns an [AccessToken](https://github.com/lelylan/simple-oauth2/blob/master/API.md#accesstoken) object, which has an `AccessToken.token` property with the following keys:
   - `access_token`
@@ -254,6 +254,8 @@ fastify.get('/external', { /* Hooks can be used here */ }, async (req, reply) =>
   reply.redirect(authorizationEndpoint)
 });
 ```
+
+- `revokeToken(Token, tokenType, params, callback)`: A function that use for remove the current access_token or refresh_token. If the callback is not passed it will return a promise. The callback call or promise resolution returns an `void`
 
 E.g. For `name: 'customOauth2'`, the helpers `getAccessTokenFromAuthorizationCodeFlow` and `getNewAccessTokenUsingRefreshToken` will become accessible like this:
 
