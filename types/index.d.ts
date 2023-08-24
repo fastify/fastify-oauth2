@@ -29,6 +29,7 @@ declare namespace fastifyOauth2 {
     startRedirectPath?: string;
     tags?: string[];
     schema?: object;
+    cookie?: object;
   }
 
   export interface Token {

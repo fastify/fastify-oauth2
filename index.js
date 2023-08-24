@@ -61,6 +61,9 @@ function fastifyOauth2 (fastify, options, next) {
   if (options.schema && typeof options.schema !== 'object') {
     return next(new Error('options.schema should be a object'))
   }
+  if (options.cookie && typeof options.cookie !== 'object') {
+    return next(new Error('options.cookie should be an object'))
+  }
 
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))
