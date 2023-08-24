@@ -61,6 +61,18 @@ fastify.register(require('@fastify/cookie'), cookieOptions)
 fastify.register(oauthPlugin, oauthOptions)
 ```
 
+Cookies are by default `httpOnly`, `sameSite: Lax`. If this does not suit your use case, it is possible to override the default cookie settings by providing options in the configuration object, for example
+
+```js
+fastify.register(oauthPlugin, {
+  ...,
+  cookie: {
+    secure: true,
+    sameSite: 'none'
+  }
+})
+```
+
 ### Preset configurations
 
 You can choose some default setup to assign to `auth` option.

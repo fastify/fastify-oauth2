@@ -602,6 +602,28 @@ t.test('options.schema should be a object', t => {
     })
 })
 
+t.test('options.cookie should be an object', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    cookie: 1
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.cookie should be an object')
+    })
+})
+
 t.test('options.schema', t => {
   const fastify = createFastify({ logger: { level: 'silent' }, exposeHeadRoutes: false })
 
