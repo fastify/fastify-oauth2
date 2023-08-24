@@ -66,6 +66,9 @@ function fastifyOauth2 (fastify, options, next) {
   if (options.schema && typeof options.schema !== 'object') {
     return next(new Error('options.schema should be a object'))
   }
+  if (options.cookie && typeof options.cookie !== 'object') {
+    return next(new Error('options.cookie should be an object'))
+  }
 
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))
@@ -83,14 +86,12 @@ function fastifyOauth2 (fastify, options, next) {
   const startRedirectPath = options.startRedirectPath
   const tags = options.tags || []
   const schema = options.schema || { tags }
+  const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
 
   function generateAuthorizationUri (request, reply) {
     const state = generateStateFunction(request)
 
-    reply.setCookie('oauth2-redirect-state', state, {
-      httpOnly: true,
-      sameSite: 'lax'
-    })
+    reply.setCookie('oauth2-redirect-state', state, cookieOpts)
 
     const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
       redirect_uri: callbackUri,

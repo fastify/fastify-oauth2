@@ -1,4 +1,5 @@
-import {FastifyPluginCallback, FastifyReply, FastifyRequest} from 'fastify';
+import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
+import { CookieSerializeOptions } from "@fastify/cookie";
 
 interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth2Options> {
     APPLE_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
@@ -18,19 +19,20 @@ interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth
 }
 
 declare namespace fastifyOauth2 {
-    export interface FastifyOAuth2Options {
-        name: string;
-        scope?: string[];
-        credentials: Credentials;
-        callbackUri: string;
-        callbackUriParams?: Object;
-        tokenRequestParams?: Object;
-        generateStateFunction?: Function;
-        checkStateFunction?: Function;
-        startRedirectPath?: string;
-        tags?: string[];
-        schema?: object;
-    }
+  export interface FastifyOAuth2Options {
+    name: string;
+    scope?: string[];
+    credentials: Credentials;
+    callbackUri: string;
+    callbackUriParams?: Object;
+    tokenRequestParams?: Object;
+    generateStateFunction?: Function;
+    checkStateFunction?: Function;
+    startRedirectPath?: string;
+    tags?: string[];
+    schema?: object;
+    cookie?: CookieSerializeOptions;
+  }
 
     export type TToken = 'access_token' | 'refresh_token'
 
