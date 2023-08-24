@@ -201,6 +201,13 @@ fastifyOauth2.GITHUB_CONFIGURATION = {
   authorizePath: '/login/oauth/authorize'
 }
 
+fastifyOauth2.GITLAB_CONFIGURATION = {
+  authorizeHost: 'https://gitlab.com',
+  authorizePath: '/oauth/authorize',
+  tokenHost: 'https://gitlab.com',
+  tokenPath: '/oauth/token'
+}
+
 fastifyOauth2.LINKEDIN_CONFIGURATION = {
   authorizeHost: 'https://www.linkedin.com',
   authorizePath: '/oauth/v2/authorization',

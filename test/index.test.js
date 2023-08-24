@@ -778,11 +778,12 @@ t.test('preset configuration generate-callback-uri-params', t => {
 })
 
 t.test('preset configuration generate-callback-uri-params', t => {
-  t.plan(48)
+  t.plan(52)
 
   const presetConfigs = [
     'FACEBOOK_CONFIGURATION',
     'GITHUB_CONFIGURATION',
+    'GITLAB_CONFIGURATION',
     'LINKEDIN_CONFIGURATION',
     'GOOGLE_CONFIGURATION',
     'MICROSOFT_CONFIGURATION',
