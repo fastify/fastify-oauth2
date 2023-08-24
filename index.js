@@ -81,11 +81,7 @@ function fastifyOauth2 (fastify, options, next) {
   const startRedirectPath = options.startRedirectPath
   const tags = options.tags || []
   const schema = options.schema || { tags }
-  const defaultCookieOpts = {
-    httpOnly: true,
-    sameSite: 'lax'
-  }
-  const cookieOpts = Object.assign({}, defaultCookieOpts, options.cookie)
+  const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
 
   function generateAuthorizationUri (request, reply) {
     const state = generateStateFunction(request)
