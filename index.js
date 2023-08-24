@@ -78,7 +78,7 @@ function fastifyOauth2 (fastify, options, next) {
   const startRedirectPath = options.startRedirectPath
   const tags = options.tags || []
   const schema = options.schema || { tags }
-  const cookieOpts = options.cookie || {
+  const cookieOpts = Object.assign({}, options.cookie, {
     httpOnly: true,
     sameSite: 'lax'
   }
