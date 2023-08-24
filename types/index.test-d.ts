@@ -76,6 +76,7 @@ expectError(fastifyOauth2(server, {}, () => {})); // error because missing requi
 expectAssignable<ProviderConfiguration>(fastifyOauth2.DISCORD_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.FACEBOOK_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.GITHUB_CONFIGURATION);
+expectAssignable<ProviderConfiguration>(fastifyOauth2.GITLAB_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.GOOGLE_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.LINKEDIN_CONFIGURATION);
 expectAssignable<ProviderConfiguration>(fastifyOauth2.MICROSOFT_CONFIGURATION);
@@ -94,12 +95,15 @@ server.get('/testOauth/callback', async (request, reply) => {
   expectType<void>(
     server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (err: any, t: OAuth2Token): void => {}),
   );
-
-  expectError<void>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)); // error because Promise should not return void
+  // error because Promise should not return void
+  expectError<void>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
+  // error because non-Promise function call should return void and have a callback argument
   expectError<OAuth2Token>(
     server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (err: any, t: OAuth2Token): void => {}),
-  ); // error because non-Promise function call should return void and have a callback argument
-  expectError<void>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)); // error because function call does not pass a callback as second argument.
+  );
+
+  // error because function call does not pass a callback as second argument.
+  expectError<void>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
 
   const token = await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request);
   if (token.token.refresh_token) {
@@ -116,7 +120,24 @@ server.get('/testOauth/callback', async (request, reply) => {
         (err: any, t: OAuth2Token): void => { },
       ),
     );
-
+    // Expect error because Promise should not return void
+    expectError<void>(server.testOAuthName.revokeToken(token.token, "access_token", undefined))
+    // Correct way
+    expectType<Promise<void>>(server.testOAuthName.revokeToken(token.token, "access_token", undefined))
+    // Expect error because invalid Type test isn't an access_token or refresh_token
+    expectError<Promise<void>>(server.testOAuthName.revokeToken(token.token, "test", undefined))
+    // Correct way
+    expectType<void>(
+        server.testOAuthName.revokeToken(token.token, "refresh_token", undefined, (err: any): void => {}),
+    );
+    // Expect error because invalid Type test isn't an access_token or refresh_token
+    expectError<void>(
+        server.testOAuthName.revokeToken(token.token, "test", undefined, (err: any): void => {}),
+    );
+    // Expect error because invalid Type test isn't an access_token or refresh_token
+    expectError<void>(
+        server.testOAuthName.revokeToken(token.token, "access_token", undefined, undefined),
+    );
     expectError<void>(await server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {})); // error because Promise should not return void
     expectError<OAuth2Token>(
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(

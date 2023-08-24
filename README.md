@@ -255,7 +255,7 @@ fastify.get('/external', { /* Hooks can be used here */ }, async (req, reply) =>
 });
 ```
 
-- `revokeToken(Token, tokenType, params, callback)`: A function that use for remove the current access_token or refresh_token. If the callback is not passed it will return a promise. The callback call or promise resolution returns an `void`
+- `revokeToken(Token, tokenType, params, callback)`: A function to revoke the current access_token or refresh_token on the authorization server. If the callback is not passed it will return a promise. The callback call or promise resolution returns `void`
 
 E.g. For `name: 'customOauth2'`, the helpers `getAccessTokenFromAuthorizationCodeFlow` and `getNewAccessTokenUsingRefreshToken` will become accessible like this:
 
