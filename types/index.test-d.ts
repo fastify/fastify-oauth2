@@ -31,7 +31,10 @@ const OAuth2Options: FastifyOAuth2Options = {
   generateStateFunction: () => {},
   checkStateFunction: () => {},
   startRedirectPath: '/login/testOauth',
-  cookie: {}
+  cookie: {
+    secure: true,
+    sameSite: 'none'
+  }
 };
 
 const server = fastify();
