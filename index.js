@@ -166,6 +166,20 @@ function fastifyOauth2 (fastify, options, next) {
     revokeTokenCallbacked(token, tokenType, params, callback)
   }
 
+  function revokeAllTokenCallbacked (token, params, callback) {
+    const accessToken = fastify[name].oauth2.createToken(token)
+    callbackify(accessToken.revokeAll.bind(accessToken, token, params))(callback)
+  }
+
+  const revokeAllTokenPromisified = promisify(revokeAllTokenCallbacked)
+
+  function revokeAllToken (token, params, callback) {
+    if (!callback) {
+      return revokeAllTokenPromisified(token, params)
+    }
+    revokeAllTokenCallbacked(token, params, callback)
+  }
+
   const oauth2 = new AuthorizationCode(credentials)
 
   if (startRedirectPath) {
@@ -178,7 +192,8 @@ function fastifyOauth2 (fastify, options, next) {
       getAccessTokenFromAuthorizationCodeFlow,
       getNewAccessTokenUsingRefreshToken,
       generateAuthorizationUri,
-      revokeToken
+      revokeToken,
+      revokeAllToken
     })
   } catch (e) {
     next(e)

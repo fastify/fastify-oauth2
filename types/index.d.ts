@@ -143,6 +143,14 @@ declare namespace fastifyOauth2 {
         ): void
 
         revokeToken(revokeToken: Token, tokenType: TToken, httpOptions: Object | undefined): Promise<void>
+
+        revokeAllToken(
+            revokeToken: Token,
+            httpOptions: Object | undefined,
+            callback: (err: any) => void
+        ): void;
+
+        revokeAllToken(revokeToken: Token, httpOptions: Object | undefined): Promise<void>
     }
 
     export const fastifyOauth2: FastifyOauth2
