@@ -8,6 +8,10 @@ const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-
 
 const { promisify, callbackify } = require('util')
 
+const { homepage, version } = require('./package.json')
+
+const USER_AGENT = `fastify-oauth2/${version} (${homepage})`
+
 function defaultGenerateStateFunction () {
   return randomBytes(16).toString('base64url')
 }
@@ -69,6 +73,9 @@ function fastifyOauth2 (fastify, options, next) {
   if (options.cookie && typeof options.cookie !== 'object') {
     return next(new Error('options.cookie should be an object'))
   }
+  if (options.userAgent && typeof options.userAgent !== 'string') {
+    return next(new Error('options.userAgent should be a string'))
+  }
 
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))
@@ -90,6 +97,9 @@ function fastifyOauth2 (fastify, options, next) {
 
   const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
   const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
+  const userAgent = options.userAgent
+    ? options.userAgent + ' ' + USER_AGENT
+    : USER_AGENT
 
   function generateAuthorizationUri (request, reply) {
     const state = generateStateFunction(request)
@@ -183,7 +193,16 @@ function fastifyOauth2 (fastify, options, next) {
     revokeAllTokenCallbacked(token, params, callback)
   }
 
-  const oauth2 = new AuthorizationCode(credentials)
+  const oauth2 = new AuthorizationCode({
+    ...credentials,
+    http: {
+      ...credentials.http,
+      headers: {
+        'User-Agent': userAgent,
+        ...credentials.http?.headers
+      }
+    }
+  })
 
   if (startRedirectPath) {
     fastify.get(startRedirectPath, { schema }, startRedirectHandler)
