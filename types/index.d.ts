@@ -1,6 +1,6 @@
-import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
-import { CookieSerializeOptions } from "@fastify/cookie";
-import { ModuleOptions } from 'simple-oauth2';
+import type { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
+import type { CookieSerializeOptions } from "@fastify/cookie";
+import type { ModuleOptions } from 'simple-oauth2';
 
 interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth2Options> {
     APPLE_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
