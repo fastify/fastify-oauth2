@@ -1,16 +1,15 @@
 'use strict'
 
-const crypto = require('crypto')
+const { randomBytes } = require('crypto')
 
 const fp = require('fastify-plugin')
 const { AuthorizationCode } = require('simple-oauth2')
 const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-uri-params')
 
-const promisify = require('util').promisify
-const callbackify = require('util').callbackify
+const { promisify, callbackify } = require('util')
 
 function defaultGenerateStateFunction () {
-  return crypto.randomBytes(16).toString('base64url')
+  return randomBytes(16).toString('base64url')
 }
 
 function defaultCheckStateFunction (request, callback) {
@@ -27,6 +26,12 @@ function defaultGenerateCallbackUriParams (callbackUriParams) {
   return callbackUriParams
 }
 
+/**
+ * @param {FastifyInstance} fastify
+ * @param {Partial<FastifyOAuth2Options>} options
+ * @param {Function} next
+ * @return {*}
+ */
 function fastifyOauth2 (fastify, options, next) {
   if (typeof options.name !== 'string') {
     return next(new Error('options.name should be a string'))
@@ -123,6 +128,7 @@ function fastifyOauth2 (fastify, options, next) {
       cbk(fastify[name], code, callback)
     })
   }
+
   const getAccessTokenFromAuthorizationCodeFlowPromisified = promisify(getAccessTokenFromAuthorizationCodeFlowCallbacked)
 
   function getAccessTokenFromAuthorizationCodeFlow (request, callback) {
@@ -136,6 +142,7 @@ function fastifyOauth2 (fastify, options, next) {
     const accessToken = fastify[name].oauth2.createToken(refreshToken)
     callbackify(accessToken.refresh.bind(accessToken, params))(callback)
   }
+
   const getNewAccessTokenUsingRefreshTokenPromisified = promisify(getNewAccessTokenUsingRefreshTokenCallbacked)
 
   function getNewAccessTokenUsingRefreshToken (refreshToken, params, callback) {
@@ -144,6 +151,35 @@ function fastifyOauth2 (fastify, options, next) {
     }
     getNewAccessTokenUsingRefreshTokenCallbacked(refreshToken, params, callback)
   }
+
+  function revokeTokenCallbacked (token, tokenType, params, callback) {
+    const accessToken = fastify[name].oauth2.createToken(token)
+    callbackify(accessToken.revoke.bind(accessToken, tokenType, params))(callback)
+  }
+
+  const revokeTokenPromisified = promisify(revokeTokenCallbacked)
+
+  function revokeToken (token, tokenType, params, callback) {
+    if (!callback) {
+      return revokeTokenPromisified(token, tokenType, params)
+    }
+    revokeTokenCallbacked(token, tokenType, params, callback)
+  }
+
+  function revokeAllTokenCallbacked (token, params, callback) {
+    const accessToken = fastify[name].oauth2.createToken(token)
+    callbackify(accessToken.revokeAll.bind(accessToken, token, params))(callback)
+  }
+
+  const revokeAllTokenPromisified = promisify(revokeAllTokenCallbacked)
+
+  function revokeAllToken (token, params, callback) {
+    if (!callback) {
+      return revokeAllTokenPromisified(token, params)
+    }
+    revokeAllTokenCallbacked(token, params, callback)
+  }
+
   const oauth2 = new AuthorizationCode(credentials)
 
   if (startRedirectPath) {
@@ -155,7 +191,9 @@ function fastifyOauth2 (fastify, options, next) {
       oauth2,
       getAccessTokenFromAuthorizationCodeFlow,
       getNewAccessTokenUsingRefreshToken,
-      generateAuthorizationUri
+      generateAuthorizationUri,
+      revokeToken,
+      revokeAllToken
     })
   } catch (e) {
     next(e)
@@ -170,6 +208,7 @@ fastifyOauth2.APPLE_CONFIGURATION = {
   authorizePath: '/auth/authorize',
   tokenHost: 'https://appleid.apple.com',
   tokenPath: '/auth/token',
+  revokePath: '/auth/revoke',
   // kGenerateCallbackUriParams is used for dedicated behavior for each OAuth2.0 provider
   // It can update the callbackUriParams based on requestObject, scope and state
   //
@@ -177,7 +216,7 @@ fastifyOauth2.APPLE_CONFIGURATION = {
   // do not want to mess up with property name collision
   [kGenerateCallbackUriParams]: function (callbackUriParams, requestObject, scope, state) {
     const stringifyScope = Array.isArray(scope) ? scope.join(' ') : scope
-    // This behavior is not documented on Apple Developer Docs but it display through runtime error.
+    // This behavior is not documented on Apple Developer Docs, but it displays through runtime error.
     // Related Docs: https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_js/incorporating_sign_in_with_apple_into_other_platforms
     // Related Issue: https://github.com/fastify/fastify-oauth2/issues/116
     //
@@ -206,14 +245,16 @@ fastifyOauth2.GITLAB_CONFIGURATION = {
   authorizeHost: 'https://gitlab.com',
   authorizePath: '/oauth/authorize',
   tokenHost: 'https://gitlab.com',
-  tokenPath: '/oauth/token'
+  tokenPath: '/oauth/token',
+  revokePath: '/oauth/revoke'
 }
 
 fastifyOauth2.LINKEDIN_CONFIGURATION = {
   authorizeHost: 'https://www.linkedin.com',
   authorizePath: '/oauth/v2/authorization',
   tokenHost: 'https://www.linkedin.com',
-  tokenPath: '/oauth/v2/accessToken'
+  tokenPath: '/oauth/v2/accessToken',
+  revokePath: '/oauth/v2/revoke'
 }
 
 fastifyOauth2.GOOGLE_CONFIGURATION = {
@@ -248,14 +289,16 @@ fastifyOauth2.DISCORD_CONFIGURATION = {
   authorizeHost: 'https://discord.com',
   authorizePath: '/api/oauth2/authorize',
   tokenHost: 'https://discord.com',
-  tokenPath: '/api/oauth2/token'
+  tokenPath: '/api/oauth2/token',
+  revokePath: '/api/oauth2/token/revoke'
 }
 
 fastifyOauth2.TWITCH_CONFIGURATION = {
   authorizeHost: 'https://id.twitch.tv',
   authorizePath: '/oauth2/authorize',
   tokenHost: 'https://id.twitch.tv',
-  tokenPath: '/oauth2/token'
+  tokenPath: '/oauth2/token',
+  revokePath: '/oauth2/revoke'
 }
 
 fastifyOauth2.VATSIM_CONFIGURATION = {

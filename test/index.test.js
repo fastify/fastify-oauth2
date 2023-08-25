@@ -379,7 +379,7 @@ t.test('options.tokenRequestParams', t => {
     fastify.inject({
       method: 'GET',
       url: '/callback?code=' + oAuthCode
-    }, function (err, responseStart) {
+    }, function (err) {
       t.error(err)
 
       githubScope.done()
@@ -824,6 +824,214 @@ t.test('preset configuration generate-callback-uri-params', t => {
     t.equal(typeof fastifyOauth2[configName].tokenPath, 'string')
     t.equal(typeof fastifyOauth2[configName].authorizePath, 'string')
   }
+})
+
+t.test('revoke token for gitlab with callback', (t) => {
+  t.plan(3)
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'gitlabOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITLAB_CONFIGURATION
+    },
+    startRedirectPath: '/login/gitlab',
+    callbackUri: 'http://localhost:3000/callback',
+    scope: ['user']
+  })
+
+  fastify.get('/', function (request, reply) {
+    this.gitlabOAuth2.revokeToken({
+      access_token: 'testToken',
+      token_type: 'access_token'
+    }, 'access_token', undefined, (err) => {
+      if (err) throw err
+      reply.send('ok')
+    })
+  })
+
+  t.teardown(fastify.close.bind(fastify))
+
+  fastify.listen({ port: 0 }, function (err) {
+    t.error(err)
+
+    const gitlabRevoke = nock('https://gitlab.com')
+      .post('/oauth/revoke', 'token=testToken&token_type_hint=access_token')
+      .reply(200, { status: 'ok' })
+
+    fastify.inject({
+      method: 'GET',
+      url: '/'
+    }, function (err, responseStart) {
+      t.error(err, 'No error should be thrown')
+      t.equal(responseStart.statusCode, 200)
+      gitlabRevoke.done()
+
+      t.end()
+    })
+  })
+})
+
+t.test('revoke token for gitlab promisify', (t) => {
+  t.plan(3)
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'gitlabOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITLAB_CONFIGURATION
+    },
+    startRedirectPath: '/login/gitlab',
+    callbackUri: 'http://localhost:3000/callback',
+    scope: ['user']
+  })
+
+  fastify.get('/', function (request, reply) {
+    return this.gitlabOAuth2.revokeToken({
+      access_token: 'testToken',
+      token_type: 'access_token'
+    }, 'access_token', undefined).then(() => {
+      return reply.send('ok')
+    }).catch((e) => {
+      throw e
+    })
+  })
+
+  t.teardown(fastify.close.bind(fastify))
+
+  fastify.listen({ port: 0 }, function (err) {
+    t.error(err)
+
+    const gitlabRevoke = nock('https://gitlab.com')
+      .post('/oauth/revoke', 'token=testToken&token_type_hint=access_token')
+      .reply(200, { status: 'ok' })
+
+    fastify.inject({
+      method: 'GET',
+      url: '/'
+    }, function (err, responseStart) {
+      t.error(err, 'No error should be thrown')
+      t.equal(responseStart.statusCode, 200)
+      gitlabRevoke.done()
+
+      t.end()
+    })
+  })
+})
+
+t.test('revoke all token for gitlab promisify', (t) => {
+  t.plan(3)
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'gitlabOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITLAB_CONFIGURATION
+    },
+    startRedirectPath: '/login/gitlab',
+    callbackUri: 'http://localhost:3000/callback',
+    scope: ['user']
+  })
+
+  fastify.get('/', function (request, reply) {
+    return this.gitlabOAuth2.revokeAllToken({
+      access_token: 'testToken',
+      token_type: 'access_token',
+      refresh_token: 'refreshToken'
+    }, undefined).then(() => {
+      return reply.send('ok')
+    }).catch((e) => {
+      throw e
+    })
+  })
+
+  t.teardown(fastify.close.bind(fastify))
+
+  fastify.listen({ port: 0 }, function (err) {
+    t.error(err)
+
+    const gitlabRevoke = nock('https://gitlab.com')
+      .post('/oauth/revoke', 'token=testToken&token_type_hint=access_token')
+      .reply(200, { status: 'ok' })
+      .post('/oauth/revoke', 'token=refreshToken&token_type_hint=refresh_token')
+      .reply(200, { status: 'ok' })
+
+    fastify.inject({
+      method: 'GET',
+      url: '/'
+    }, function (err, responseStart) {
+      t.error(err, 'No error should be thrown')
+      t.equal(responseStart.statusCode, 200)
+      gitlabRevoke.done()
+
+      t.end()
+    })
+  })
+})
+
+t.test('revoke all token for linkedin callback', (t) => {
+  t.plan(3)
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'linkedinOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.LINKEDIN_CONFIGURATION
+    },
+    startRedirectPath: '/login/gitlab',
+    callbackUri: 'http://localhost:3000/callback',
+    scope: ['user']
+  })
+
+  fastify.get('/', function (request, reply) {
+    return this.linkedinOAuth2.revokeAllToken({
+      access_token: 'testToken',
+      token_type: 'access_token',
+      refresh_token: 'refreshToken'
+    }, undefined, (err) => {
+      if (err) throw err
+      return reply.send('ok')
+    })
+  })
+
+  t.teardown(fastify.close.bind(fastify))
+
+  fastify.listen({ port: 0 }, function (err) {
+    t.error(err)
+
+    const gitlabRevoke = nock('https://www.linkedin.com')
+      .post('/oauth/v2/revoke', 'token=testToken&token_type_hint=access_token')
+      .reply(200, { status: 'ok' })
+      .post('/oauth/v2/revoke', 'token=refreshToken&token_type_hint=refresh_token')
+      .reply(200, { status: 'ok' })
+
+    fastify.inject({
+      method: 'GET',
+      url: '/'
+    }, function (err, responseStart) {
+      t.error(err, 'No error should be thrown')
+      t.equal(responseStart.statusCode, 200)
+      gitlabRevoke.done()
+
+      t.end()
+    })
+  })
 })
 
 t.test('options.generateStateFunction with signing key', t => {
