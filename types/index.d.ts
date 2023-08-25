@@ -166,6 +166,6 @@ type UpperCaseCharacters = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' |
 declare module 'fastify' {
     interface FastifyInstance {
         // UpperCaseCharacters ensures that the name has at least one character in it + is a simple camel-case:ification
-        [key: `fastifyOauth2${UpperCaseCharacters}${string}`]: fastifyOauth2.OAuth2Namespace | undefined;
+        [key: `oauth2${UpperCaseCharacters}${string}`]: fastifyOauth2.OAuth2Namespace | undefined;
     }
 }

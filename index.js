@@ -197,7 +197,7 @@ function fastifyOauth2 (fastify, options, next) {
 
   try {
     fastify.decorate(name, decoration)
-    fastify.decorate(`fastifyOauth2${name.slice(0, 1).toUpperCase()}${name.slice(1)}`, decoration)
+    fastify.decorate(`oauth2${name.slice(0, 1).toUpperCase()}${name.slice(1)}`, decoration)
   } catch (e) {
     next(e)
     return
