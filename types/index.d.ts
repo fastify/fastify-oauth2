@@ -16,6 +16,7 @@ interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth
     VATSIM_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
     VATSIM_DEV_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
     EPIC_GAMES_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
+    YANDEX_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
 }
 
 declare namespace fastifyOauth2 {

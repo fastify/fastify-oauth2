@@ -91,6 +91,7 @@ You can choose some default setup to assign to `auth` option.
 - `VATSIM_CONFIGURATION`
 - `VATSIM_DEV_CONFIGURATION`
 - `EPIC_GAMES_CONFIGURATION`
+- `YANDEX_CONFIGURATION`
 
 ### Custom configuration
 
@@ -303,7 +304,7 @@ declare module 'fastify' {
 
 ## Provider Quirks
 
-The following providers require additional work to be set up correctly.   
+The following providers require additional work to be set up correctly.
 
 ### Twitch
 

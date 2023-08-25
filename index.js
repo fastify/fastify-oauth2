@@ -322,6 +322,13 @@ fastifyOauth2.EPIC_GAMES_CONFIGURATION = {
   tokenPath: '/epic/oauth/v1/token'
 }
 
+fastifyOauth2.YANDEX_CONFIGURATION = {
+  authorizeHost: 'https://oauth.yandex.com',
+  authorizePath: '/authorize',
+  tokenHost: 'https://oauth.yandex.com',
+  tokenPath: '/token'
+}
+
 module.exports = fp(fastifyOauth2, {
   fastify: '4.x',
   name: '@fastify/oauth2'
