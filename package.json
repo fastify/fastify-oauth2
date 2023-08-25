@@ -1,6 +1,6 @@
 {
   "name": "@fastify/oauth2",
-  "version": "7.2.2",
+  "version": "7.3.0",
   "description": "Perform login using oauth2 protocol",
   "main": "index.js",
   "types": "types/index.d.ts",
