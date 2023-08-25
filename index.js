@@ -186,15 +186,18 @@ function fastifyOauth2 (fastify, options, next) {
     fastify.get(startRedirectPath, { schema }, startRedirectHandler)
   }
 
+  const decoration = {
+    oauth2,
+    getAccessTokenFromAuthorizationCodeFlow,
+    getNewAccessTokenUsingRefreshToken,
+    generateAuthorizationUri,
+    revokeToken,
+    revokeAllToken
+  }
+
   try {
-    fastify.decorate(name, {
-      oauth2,
-      getAccessTokenFromAuthorizationCodeFlow,
-      getNewAccessTokenUsingRefreshToken,
-      generateAuthorizationUri,
-      revokeToken,
-      revokeAllToken
-    })
+    fastify.decorate(name, decoration)
+    fastify.decorate(`fastifyOauth2${name.slice(0, 1).toUpperCase()}${name.slice(1)}`, decoration)
   } catch (e) {
     next(e)
     return

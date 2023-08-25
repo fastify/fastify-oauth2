@@ -104,6 +104,7 @@ expectAssignable<ProviderConfiguration>(fastifyOauth2.EPIC_GAMES_CONFIGURATION);
 
 server.get('/testOauth/callback', async (request, reply) => {
     expectType<OAuth2Namespace>(server.testOAuthName);
+    expectType<OAuth2Namespace | undefined>(server['fastifyOauth2TestOAuthName']);
 
     expectType<OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
     expectType<Promise<OAuth2Token>>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));

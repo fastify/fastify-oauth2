@@ -91,6 +91,9 @@ t.test('fastify-oauth2', t => {
     })
 
     fastify.get('/', function (request, reply) {
+      if (this.githubOAuth2 !== this.fastifyOauth2GithubOAuth2) {
+        throw new Error('Expected fastifyOauth2GithubOAuth2 to match githubOAuth2')
+      }
       this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
         if (err) throw err
 

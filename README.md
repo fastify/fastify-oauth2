@@ -220,20 +220,20 @@ See the [`example/`](./examples/) folder for more examples.
 ## Reference
 
 This Fastify plugin decorates the fastify instance with the [`simple-oauth2`](https://github.com/lelylan/simple-oauth2)
-instance inside a **namespace** specified by the property `name`.
+instance inside a **namespace** specified by the property `name` both with and without a `fastifyOauth2` prefix.
 
 E.g. For `name: 'customOauth2'`, the `simple-oauth2` instance will become accessible like this:
 
-`fastify.customOauth2.oauth2`
+`fastify.fastifyOauth2CustomOauth2.oauth2` and `fastify.customOauth2.oauth2`
 
 In this manner we are able to register multiple OAuth providers and each OAuth providers `simple-oauth2` instance will live in it's own **namespace**.
 
 E.g.
 
-- `fastify.facebook.oauth2`
-- `fastify.github.oauth2`
-- `fastify.spotify.oauth2`
-- `fastify.vkontakte.oauth2`
+- `fastify.fastifyOauth2Facebook.oauth2`
+- `fastify.fastifyOauth2Github.oauth2`
+- `fastify.fastifyOauth2Spotify.oauth2`
+- `fastify.fastifyOauth2Vkontakte.oauth2`
 
 Assuming we have registered multiple OAuth providers like this:
 
@@ -262,7 +262,7 @@ fastify.googleOAuth2.getNewAccessTokenUsingRefreshToken(currentAccessToken, (err
 
 ```js
 fastify.get('/external', { /* Hooks can be used here */ }, async (req, reply) => {
-  const authorizationEndpoint = fastify.customOAuth2.generateAuthorizationUri(req, reply);
+  const authorizationEndpoint = fastify.fastifyOauth2CustomOAuth2.generateAuthorizationUri(req, reply);
   reply.redirect(authorizationEndpoint)
 });
 ```
@@ -281,8 +281,8 @@ fastify.googleOAuth2.revokeAllToken(currentAccessToken, undefined, (err) => {
 ```
 E.g. For `name: 'customOauth2'`, the helpers `getAccessTokenFromAuthorizationCodeFlow` and `getNewAccessTokenUsingRefreshToken` will become accessible like this:
 
-- `fastify.customOauth2.getAccessTokenFromAuthorizationCodeFlow`
-- `fastify.customOauth2.getNewAccessTokenUsingRefreshToken`
+- `fastify.fastifyOauth2CustomOauth2.getAccessTokenFromAuthorizationCodeFlow`
+- `fastify.fastifyOauth2CustomOauth2.getNewAccessTokenUsingRefreshToken`
 
 ## Usage with TypeScript
 
@@ -300,6 +300,8 @@ declare module 'fastify' {
   }
 }
 ```
+
+All auth configurations are made available with a `fastifyOauth2` prefix that's typed to `OAuth2Namespace | undefined`.
 
 ## Provider Quirks
 

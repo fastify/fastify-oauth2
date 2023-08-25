@@ -160,3 +160,12 @@ declare namespace fastifyOauth2 {
 declare function fastifyOauth2(...params: Parameters<FastifyOauth2>): ReturnType<FastifyOauth2>
 
 export = fastifyOauth2
+
+type UpperCaseCharacters = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z';
+
+declare module 'fastify' {
+    interface FastifyInstance {
+        // UpperCaseCharacters ensures that the name has at least one character in it + is a simple camel-case:ification
+        [key: `fastifyOauth2${UpperCaseCharacters}${string}`]: fastifyOauth2.OAuth2Namespace | undefined;
+    }
+}
