@@ -1,5 +1,6 @@
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import { CookieSerializeOptions } from "@fastify/cookie";
+import { ModuleOptions } from 'simple-oauth2';
 
 interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth2Options> {
     APPLE_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
@@ -69,47 +70,14 @@ declare namespace fastifyOauth2 {
         revokeAll(): Promise<void>;
     }
 
-    export interface ProviderConfiguration {
-        /** String used to set the host to request the tokens to. Required. */
-        tokenHost: string;
-        /** String path to request an access token. Default to /oauth/token. */
-        tokenPath?: string | undefined;
-        /** String path to revoke an access token. Default to /oauth/revoke. */
-        revokePath?: string | undefined;
-        /** String used to set the host to request an "authorization code". Default to the value set on auth.tokenHost. */
-        authorizeHost?: string | undefined;
-        /** String path to request an authorization code. Default to /oauth/authorize. */
-        authorizePath?: string | undefined;
-    }
+    // Can't extend ModuleOptions["auth"] directly
+    type SimpleOauth2ProviderConfiguration = ModuleOptions["auth"];
+    // Kept for backwards compatibility
+    export interface ProviderConfiguration extends SimpleOauth2ProviderConfiguration {}
 
-    export interface Credentials {
-        client: {
-            /** Service registered client id. Required. */
-            id: string;
-            /** Service registered client secret. Required. */
-            secret: string;
-            /** Parameter name used to send the client secret. Default to client_secret. */
-            secretParamName?: string | undefined;
-            /** Parameter name used to send the client id. Default to client_id. */
-            idParamName?: string | undefined;
-        };
+    // Kept for backwards compatibility
+    export interface Credentials extends ModuleOptions<string> {
         auth: ProviderConfiguration;
-        /**
-         * Used to set global options to the internal http library (wreck).
-         * All options except baseUrl are allowed
-         * Defaults to header.Accept = "application/json"
-         */
-        http?: {} | undefined;
-        options?: {
-            /** Format of data sent in the request body. Defaults to form. */
-            bodyFormat?: "json" | "form" | undefined;
-            /**
-             * Indicates the method used to send the client.id/client.secret authorization params at the token request.
-             * If set to body, the bodyFormat option will be used to format the credentials.
-             * Defaults to header
-             */
-            authorizationMethod?: "header" | "body" | undefined;
-        } | undefined;
     }
 
     export interface OAuth2Namespace {

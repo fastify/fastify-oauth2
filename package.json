@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@fastify/cookie": "^9.0.4",
+    "@types/simple-oauth2": "^5.0.4",
     "fastify-plugin": "^4.5.1",
     "simple-oauth2": "^5.0.0"
   },
