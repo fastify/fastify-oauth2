@@ -322,11 +322,15 @@ fastifyOauth2.EPIC_GAMES_CONFIGURATION = {
   tokenPath: '/epic/oauth/v1/token'
 }
 
+/**
+ * Yandex ID docs https://yandex.ru/dev/id/doc/en/
+ */
 fastifyOauth2.YANDEX_CONFIGURATION = {
   authorizeHost: 'https://oauth.yandex.com',
   authorizePath: '/authorize',
   tokenHost: 'https://oauth.yandex.com',
-  tokenPath: '/token'
+  tokenPath: '/token',
+  revokePath: '/revoke_token'
 }
 
 module.exports = fp(fastifyOauth2, {
