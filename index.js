@@ -99,7 +99,7 @@ function fastifyOauth2 (fastify, options, next) {
   const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
   const userAgent = options.userAgent
     ? `${options.userAgent} ${USER_AGENT}`
-    : USER_AGENT
+    : (options.userAgent === false ? undefined : USER_AGENT)
 
   function generateAuthorizationUri (request, reply) {
     const state = generateStateFunction(request)
@@ -198,7 +198,7 @@ function fastifyOauth2 (fastify, options, next) {
     http: {
       ...credentials.http,
       headers: {
-        'User-Agent': userAgent,
+        ...(userAgent ? { 'User-Agent': userAgent } : {}),
         ...credentials.http?.headers
       }
     }
