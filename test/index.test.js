@@ -40,7 +40,7 @@ function makeRequests (t, fastify, userAgentRegexp) {
 
       const githubScope = nock('https://github.com')
         .matchHeader('Authorization', 'Basic bXktY2xpZW50LWlkOm15LXNlY3JldA==')
-        .matchHeader('User-Agent', userAgentRegexp || /^fastify-oauth2\/[0-9.]+ \(http[^)]+\)$/)
+        .matchHeader('User-Agent', userAgentRegexp || 'fastify-oauth2')
         .post('/login/oauth/access_token', 'grant_type=authorization_code&code=my-code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback')
         .reply(200, RESPONSE_BODY)
         .post('/login/oauth/access_token', 'grant_type=refresh_token&refresh_token=my-refresh-token')
@@ -222,7 +222,7 @@ t.test('fastify-oauth2', t => {
 
     t.teardown(fastify.close.bind(fastify))
 
-    makeRequests(t, fastify, /^test\/1\.2\.3 fastify-oauth2\/[0-9.]+ \(http[^)]+\)$/)
+    makeRequests(t, fastify, 'test/1.2.3 fastify-oauth2')
   })
 
   t.test('overridden user-agent', t => {

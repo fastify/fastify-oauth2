@@ -8,9 +8,7 @@ const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-
 
 const { promisify, callbackify } = require('util')
 
-const { homepage, version } = require('./package.json')
-
-const USER_AGENT = `fastify-oauth2/${version} (${homepage})`
+const USER_AGENT = 'fastify-oauth2'
 
 function defaultGenerateStateFunction () {
   return randomBytes(16).toString('base64url')
