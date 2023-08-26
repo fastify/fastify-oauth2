@@ -29,6 +29,7 @@
   "devDependencies": {
     "@fastify/pre-commit": "^2.0.2",
     "@types/node": "^20.5.3",
+    "@types/simple-oauth2": "^5.0.4",
     "fastify": "^4.21.0",
     "nock": "^13.3.3",
     "simple-get": "^4.0.1",
