@@ -98,7 +98,7 @@ function fastifyOauth2 (fastify, options, next) {
   const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
   const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
   const userAgent = options.userAgent
-    ? options.userAgent + ' ' + USER_AGENT
+    ? `${options.userAgent} ${USER_AGENT}`
     : USER_AGENT
 
   function generateAuthorizationUri (request, reply) {
