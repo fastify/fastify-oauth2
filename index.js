@@ -81,7 +81,6 @@ function fastifyOauth2 (fastify, options, next) {
 
   const {
     name,
-    credentials,
     callbackUri,
     callbackUriParams = {},
     tokenRequestParams = {},
@@ -93,11 +92,21 @@ function fastifyOauth2 (fastify, options, next) {
     schema = { tags }
   } = options
 
-  const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
-  const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
   const userAgent = options.userAgent
     ? `${options.userAgent} ${USER_AGENT}`
     : (options.userAgent === false ? undefined : USER_AGENT)
+  const credentials = {
+    ...options.credentials,
+    http: {
+      ...options.credentials.http,
+      headers: {
+        ...(userAgent ? { 'User-Agent': userAgent } : {}),
+        ...options.credentials.http?.headers
+      }
+    }
+  }
+  const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
+  const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
 
   function generateAuthorizationUri (request, reply) {
     const state = generateStateFunction(request)
@@ -191,16 +200,7 @@ function fastifyOauth2 (fastify, options, next) {
     revokeAllTokenCallbacked(token, params, callback)
   }
 
-  const oauth2 = new AuthorizationCode({
-    ...credentials,
-    http: {
-      ...credentials.http,
-      headers: {
-        ...(userAgent ? { 'User-Agent': userAgent } : {}),
-        ...credentials.http?.headers
-      }
-    }
-  })
+  const oauth2 = new AuthorizationCode(credentials)
 
   if (startRedirectPath) {
     fastify.get(startRedirectPath, { schema }, startRedirectHandler)
