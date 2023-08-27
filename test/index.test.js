@@ -8,7 +8,7 @@ const fastifyOauth2 = require('..')
 
 nock.disableNetConnect()
 
-function makeRequests (t, fastify) {
+function makeRequests (t, fastify, userAgentHeaderMatcher) {
   fastify.listen({ port: 0 }, function (err) {
     t.error(err)
 
@@ -39,17 +39,11 @@ function makeRequests (t, fastify) {
       }
 
       const githubScope = nock('https://github.com')
-        .post('/login/oauth/access_token', 'grant_type=authorization_code&code=my-code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback', {
-          reqheaders: {
-            authorization: 'Basic bXktY2xpZW50LWlkOm15LXNlY3JldA=='
-          }
-        })
+        .matchHeader('Authorization', 'Basic bXktY2xpZW50LWlkOm15LXNlY3JldA==')
+        .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
+        .post('/login/oauth/access_token', 'grant_type=authorization_code&code=my-code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback')
         .reply(200, RESPONSE_BODY)
-        .post('/login/oauth/access_token', 'grant_type=refresh_token&refresh_token=my-refresh-token', {
-          reqheaders: {
-            authorization: 'Basic bXktY2xpZW50LWlkOm15LXNlY3JldA=='
-          }
-        })
+        .post('/login/oauth/access_token', 'grant_type=refresh_token&refresh_token=my-refresh-token')
         .reply(200, RESPONSE_BODY_REFRESHED)
 
       fastify.inject({
@@ -190,6 +184,128 @@ t.test('fastify-oauth2', t => {
 
       t.end()
     })
+  })
+
+  t.test('custom user-agent', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      userAgent: 'test/1.2.3'
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, 'test/1.2.3')
+  })
+
+  t.test('overridden user-agent', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION,
+        http: {
+          headers: {
+            'User-Agent': 'foo/4.5.6'
+          }
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      userAgent: 'test/1.2.3'
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, /^foo\/4\.5\.6$/)
+  })
+
+  t.test('disabled user-agent', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      userAgent: false
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, userAgent => userAgent === undefined)
   })
 
   t.end()
@@ -621,6 +737,28 @@ t.test('options.cookie should be an object', t => {
   })
     .ready(err => {
       t.strictSame(err.message, 'options.cookie should be an object')
+    })
+})
+
+t.test('options.userAgent should be a string', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    userAgent: 1
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.userAgent should be a string')
     })
 })
 

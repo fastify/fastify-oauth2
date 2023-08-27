@@ -8,6 +8,8 @@ const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-
 
 const { promisify, callbackify } = require('util')
 
+const USER_AGENT = 'fastify-oauth2'
+
 function defaultGenerateStateFunction () {
   return randomBytes(16).toString('base64url')
 }
@@ -69,6 +71,9 @@ function fastifyOauth2 (fastify, options, next) {
   if (options.cookie && typeof options.cookie !== 'object') {
     return next(new Error('options.cookie should be an object'))
   }
+  if (options.userAgent && typeof options.userAgent !== 'string') {
+    return next(new Error('options.userAgent should be a string'))
+  }
 
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))
@@ -76,7 +81,6 @@ function fastifyOauth2 (fastify, options, next) {
 
   const {
     name,
-    credentials,
     callbackUri,
     callbackUriParams = {},
     tokenRequestParams = {},
@@ -88,6 +92,19 @@ function fastifyOauth2 (fastify, options, next) {
     schema = { tags }
   } = options
 
+  const userAgent = options.userAgent === false
+    ? undefined
+    : (options.userAgent || USER_AGENT)
+  const credentials = {
+    ...options.credentials,
+    http: {
+      ...options.credentials.http,
+      headers: {
+        'User-Agent': userAgent,
+        ...options.credentials.http?.headers
+      }
+    }
+  }
   const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
   const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
 

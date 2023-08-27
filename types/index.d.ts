@@ -33,6 +33,7 @@ declare namespace fastifyOauth2 {
     tags?: string[];
     schema?: object;
     cookie?: CookieSerializeOptions;
+    userAgent?: string | false;
   }
 
     export type TToken = 'access_token' | 'refresh_token'
