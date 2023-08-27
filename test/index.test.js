@@ -222,7 +222,7 @@ t.test('fastify-oauth2', t => {
 
     t.teardown(fastify.close.bind(fastify))
 
-    makeRequests(t, fastify, 'test/1.2.3 fastify-oauth2')
+    makeRequests(t, fastify, 'test/1.2.3')
   })
 
   t.test('overridden user-agent', t => {

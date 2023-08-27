@@ -92,15 +92,15 @@ function fastifyOauth2 (fastify, options, next) {
     schema = { tags }
   } = options
 
-  const userAgent = options.userAgent
-    ? `${options.userAgent} ${USER_AGENT}`
-    : (options.userAgent === false ? undefined : USER_AGENT)
+  const userAgent = options.userAgent === false
+    ? undefined
+    : (options.userAgent || USER_AGENT)
   const credentials = {
     ...options.credentials,
     http: {
       ...options.credentials.http,
       headers: {
-        ...(userAgent ? { 'User-Agent': userAgent } : {}),
+        'User-Agent': userAgent,
         ...options.credentials.http?.headers
       }
     }
