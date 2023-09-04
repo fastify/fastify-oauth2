@@ -7,6 +7,7 @@ import fastifyOauth2, {
     OAuth2Token,
     ProviderConfiguration
 } from '..';
+import type { ModuleOptions } from 'simple-oauth2';
 
 /**
  * Preparing some data for testing.
@@ -15,6 +16,14 @@ const auth = fastifyOauth2.GOOGLE_CONFIGURATION;
 const scope = ['r_emailaddress', 'r_basicprofile'];
 const tags = ['oauth2', 'oauth'];
 const credentials: Credentials = {
+    client: {
+        id: 'test_id',
+        secret: 'test_secret',
+    },
+    auth: auth,
+};
+
+const simpleOauth2Options: ModuleOptions = {
     client: {
         id: 'test_id',
         secret: 'test_secret',
@@ -83,6 +92,13 @@ expectType<ProviderConfiguration>(auth);
 expectType<string[]>(scope);
 expectType<string[]>(tags);
 expectType<Credentials>(credentials);
+
+// Ensure duplicayed simple-oauth2 are compatible with simple-oauth2
+expectAssignable<ModuleOptions<string>>(credentials);
+expectAssignable<ModuleOptions["auth"]>(auth);
+// Ensure published types of simple-oauth2 are accepted
+expectAssignable<Credentials>(simpleOauth2Options);
+expectAssignable<ProviderConfiguration>(simpleOauth2Options.auth);
 
 expectError(fastifyOauth2()); // error because missing required arguments
 expectError(fastifyOauth2(server, {}, () => {
