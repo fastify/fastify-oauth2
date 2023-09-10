@@ -3,7 +3,7 @@
 const t = require('tap')
 const nock = require('nock')
 const createFastify = require('fastify')
-const crypto = require('crypto')
+const crypto = require('node:crypto')
 const fastifyOauth2 = require('..')
 
 nock.disableNetConnect()

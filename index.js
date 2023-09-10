@@ -1,12 +1,12 @@
 'use strict'
 
-const { randomBytes } = require('crypto')
+const { randomBytes } = require('node:crypto')
 
 const fp = require('fastify-plugin')
 const { AuthorizationCode } = require('simple-oauth2')
 const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-uri-params')
 
-const { promisify, callbackify } = require('util')
+const { promisify, callbackify } = require('node:util')
 
 const USER_AGENT = 'fastify-oauth2'
 
