@@ -1,12 +1,12 @@
 'use strict'
 
-const { randomBytes } = require('crypto')
+const { randomBytes } = require('node:crypto')
 
 const fp = require('fastify-plugin')
 const { AuthorizationCode } = require('simple-oauth2')
 const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-uri-params')
 
-const { promisify, callbackify } = require('util')
+const { promisify, callbackify } = require('node:util')
 
 const USER_AGENT = 'fastify-oauth2'
 
@@ -206,15 +206,18 @@ function fastifyOauth2 (fastify, options, next) {
     fastify.get(startRedirectPath, { schema }, startRedirectHandler)
   }
 
+  const decoration = {
+    oauth2,
+    getAccessTokenFromAuthorizationCodeFlow,
+    getNewAccessTokenUsingRefreshToken,
+    generateAuthorizationUri,
+    revokeToken,
+    revokeAllToken
+  }
+
   try {
-    fastify.decorate(name, {
-      oauth2,
-      getAccessTokenFromAuthorizationCodeFlow,
-      getNewAccessTokenUsingRefreshToken,
-      generateAuthorizationUri,
-      revokeToken,
-      revokeAllToken
-    })
+    fastify.decorate(name, decoration)
+    fastify.decorate(`oauth2${name.slice(0, 1).toUpperCase()}${name.slice(1)}`, decoration)
   } catch (e) {
     next(e)
     return

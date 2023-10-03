@@ -121,6 +121,7 @@ expectAssignable<ProviderConfiguration>(fastifyOauth2.YANDEX_CONFIGURATION);
 
 server.get('/testOauth/callback', async (request, reply) => {
     expectType<OAuth2Namespace>(server.testOAuthName);
+    expectType<OAuth2Namespace | undefined>(server.oauth2TestOAuthName);
 
     expectType<OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
     expectType<Promise<OAuth2Token>>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
