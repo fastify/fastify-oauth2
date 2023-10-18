@@ -1,3 +1,5 @@
+'use strict'
+
 const fastify = require('fastify')({ logger: { level: 'trace' } })
 
 // const oauthPlugin = require('fastify-oauth2')
