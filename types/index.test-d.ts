@@ -43,10 +43,6 @@ const OAuth2Options: FastifyOAuth2Options = {
     credentials: credentials,
     callbackUri: 'http://localhost/testOauth/callback',
     callbackUriParams: {},
-    generateStateFunction: () => {
-    },
-    checkStateFunction: () => {
-    },
     startRedirectPath: '/login/testOauth',
     cookie: {
         secure: true,
@@ -93,7 +89,7 @@ expectType<string[]>(scope);
 expectType<string[]>(tags);
 expectType<Credentials>(credentials);
 
-// Ensure duplicayed simple-oauth2 are compatible with simple-oauth2
+// Ensure duplicated simple-oauth2 are compatible with simple-oauth2
 expectAssignable<ModuleOptions<string>>(credentials);
 expectAssignable<ModuleOptions["auth"]>(auth);
 // Ensure published types of simple-oauth2 are accepted
