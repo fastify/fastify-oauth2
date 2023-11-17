@@ -28,7 +28,7 @@ declare namespace fastifyOauth2 {
     callbackUriParams?: Record<string, string>;
     tokenRequestParams?: Record<string, string>;
     generateStateFunction?: (request: FastifyRequest) => string;
-    checkStateFunction?: (request?: FastifyRequest, callback?: (err: any) => void) => string | void;
+    checkStateFunction?: (request: FastifyRequest, callback : (err: any) => void) => void;
     startRedirectPath?: string;
     tags?: string[];
     schema?: object;
