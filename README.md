@@ -222,6 +222,38 @@ When you set it, it is required to provide the function `checkStateFunction` in 
   })
 ```
 
+Async functions are supported here, and the fastify instance can be accessed via `this`.
+
+```js
+  fastify.register(oauthPlugin, {
+    name: 'facebookOAuth2',
+    credentials: {
+      client: {
+        id: '<CLIENT_ID>',
+        secret: '<CLIENT_SECRET>'
+      },
+      auth: oauthPlugin.FACEBOOK_CONFIGURATION
+    },
+    // register a fastify url to start the redirect flow
+    startRedirectPath: '/login/facebook',
+    // facebook redirect here after the user login
+    callbackUri: 'http://localhost:3000/login/facebook/callback',
+    // custom function to generate the state and store it into the redis
+    generateStateFunction: async function (request) {
+      const state = request.query.customCode
+      await this.redis.set(stateKey, state)
+      return state
+    },
+    // custom function to check the state is valid
+    checkStateFunction: async function (request, callback) {
+      if (request.query.state !== request.session.state) {
+        throw new Error('Invalid state')
+      }
+      return true
+    }
+  })
+```
+
 ## Set custom callbackUri Parameters
 
 The `callbackUriParams` accepts an object that will be translated to query parameters for the callback OAUTH flow. The default value is {}.
