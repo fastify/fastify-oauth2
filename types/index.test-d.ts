@@ -8,6 +8,7 @@ import fastifyOauth2, {
     ProviderConfiguration
 } from '..';
 import type { ModuleOptions } from 'simple-oauth2';
+import { FastifyInstance } from 'fastify';
 
 /**
  * Preparing some data for testing.
@@ -43,9 +44,13 @@ const OAuth2Options: FastifyOAuth2Options = {
     credentials: credentials,
     callbackUri: 'http://localhost/testOauth/callback',
     callbackUriParams: {},
-    generateStateFunction: () => {
+    generateStateFunction: function () {
+      expectType<FastifyInstance>(this)
+      return 'test'
     },
-    checkStateFunction: () => {
+    checkStateFunction: function () {
+      expectType<FastifyInstance>(this)
+      return true
     },
     startRedirectPath: '/login/testOauth',
     cookie: {
@@ -119,8 +124,7 @@ server.register(fastifyOauth2, {
     scope: scope,
     credentials: credentials,
     callbackUri: 'http://localhost/testOauth/callback',
-    checkStateFunction: () => {
-    },
+    checkStateFunction: () => true,
 })
 
 expectError(server.register(fastifyOauth2, {
@@ -128,8 +132,7 @@ expectError(server.register(fastifyOauth2, {
     scope: scope,
     credentials: credentials,
     callbackUri: 'http://localhost/testOauth/callback',
-    checkStateFunction: () => {
-    },
+    checkStateFunction: () => true,
     startRedirectPath: 2,
 }))
 
@@ -263,7 +266,8 @@ server.get('/testOauth/callback', async (request, reply) => {
         expectError<void>(server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {}))
     }
 
-    expectType<string>(server.testOAuthName.generateAuthorizationUri(request, reply));
+    expectType<Promise<string>>(server.testOAuthName.generateAuthorizationUri(request, reply));
+    expectType<void>(server.testOAuthName.generateAuthorizationUri(request, reply, (err) => {}))
     // error because missing reply argument
     expectError<string>(server.testOAuthName.generateAuthorizationUri(request));
 
