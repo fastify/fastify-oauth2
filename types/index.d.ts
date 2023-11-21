@@ -34,6 +34,7 @@ declare namespace fastifyOauth2 {
     schema?: object;
     cookie?: CookieSerializeOptions;
     userAgent?: string | false;
+    pkce?: 'plain' | 'S256';
   }
 
     export type TToken = 'access_token' | 'refresh_token'
@@ -121,6 +122,17 @@ declare namespace fastifyOauth2 {
 
         getAccessTokenFromAuthorizationCodeFlow(
             request: FastifyRequest,
+            reply: FastifyReply,
+        ): Promise<OAuth2Token>;
+
+        getAccessTokenFromAuthorizationCodeFlow(
+            request: FastifyRequest,
+            callback: (err: any, token: OAuth2Token) => void,
+        ): void;
+
+        getAccessTokenFromAuthorizationCodeFlow(
+            request: FastifyRequest,
+            reply: FastifyReply,
             callback: (err: any, token: OAuth2Token) => void,
         ): void;
 
