@@ -20,7 +20,7 @@ const codeVerifier = random
 const codeChallenge = verifier => b64Encode(createHash('sha256').update(verifier).digest())
 
 function defaultGenerateStateFunction () {
-  return random(16).toString('base64url')
+  return random(16)
 }
 
 function defaultCheckStateFunction (request, callback) {
