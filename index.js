@@ -81,7 +81,7 @@ function fastifyOauth2 (fastify, options, next) {
     return next(new Error('options.userAgent should be a string'))
   }
   if (options.pkce && (typeof options.pkce !== 'string' || !PKCE_METHODS.includes(options.pkce))) {
-    return next(new Error('options.pkce should be one of "plain" | "S256" when used'))
+    return next(new Error('options.pkce should be one of "S256" | "plain" when used'))
   }
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))

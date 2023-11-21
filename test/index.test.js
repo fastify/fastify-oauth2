@@ -867,7 +867,7 @@ t.test('options.pkce', t => {
     pkce: {}
   })
     .ready(err => {
-      t.strictSame(err.message, 'options.pkce should be one of "plain" | "S256" when used')
+      t.strictSame(err.message, 'options.pkce should be one of "S256" | "plain" when used')
     })
 })
 
