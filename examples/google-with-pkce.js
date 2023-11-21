@@ -31,7 +31,27 @@ fastify.register(oauthPlugin, {
   startRedirectPath: '/login/google',
   callbackUri: 'http://localhost:3000/interaction/callback/google',
   cookie: cookieOpts,
-  pkce: 'S256' // "plain" is also supported in this library, see your own provider's .well-known/openid-configuration endpoint (if it's exposed) to understand which methods are supported
+  pkce: 'S256'
+  /* use S256:
+
+  Most modern providers (authorization servers) that are up to date with standards,
+  will support S256 and also announce that in discovery endpoint (.well-known/openid-configuration):
+  ...
+  "code_challenge_methods_supported": [
+    "S256",
+    "plain"
+  ]
+  ...
+
+  "plain" is also supported in this library but it's use is discouraged.
+  Only do it in case that you use some legacy provider (authorization server),
+  and you see provider's .well-known/openid-configuration
+  endpoint has only that single challenge method:
+  ...
+  "code_challenge_methods_supported": [
+    "plain"
+  ]
+  */
 })
 
 fastify.get('/interaction/callback/google', function (request, reply) {

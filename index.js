@@ -10,14 +10,11 @@ const { promisify, callbackify } = require('node:util')
 
 const USER_AGENT = 'fastify-oauth2'
 const VERIFIER_COOKIE_NAME = 'oauth2-code-verifier'
-const S256 = 'S256'
-const PKCE_METHODS = ['plain', S256]
+const PKCE_METHODS = ['S256', 'plain']
 
-const b64Encode = (input, encoding = 'utf8') => Buffer.from(input, encoding).toString('base64url')
-
-const random = (bytes = 32) => b64Encode(randomBytes(bytes))
+const random = (bytes = 32) => randomBytes(bytes).toString('base64url')
 const codeVerifier = random
-const codeChallenge = verifier => b64Encode(createHash('sha256').update(verifier).digest())
+const codeChallenge = verifier => createHash('sha256').update(verifier).digest('base64url')
 
 function defaultGenerateStateFunction () {
   return random(16)
@@ -129,7 +126,7 @@ function fastifyOauth2 (fastify, options, next) {
     let pkceParams = {}
     if (pkce) {
       const verifier = codeVerifier()
-      const challenge = pkce === S256 ? codeChallenge(verifier) : verifier
+      const challenge = pkce === 'S256' ? codeChallenge(verifier) : verifier
       pkceParams = {
         code_challenge: challenge,
         code_challenge_method: pkce
