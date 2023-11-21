@@ -206,6 +206,11 @@ fastify.register(oauthPlugin, {
     // custom query param that will be passed to callbackUri
     access_type: 'offline', // will tell Google to send a refreshToken too
   },
+  pkce: 'S256'
+  // check if your provider supports PKCE, 
+  // in case they do, 
+  // use of this parameter is highly encouraged 
+  // in order to prevent authorization code interception attacks
 });
 ```
 
@@ -252,6 +257,14 @@ This fastify plugin adds 5 utility decorators to your fastify instance using the
   - `refresh_token` (optional, only if the `offline scope` was originally requested, as seen in the callbackUriParams example)
   - `token_type` (generally `'Bearer'`)
   - `expires_in` (number of seconds for the token to expire, e.g. `240000`)
+
+- OR `getAccessTokenFromAuthorizationCodeFlow(request, reply, callback)` variant with 3 arguments, which should be used when PKCE extension is used.
+  This allows fastify-oauth2 to delete PKCE code_verifier cookie so it doesn't stay in browser in case server has issue when fetching token. See [Google With PKCE example for more](./examples/google-with-pkce.js).
+  
+  *Important to note*: if your provider supports `S256` as code_challenge_method, always prefer that. 
+  Only use `plain` when your provider doesn't support `S256`.
+
+
 - `getNewAccessTokenUsingRefreshToken(Token, params, callback)`: A function that takes a `AccessToken`-Object as `Token` and retrieves a new `AccessToken`-Object. This is generally useful with background processing workers to re-issue a new AccessToken when the previous AccessToken has expired. The `params` argument is optional and it is an object that can be used to pass in additional parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a Promise. The object resulting from the callback call or the resolved Promise is a new `AccessToken` object (see above). Example of how you would use it for `name:googleOAuth2`:
 ```js
 fastify.googleOAuth2.getNewAccessTokenUsingRefreshToken(currentAccessToken, (err, newAccessToken) => {

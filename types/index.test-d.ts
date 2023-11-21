@@ -1,5 +1,5 @@
 import fastify from 'fastify';
-import {expectAssignable, expectError, expectType} from 'tsd';
+import {expectAssignable, expectError, expectNotAssignable, expectType} from 'tsd';
 import fastifyOauth2, {
     FastifyOAuth2Options,
     Credentials,
@@ -51,8 +51,44 @@ const OAuth2Options: FastifyOAuth2Options = {
     cookie: {
         secure: true,
         sameSite: 'none'
-    }
+    },
 };
+
+
+expectAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    startRedirectPath: '/login/testOauth',
+    pkce: 'S256'
+})
+
+
+expectAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    startRedirectPath: '/login/testOauth',
+    pkce: 'plain'
+})
+
+expectNotAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    generateStateFunction: () => {
+    },
+    checkStateFunction: () => {
+    },
+    startRedirectPath: '/login/testOauth',
+    pkce: 'SOMETHING'
+})
 
 const server = fastify();
 
@@ -125,8 +161,15 @@ server.get('/testOauth/callback', async (request, reply) => {
 
     expectType<OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
     expectType<Promise<OAuth2Token>>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
+
+    expectType<OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply));
+    expectType<Promise<OAuth2Token>>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply));
     expectType<void>(
         server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (err: any, t: OAuth2Token): void => {
+        }),
+    );
+    expectType<void>(
+        server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply, (err: any, t: OAuth2Token): void => {
         }),
     );
     // error because Promise should not return void

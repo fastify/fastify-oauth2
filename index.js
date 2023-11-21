@@ -1,6 +1,6 @@
 'use strict'
 
-const { randomBytes } = require('node:crypto')
+const { randomBytes, createHash } = require('node:crypto')
 
 const fp = require('fastify-plugin')
 const { AuthorizationCode } = require('simple-oauth2')
@@ -9,9 +9,15 @@ const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-
 const { promisify, callbackify } = require('node:util')
 
 const USER_AGENT = 'fastify-oauth2'
+const VERIFIER_COOKIE_NAME = 'oauth2-code-verifier'
+const PKCE_METHODS = ['S256', 'plain']
+
+const random = (bytes = 32) => randomBytes(bytes).toString('base64url')
+const codeVerifier = random
+const codeChallenge = verifier => createHash('sha256').update(verifier).digest('base64url')
 
 function defaultGenerateStateFunction () {
-  return randomBytes(16).toString('base64url')
+  return random(16)
 }
 
 function defaultCheckStateFunction (request, callback) {
@@ -74,7 +80,9 @@ function fastifyOauth2 (fastify, options, next) {
   if (options.userAgent && typeof options.userAgent !== 'string') {
     return next(new Error('options.userAgent should be a string'))
   }
-
+  if (options.pkce && (typeof options.pkce !== 'string' || !PKCE_METHODS.includes(options.pkce))) {
+    return next(new Error('options.pkce should be one of "S256" | "plain" when used'))
+  }
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))
   }
@@ -89,7 +97,8 @@ function fastifyOauth2 (fastify, options, next) {
     checkStateFunction = defaultCheckStateFunction,
     startRedirectPath,
     tags = [],
-    schema = { tags }
+    schema = { tags },
+    pkce
   } = options
 
   const userAgent = options.userAgent === false
@@ -113,11 +122,23 @@ function fastifyOauth2 (fastify, options, next) {
 
     reply.setCookie('oauth2-redirect-state', state, cookieOpts)
 
+    // when PKCE extension is used
+    let pkceParams = {}
+    if (pkce) {
+      const verifier = codeVerifier()
+      const challenge = pkce === 'S256' ? codeChallenge(verifier) : verifier
+      pkceParams = {
+        code_challenge: challenge,
+        code_challenge_method: pkce
+      }
+      reply.setCookie(VERIFIER_COOKIE_NAME, verifier, cookieOpts)
+    }
+
     const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
       redirect_uri: callbackUri,
       scope,
       state
-    })
+    }, pkceParams)
 
     return oauth2.authorizeURL(urlOptions)
   }
@@ -128,34 +149,44 @@ function fastifyOauth2 (fastify, options, next) {
     reply.redirect(authorizationUri)
   }
 
-  const cbk = function (o, code, callback) {
+  const cbk = function (o, code, pkceParams, callback) {
     const body = Object.assign({}, tokenRequestParams, {
       code,
       redirect_uri: callbackUri
-    })
+    }, pkceParams)
 
     return callbackify(o.oauth2.getToken.bind(o.oauth2, body))(callback)
   }
 
-  function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, callback) {
+  function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, reply, callback) {
     const code = request.query.code
+    const pkceParams = pkce ? { code_verifier: request.cookies['oauth2-code-verifier'] } : {}
+
+    const _callback = typeof reply === 'function' ? reply : callback
+
+    if (reply && typeof reply !== 'function') {
+      // cleanup a cookie if plugin user uses (req, res, cb) signature variant of getAccessToken fn
+      clearCodeVerifierCookie(reply)
+    }
 
     checkStateFunction(request, function (err) {
       if (err) {
         callback(err)
         return
       }
-      cbk(fastify[name], code, callback)
+      cbk(fastify[name], code, pkceParams, _callback)
     })
   }
 
   const getAccessTokenFromAuthorizationCodeFlowPromisified = promisify(getAccessTokenFromAuthorizationCodeFlowCallbacked)
 
-  function getAccessTokenFromAuthorizationCodeFlow (request, callback) {
-    if (!callback) {
-      return getAccessTokenFromAuthorizationCodeFlowPromisified(request)
+  function getAccessTokenFromAuthorizationCodeFlow (request, reply, callback) {
+    const _callback = typeof reply === 'function' ? reply : callback
+
+    if (!_callback) {
+      return getAccessTokenFromAuthorizationCodeFlowPromisified(request, reply)
     }
-    getAccessTokenFromAuthorizationCodeFlowCallbacked(request, callback)
+    getAccessTokenFromAuthorizationCodeFlowCallbacked(request, reply, _callback)
   }
 
   function getNewAccessTokenUsingRefreshTokenCallbacked (refreshToken, params, callback) {
@@ -198,6 +229,10 @@ function fastifyOauth2 (fastify, options, next) {
       return revokeAllTokenPromisified(token, params)
     }
     revokeAllTokenCallbacked(token, params, callback)
+  }
+
+  function clearCodeVerifierCookie (reply) {
+    reply.clearCookie(VERIFIER_COOKIE_NAME, cookieOpts)
   }
 
   const oauth2 = new AuthorizationCode(credentials)
