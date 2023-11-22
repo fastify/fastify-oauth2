@@ -711,7 +711,7 @@ t.test('fastify-oauth2', t => {
     makeRequests(t, fastify, userAgent => userAgent === undefined, undefined, 'http://github.com')
   })
 
-  t.test('discovery - failed gracefully when discovery host errs with ETIMEDOUT or similar', t => {
+  t.test('discovery - failed gracefully when discovery host gives bad data', t => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -751,7 +751,7 @@ t.test('fastify-oauth2', t => {
     makeRequests(t, fastify, undefined, undefined, 'http://github.com', undefined, { badJSON: true })
   })
 
-  t.test('discovery - failed gracefully when discovery host gives bad data', t => {
+  t.test('discovery - failed gracefully when discovery host errs with ETIMEDOUT or similar', t => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
