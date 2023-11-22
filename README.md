@@ -140,14 +140,10 @@ fastify.register(oauthPlugin, {
       id: '<CLIENT_ID>',
       secret: '<CLIENT_SECRET>',
     },
-    // auth: oauthPlugin.GOOGLE_CONFIGURATION, THIS is not needed anymore when discovery is used.
+    // Note how "auth" is not needed anymore when discovery is used.
   },
   startRedirectPath: '/login',
   callbackUri: 'http://localhost:3000/callback',
-  callbackUriParams: {
-    // custom query param that will be passed to callbackUri
-    access_type: 'offline', // will tell Google to send a refreshToken too
-  },
   discovery: { issuer: 'https://identity.mycustomdomain.com' }
   // pkce: 'S256', you can still do this explicitly, but since discovery is used,
   // it's BEST to let plugin do it itself 
