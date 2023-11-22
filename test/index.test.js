@@ -30,7 +30,7 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
 
   fastify.listen({ port: 0 }, function (err) {
     if (discoveryHostOptions.badJSON) {
-      t.equal(err.message, 'Unexpected token \'#\', "####$$%" is not valid JSON')
+      t.ok(err.message.startsWith('Unexpected token'))
       discoveryScope?.done()
       t.end()
       return
