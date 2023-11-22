@@ -291,11 +291,7 @@ function fastifyOauth2 (fastify, options, next) {
       // even with usage of discovery
       if (!options.pkce) {
         // otherwise select optimal pkce method for them,
-        // if such can be found in metadata response, ofcourse
-        const optimalPkceMethod = selectPkceFromMetadata(fetchedMetadata)
-        if (optimalPkceMethod) {
-          discoveredOptions.pkce = optimalPkceMethod
-        }
+        discoveredOptions.pkce = selectPkceFromMetadata(fetchedMetadata)
       }
       configure(discoveredOptions)
       next()
@@ -357,13 +353,11 @@ function getDiscoveryUri (issuer) {
 }
 
 function selectPkceFromMetadata (metadata) {
-  const methodsSupported = metadata.code_challenge_methods_supported || []
-  if (methodsSupported.includes('S256')) {
-    return 'S256'
-  } else if (methodsSupported.includes('plain')) {
+  const methodsSupported = metadata.code_challenge_methods_supported
+  if (methodsSupported && methodsSupported.length === 1 && methodsSupported.includes('plain')) {
     return 'plain'
   }
-  return null
+  return 'S256'
 }
 
 function getAuthFromMetadata (metadata) {

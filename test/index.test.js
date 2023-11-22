@@ -587,7 +587,7 @@ t.test('fastify-oauth2', t => {
 
     t.teardown(fastify.close.bind(fastify))
 
-    makeRequests(t, fastify, undefined, undefined, 'https://github.com')
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com')
   })
 
   t.test('discovery with S256 - automatic, supported deep mount without a trailing slash', t => {
@@ -627,7 +627,7 @@ t.test('fastify-oauth2', t => {
 
     t.teardown(fastify.close.bind(fastify))
 
-    makeRequests(t, fastify, undefined, undefined, 'https://github.com/deepmount') // no trailin slash
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com/deepmount') // no trailin slash
   })
 
   t.test('discovery - supports HTTP', t => {
@@ -667,7 +667,7 @@ t.test('fastify-oauth2', t => {
 
     t.teardown(fastify.close.bind(fastify))
 
-    makeRequests(t, fastify, undefined, undefined, 'http://github.com')
+    makeRequests(t, fastify, undefined, 'S256', 'http://github.com')
   })
 
   t.test('discovery - supports omitting user agent', t => {
@@ -708,7 +708,7 @@ t.test('fastify-oauth2', t => {
 
     t.teardown(fastify.close.bind(fastify))
 
-    makeRequests(t, fastify, userAgent => userAgent === undefined, undefined, 'http://github.com')
+    makeRequests(t, fastify, userAgent => userAgent === undefined, 'S256', 'http://github.com')
   })
 
   t.test('discovery - failed gracefully when discovery host gives bad data', t => {
