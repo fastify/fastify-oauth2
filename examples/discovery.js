@@ -37,10 +37,8 @@ fastify.register(oauthPlugin, {
   discovery: {
     /*
     When OIDC provider is mounted at root:
-    with trailing slash
+    with trailing slash (99% of the cases)
     - 'https://accounts.google.com/'
-
-    99% of the cases
     */
     issuer: 'https://accounts.google.com'
     /*
