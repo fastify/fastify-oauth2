@@ -8,9 +8,43 @@ const fastifyOauth2 = require('..')
 
 nock.disableNetConnect()
 
-function makeRequests (t, fastify, userAgentHeaderMatcher, pkce) {
+function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, omitCodeChallenge, discoveryHostOptions = {}) {
+  let discoveryScope
+  if (discoveryHost) {
+    const METADATA_BODY = {
+      authorization_endpoint: 'https://github.com/login/oauth/access_token',
+      token_endpoint: 'https://github.com/login/oauth/access_token',
+      revocation_endpoint: 'https://github.com/login/oauth/access_token',
+      code_challenge_methods_supported: omitCodeChallenge ? null : pkce === 'S256' ? ['S256', 'plain'] : pkce === 'plain' ? ['plain'] : null
+    }
+    discoveryScope = nock(discoveryHost)
+      .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
+      .get('/.well-known/openid-configuration')
+
+    if (discoveryHostOptions.error) {
+      discoveryScope = discoveryScope.replyWithError(discoveryHostOptions.error)
+    } else {
+      discoveryScope = discoveryScope.reply(200, discoveryHostOptions.badJSON ? '####$$%' : METADATA_BODY)
+    }
+  }
+
   fastify.listen({ port: 0 }, function (err) {
-    t.error(err)
+    if (discoveryHostOptions.badJSON) {
+      t.equal(err.message, 'Unexpected token \'#\', "####$$%" is not valid JSON')
+      discoveryScope?.done()
+      t.end()
+      return
+    }
+
+    if (discoveryHostOptions.error) {
+      t.equal(err.message, 'Problem calling discovery endpoint. See innerError for details.')
+      t.equal(err.innerError.code, 'ETIMEDOUT')
+      discoveryScope?.done()
+      t.end()
+      return
+    }
+
+    t.error(err, 'not expecting error here!')
 
     fastify.inject({
       method: 'GET',
@@ -65,7 +99,7 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce) {
         t.strictSame(JSON.parse(responseEnd.payload), RESPONSE_BODY_REFRESHED)
 
         githubScope.done()
-
+        discoveryScope?.done()
         t.end()
       })
     })
@@ -393,6 +427,368 @@ t.test('fastify-oauth2', t => {
     t.teardown(fastify.close.bind(fastify))
 
     makeRequests(t, fastify, undefined, 'S256')
+  })
+
+  t.test('discovery with S256 - automatic', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com')
+  })
+
+  t.test('discovery with plain - automatic', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'plain', 'https://github.com')
+  })
+
+  t.test('discovery with no code challenge method - explicitly set instead', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      pkce: 'S256',
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', true)
+  })
+
+  t.test('discovery with S256 - automatic, supported full discovery URL', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com/.well-known/openid-configuration'
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, undefined, 'https://github.com')
+  })
+
+  t.test('discovery with S256 - automatic, supported deep mount without a trailing slash', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com/deepmount' // no trailin slash
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, undefined, 'https://github.com/deepmount') // no trailin slash
+  })
+
+  t.test('discovery - supports HTTP', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'http://github.com'
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, undefined, 'http://github.com')
+  })
+
+  t.test('discovery - supports omitting user agent', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'http://github.com'
+      },
+      userAgent: false
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, userAgent => userAgent === undefined, undefined, 'http://github.com')
+  })
+
+  t.test('discovery - failed gracefully when discovery host errs with ETIMEDOUT or similar', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'http://github.com'
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, undefined, 'http://github.com', undefined, { badJSON: true })
+  })
+
+  t.test('discovery - failed gracefully when discovery host gives bad data', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'http://github.com'
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, undefined, 'http://github.com', undefined, { error: { code: 'ETIMEDOUT' } })
   })
 
   t.end()
@@ -868,6 +1264,76 @@ t.test('options.pkce', t => {
   })
     .ready(err => {
       t.strictSame(err.message, 'options.pkce should be one of "S256" | "plain" when used')
+    })
+})
+
+t.test('options.discovery should be object', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    discovery: 'string'
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.discovery should be an object')
+    })
+})
+
+t.test('options.discovery.issuer should be URL', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    discovery: {
+      issuer: {}
+    }
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.discovery.issuer should be a URL in string format')
+    })
+})
+
+t.test('credentials.auth should not be provided when discovery is used', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    discovery: {
+      issuer: 'https://valid.iss'
+    }
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'when options.discovery.issuer is configured, credentials.auth should not be used')
     })
 })
 
