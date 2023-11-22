@@ -341,12 +341,13 @@ fastify.googleOAuth2.getNewAccessTokenUsingRefreshToken(currentAccessToken, (err
 });
 ```
 
-- `generateAuthorizationUri(requestObject, replyObject)`: A function that returns the authorization uri. This is generally useful when you want to handle the redirect yourself in a specific route. The `requestObject` argument passes the request object to the `generateStateFunction`). You **do not** need to declare a `startRedirectPath` if you use this approach. Example of how you would use it:
+- `generateAuthorizationUri(requestObject, replyObject, callback)`: A function that generates the authorization uri. If the callback is not passed this function will return a Promise. The string resulting from the callback call or the resolved Promise is the authorization uri. This is generally useful when you want to handle the redirect yourself in a specific route. The `requestObject` argument passes the request object to the `generateStateFunction`). You **do not** need to declare a `startRedirectPath` if you use this approach. Example of how you would use it:
 
 ```js
-fastify.get('/external', { /* Hooks can be used here */ }, async (req, reply) => {
-  const authorizationEndpoint = fastify.oauth2CustomOAuth2.generateAuthorizationUri(req, reply);
-  reply.redirect(authorizationEndpoint)
+fastify.get('/external', { /* Hooks can be used here */ }, (req, reply) => {
+  fastify.oauth2CustomOAuth2.generateAuthorizationUri(req, reply, (err, authorizationEndpoint) => {
+    reply.redirect(authorizationEndpoint)
+  });
 });
 ```
 
