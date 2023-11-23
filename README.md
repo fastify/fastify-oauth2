@@ -222,6 +222,38 @@ When you set it, it is required to provide the function `checkStateFunction` in 
   })
 ```
 
+Async functions are supported here, and the fastify instance can be accessed via `this`.
+
+```js
+  fastify.register(oauthPlugin, {
+    name: 'facebookOAuth2',
+    credentials: {
+      client: {
+        id: '<CLIENT_ID>',
+        secret: '<CLIENT_SECRET>'
+      },
+      auth: oauthPlugin.FACEBOOK_CONFIGURATION
+    },
+    // register a fastify url to start the redirect flow
+    startRedirectPath: '/login/facebook',
+    // facebook redirect here after the user login
+    callbackUri: 'http://localhost:3000/login/facebook/callback',
+    // custom function to generate the state and store it into the redis
+    generateStateFunction: async function (request) {
+      const state = request.query.customCode
+      await this.redis.set(stateKey, state)
+      return state
+    },
+    // custom function to check the state is valid
+    checkStateFunction: async function (request, callback) {
+      if (request.query.state !== request.session.state) {
+        throw new Error('Invalid state')
+      }
+      return true
+    }
+  })
+```
+
 ## Set custom callbackUri Parameters
 
 The `callbackUriParams` accepts an object that will be translated to query parameters for the callback OAUTH flow. The default value is {}.
@@ -309,12 +341,13 @@ fastify.googleOAuth2.getNewAccessTokenUsingRefreshToken(currentAccessToken, (err
 });
 ```
 
-- `generateAuthorizationUri(requestObject, replyObject)`: A function that returns the authorization uri. This is generally useful when you want to handle the redirect yourself in a specific route. The `requestObject` argument passes the request object to the `generateStateFunction`). You **do not** need to declare a `startRedirectPath` if you use this approach. Example of how you would use it:
+- `generateAuthorizationUri(requestObject, replyObject, callback)`: A function that generates the authorization uri. If the callback is not passed this function will return a Promise. The string resulting from the callback call or the resolved Promise is the authorization uri. This is generally useful when you want to handle the redirect yourself in a specific route. The `requestObject` argument passes the request object to the `generateStateFunction`). You **do not** need to declare a `startRedirectPath` if you use this approach. Example of how you would use it:
 
 ```js
-fastify.get('/external', { /* Hooks can be used here */ }, async (req, reply) => {
-  const authorizationEndpoint = fastify.oauth2CustomOAuth2.generateAuthorizationUri(req, reply);
-  reply.redirect(authorizationEndpoint)
+fastify.get('/external', { /* Hooks can be used here */ }, (req, reply) => {
+  fastify.oauth2CustomOAuth2.generateAuthorizationUri(req, reply, (err, authorizationEndpoint) => {
+    reply.redirect(authorizationEndpoint)
+  });
 });
 ```
 

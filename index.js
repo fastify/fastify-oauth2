@@ -19,8 +19,8 @@ const random = (bytes = 32) => randomBytes(bytes).toString('base64url')
 const codeVerifier = random
 const codeChallenge = verifier => createHash('sha256').update(verifier).digest('base64url')
 
-function defaultGenerateStateFunction () {
-  return random(16)
+function defaultGenerateStateFunction (request, callback) {
+  callback(null, random(16))
 }
 
 function defaultCheckStateFunction (request, callback) {
@@ -131,36 +131,68 @@ function fastifyOauth2 (fastify, options, next) {
     const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
     const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
 
-    function generateAuthorizationUri (request, reply) {
-      const state = generateStateFunction(request)
+    const generateStateFunctionCallbacked = function (request, callback) {
+      const boundGenerateStateFunction = generateStateFunction.bind(fastify)
 
-      reply.setCookie('oauth2-redirect-state', state, cookieOpts)
+      if (generateStateFunction.length <= 1) {
+        callbackify(function (request) {
+          return Promise.resolve(boundGenerateStateFunction(request))
+        })(request, callback)
+      } else {
+        boundGenerateStateFunction(request, callback)
+      }
+    }
 
-      // when PKCE extension is used
-      let pkceParams = {}
-      if (configured.pkce) {
-        const verifier = codeVerifier()
-        const challenge = configured.pkce === 'S256' ? codeChallenge(verifier) : verifier
-        pkceParams = {
-          code_challenge: challenge,
-          code_challenge_method: configured.pkce
+    function generateAuthorizationUriCallbacked (request, reply, callback) {
+      generateStateFunctionCallbacked(request, function (err, state) {
+        if (err) {
+          callback(err, null)
+          return
         }
-        reply.setCookie(VERIFIER_COOKIE_NAME, verifier, cookieOpts)
+
+        reply.setCookie('oauth2-redirect-state', state, cookieOpts)
+
+        // when PKCE extension is used
+        let pkceParams = {}
+        if (configured.pkce) {
+          const verifier = codeVerifier()
+          const challenge = configured.pkce === 'S256' ? codeChallenge(verifier) : verifier
+          pkceParams = {
+            code_challenge: challenge,
+            code_challenge_method: configured.pkce
+          }
+          reply.setCookie(VERIFIER_COOKIE_NAME, verifier, cookieOpts)
+        }
+
+        const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
+          redirect_uri: callbackUri,
+          scope,
+          state
+        }, pkceParams)
+
+        callback(null, oauth2.authorizeURL(urlOptions))
+      })
+    }
+
+    const generateAuthorizationUriPromisified = promisify(generateAuthorizationUriCallbacked)
+
+    function generateAuthorizationUri (request, reply, callback) {
+      if (!callback) {
+        return generateAuthorizationUriPromisified(request, reply)
       }
 
-      const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
-        redirect_uri: callbackUri,
-        scope,
-        state
-      }, pkceParams)
-
-      return oauth2.authorizeURL(urlOptions)
+      generateAuthorizationUriCallbacked(request, reply, callback)
     }
 
     function startRedirectHandler (request, reply) {
-      const authorizationUri = generateAuthorizationUri(request, reply)
+      generateAuthorizationUriCallbacked(request, reply, function (err, authorizationUri) {
+        if (err) {
+          reply.code(500).send(err.message)
+          return
+        }
 
-      reply.redirect(authorizationUri)
+        reply.redirect(authorizationUri)
+      })
     }
 
     const cbk = function (o, code, pkceParams, callback) {
@@ -170,6 +202,24 @@ function fastifyOauth2 (fastify, options, next) {
       }, pkceParams)
 
       return callbackify(o.oauth2.getToken.bind(o.oauth2, body))(callback)
+    }
+
+    function checkStateFunctionCallbacked (request, callback) {
+      const boundCheckStateFunction = checkStateFunction.bind(fastify)
+
+      if (checkStateFunction.length <= 1) {
+        Promise.resolve(boundCheckStateFunction(request))
+          .then(function (result) {
+            if (result) {
+              callback()
+            } else {
+              callback(new Error('Invalid state'))
+            }
+          })
+          .catch(function (err) { callback(err) })
+      } else {
+        boundCheckStateFunction(request, callback)
+      }
     }
 
     function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, reply, callback) {
@@ -183,7 +233,7 @@ function fastifyOauth2 (fastify, options, next) {
         clearCodeVerifierCookie(reply)
       }
 
-      checkStateFunction(request, function (err) {
+      checkStateFunctionCallbacked(request, function (err) {
         if (err) {
           callback(err)
           return

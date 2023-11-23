@@ -1,4 +1,4 @@
-import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyPluginCallback, FastifyReply, FastifyRequest, FastifyInstance } from 'fastify';
 import { CookieSerializeOptions } from "@fastify/cookie";
 
 interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth2Options> {
@@ -20,6 +20,16 @@ interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth
 }
 
 declare namespace fastifyOauth2 {
+  export interface FastifyGenerateStateFunction {
+    (this: FastifyInstance, request: FastifyRequest): Promise<string> | string
+    (this: FastifyInstance, request: FastifyRequest, callback: (err: any, state: string) => void): void
+  }
+
+  export interface FastifyCheckStateFunction {
+    (this: FastifyInstance, request: FastifyRequest): Promise<boolean> | boolean
+    (this: FastifyInstance, request: FastifyRequest, callback: (err?: any) => void): void
+  }
+
   export interface FastifyOAuth2Options {
     name: string;
     scope?: string[];
@@ -27,8 +37,8 @@ declare namespace fastifyOauth2 {
     callbackUri: string;
     callbackUriParams?: Object;
     tokenRequestParams?: Object;
-    generateStateFunction?: Function;
-    checkStateFunction?: Function;
+    generateStateFunction?: FastifyGenerateStateFunction;
+    checkStateFunction?: FastifyCheckStateFunction;
     startRedirectPath?: string;
     tags?: string[];
     schema?: object;
@@ -148,7 +158,13 @@ declare namespace fastifyOauth2 {
         generateAuthorizationUri(
             request: FastifyRequest,
             reply: FastifyReply,
-        ): string;
+          callback: (err: any, uri: string) => void
+        ): void
+
+        generateAuthorizationUri(
+            request: FastifyRequest,
+            reply: FastifyReply,
+        ): Promise<string>;
 
         revokeToken(
             revokeToken: Token,

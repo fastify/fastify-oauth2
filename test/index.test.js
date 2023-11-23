@@ -1123,47 +1123,6 @@ t.test('options.tokenRequestParams', t => {
   })
 })
 
-t.test('options.generateStateFunction with request', t => {
-  t.plan(5)
-  const fastify = createFastify()
-
-  fastify.register(fastifyOauth2, {
-    name: 'the-name',
-    credentials: {
-      client: {
-        id: 'my-client-id',
-        secret: 'my-secret'
-      },
-      auth: fastifyOauth2.GITHUB_CONFIGURATION
-    },
-    startRedirectPath: '/login/github',
-    callbackUri: '/callback',
-    generateStateFunction: (request) => {
-      t.ok(request, 'the request param has been set')
-      return request.query.code
-    },
-    checkStateFunction: () => true,
-    scope: ['notifications']
-  })
-
-  t.teardown(fastify.close.bind(fastify))
-
-  fastify.listen({ port: 0 }, function (err) {
-    t.error(err)
-
-    fastify.inject({
-      method: 'GET',
-      url: '/login/github',
-      query: { code: 'generated_code' }
-    }, function (err, responseStart) {
-      t.error(err)
-      t.equal(responseStart.statusCode, 302)
-      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
-      t.ok(matched)
-    })
-  })
-})
-
 t.test('generateAuthorizationUri redirect with request object', t => {
   const fastify = createFastify()
 
@@ -1185,8 +1144,8 @@ t.test('generateAuthorizationUri redirect with request object', t => {
     scope: ['notifications']
   })
 
-  fastify.get('/gh', function (request, reply) {
-    const redirectUrl = this.theName.generateAuthorizationUri(request, reply)
+  fastify.get('/gh', async function (request, reply) {
+    const redirectUrl = await this.theName.generateAuthorizationUri(request, reply)
     return reply.redirect(redirectUrl)
   })
 
@@ -1205,13 +1164,11 @@ t.test('generateAuthorizationUri redirect with request object', t => {
   })
 })
 
-t.test('options.generateStateFunction should be an object', t => {
-  t.plan(1)
-
-  const fastify = createFastify({ logger: { level: 'silent' } })
+t.test('generateAuthorizationUri redirect with request object and callback', t => {
+  const fastify = createFastify()
 
   fastify.register(fastifyOauth2, {
-    name: 'the-name',
+    name: 'theName',
     credentials: {
       client: {
         id: 'my-client-id',
@@ -1220,34 +1177,37 @@ t.test('options.generateStateFunction should be an object', t => {
       auth: fastifyOauth2.GITHUB_CONFIGURATION
     },
     callbackUri: '/callback',
-    generateStateFunction: 42
-  })
-    .ready(err => {
-      t.strictSame(err.message, 'options.generateStateFunction should be a function')
-    })
-})
-
-t.test('options.checkStateFunction should be an object', t => {
-  t.plan(1)
-
-  const fastify = createFastify({ logger: { level: 'silent' } })
-
-  fastify.register(fastifyOauth2, {
-    name: 'the-name',
-    credentials: {
-      client: {
-        id: 'my-client-id',
-        secret: 'my-secret'
-      },
-      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    generateStateFunction: (request) => {
+      t.ok(request, 'the request param has been set')
+      return request.query.code
     },
-    callbackUri: '/callback',
-    generateStateFunction: () => { },
-    checkStateFunction: 42
+    checkStateFunction: () => true,
+    scope: ['notifications']
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.checkStateFunction should be a function')
+
+  fastify.get('/gh', function (request, reply) {
+    this.theName.generateAuthorizationUri(request, reply, (err, redirectUrl) => {
+      if (err) {
+        throw err
+      }
+
+      reply.redirect(redirectUrl)
     })
+  })
+
+  t.teardown(fastify.close.bind(fastify))
+
+  fastify.inject({
+    method: 'GET',
+    url: '/gh',
+    query: { code: 'generated_code' }
+  }, function (err, responseStart) {
+    t.error(err)
+    t.equal(responseStart.statusCode, 302)
+    const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
+    t.ok(matched)
+    t.end()
+  })
 })
 
 t.test('options.startRedirectPath should be a string', t => {
@@ -1885,52 +1845,569 @@ t.test('revoke all token for linkedin callback', (t) => {
   })
 })
 
-t.test('options.generateStateFunction with signing key', t => {
-  t.plan(5)
-  const fastify = createFastify()
+t.test('options.generateStateFunction', t => {
+  t.test('with request', t => {
+    t.plan(5)
+    const fastify = createFastify()
 
-  const hmacKey = 'hello'
-  const expectedState = crypto.createHmac('sha1', hmacKey).update('foo').digest('hex')
-
-  fastify.register(require('@fastify/cookie'))
-
-  fastify.register(fastifyOauth2, {
-    name: 'the-name',
-    credentials: {
-      client: {
-        id: 'my-client-id',
-        secret: 'my-secret'
+    fastify.register(fastifyOauth2, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
       },
-      auth: fastifyOauth2.GITHUB_CONFIGURATION
-    },
-    startRedirectPath: '/login/github',
-    callbackUri: '/callback',
-    generateStateFunction: (request) => {
-      const state = crypto.createHmac('sha1', hmacKey).update(request.headers.foo).digest('hex')
-      t.ok(request, 'the request param has been set')
-      return state
-    },
-    checkStateFunction: (request) => {
-      const generatedState = crypto.createHmac('sha1', hmacKey).update(request.headers.foo).digest('hex')
-      return generatedState === request.query.state
-    },
-    scope: ['notifications']
+      startRedirectPath: '/login/github',
+      callbackUri: '/callback',
+      generateStateFunction: (request) => {
+        t.ok(request, 'the request param has been set')
+        return request.query.code
+      },
+      checkStateFunction: () => true,
+      scope: ['notifications']
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.listen({ port: 0 }, function (err) {
+      t.error(err)
+
+      fastify.inject({
+        method: 'GET',
+        url: '/login/github',
+        query: { code: 'generated_code' }
+      }, function (err, responseStart) {
+        t.error(err)
+        t.equal(responseStart.statusCode, 302)
+        const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
+        t.ok(matched)
+      })
+    })
   })
 
-  t.teardown(fastify.close.bind(fastify))
+  t.test('should be an object', t => {
+    t.plan(1)
 
-  fastify.listen({ port: 0 }, function (err) {
-    t.error(err)
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      generateStateFunction: 42
+    })
+      .ready(err => {
+        t.strictSame(err.message, 'options.generateStateFunction should be a function')
+      })
+  })
+
+  t.test('with signing key', t => {
+    t.plan(5)
+    const fastify = createFastify()
+
+    const hmacKey = 'hello'
+    const expectedState = crypto.createHmac('sha1', hmacKey).update('foo').digest('hex')
+
+    fastify.register(require('@fastify/cookie'))
+
+    fastify.register(fastifyOauth2, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: '/callback',
+      generateStateFunction: (request) => {
+        const state = crypto.createHmac('sha1', hmacKey).update(request.headers.foo).digest('hex')
+        t.ok(request, 'the request param has been set')
+        return state
+      },
+      checkStateFunction: (request) => {
+        const generatedState = crypto.createHmac('sha1', hmacKey).update(request.headers.foo).digest('hex')
+        return generatedState === request.query.state
+      },
+      scope: ['notifications']
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.listen({ port: 0 }, function (err) {
+      t.error(err)
+      fastify.inject({
+        method: 'GET',
+        url: '/login/github',
+        query: { code: expectedState },
+        headers: { foo: 'foo' }
+      }, function (err, responseStart) {
+        t.error(err)
+        t.equal(responseStart.statusCode, 302)
+        const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=1e864fbd840212c1ed9ce60175d373f3a48681b2/)
+        t.ok(matched)
+      })
+    })
+  })
+
+  t.test('should accept fastify instance as this', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'theName',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      generateStateFunction: function (request) {
+        t.strictSame(this, fastify)
+        return request.query.code
+      },
+      checkStateFunction: () => true,
+      scope: ['notifications']
+    })
+
+    fastify.get('/gh', async function (request, reply) {
+      const redirectUrl = await this.theName.generateAuthorizationUri(request, reply)
+      return reply.redirect(redirectUrl)
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
     fastify.inject({
       method: 'GET',
-      url: '/login/github',
-      query: { code: expectedState },
-      headers: { foo: 'foo' }
+      url: '/gh',
+      query: { code: 'generated_code' }
     }, function (err, responseStart) {
       t.error(err)
       t.equal(responseStart.statusCode, 302)
-      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=1e864fbd840212c1ed9ce60175d373f3a48681b2/)
+      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
       t.ok(matched)
+      t.end()
     })
   })
+
+  t.test('should accept async function', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'theName',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      generateStateFunction: async function (request) {
+        return request.query.code
+      },
+      checkStateFunction: () => true,
+      scope: ['notifications']
+    })
+
+    fastify.get('/gh', async function (request, reply) {
+      const redirectUrl = await this.theName.generateAuthorizationUri(request, reply)
+      return reply.redirect(redirectUrl)
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.inject({
+      method: 'GET',
+      url: '/gh',
+      query: { code: 'generated_code' }
+    }, function (err, responseStart) {
+      t.error(err)
+      t.equal(responseStart.statusCode, 302)
+      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
+      t.ok(matched)
+      t.end()
+    })
+  })
+
+  t.test('should accept callback function', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'theName',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      generateStateFunction: function (request, cb) {
+        cb(null, request.query.code)
+      },
+      checkStateFunction: () => true,
+      scope: ['notifications']
+    })
+
+    fastify.get('/gh', async function (request, reply) {
+      const redirectUrl = await this.theName.generateAuthorizationUri(request, reply)
+      return reply.redirect(redirectUrl)
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.inject({
+      method: 'GET',
+      url: '/gh',
+      query: { code: 'generated_code' }
+    }, function (err, responseStart) {
+      t.error(err)
+      t.equal(responseStart.statusCode, 302)
+      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
+      t.ok(matched)
+      t.end()
+    })
+  })
+
+  t.test('throws', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'theName',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      generateStateFunction: function (request) {
+        return Promise.reject(new Error('generate state failed'))
+      },
+      checkStateFunction: () => true,
+      scope: ['notifications']
+    })
+
+    fastify.get('/gh', function (request, reply) {
+      this.theName.generateAuthorizationUri(request, reply)
+        .catch((err) => {
+          reply.code(500).send(err.message)
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.inject({
+      method: 'GET',
+      url: '/gh',
+      query: { code: 'generated_code' }
+    }, function (err, responseStart) {
+      t.error(err)
+      t.equal(responseStart.statusCode, 500)
+      t.strictSame(responseStart.body, 'generate state failed')
+      t.end()
+    })
+  })
+
+  t.test('throws with start redirect path', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'theName',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      startRedirectPath: '/gh',
+      generateStateFunction: function (request) {
+        return Promise.reject(new Error('generate state failed'))
+      },
+      checkStateFunction: () => true,
+      scope: ['notifications']
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.inject({
+      method: 'GET',
+      url: '/gh',
+      query: { code: 'generated_code' }
+    }, function (err, responseStart) {
+      t.error(err)
+      t.equal(responseStart.statusCode, 500)
+      t.strictSame(responseStart.body, 'generate state failed')
+      t.end()
+    })
+  })
+
+  t.end()
+})
+
+t.test('options.checkStateFunction', t => {
+  t.test('should be an object', t => {
+    t.plan(1)
+
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      generateStateFunction: () => { },
+      checkStateFunction: 42
+    })
+      .ready(err => {
+        t.strictSame(err.message, 'options.checkStateFunction should be a function')
+      })
+  })
+
+  t.test('should accept fastify instance as this', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: 'http://localhost:3000/callback',
+      startRedirectPath: '/login/github',
+      generateStateFunction: function (request) {
+        return request.query.code
+      },
+      checkStateFunction: function () {
+        t.strictSame(this, fastify)
+        return true
+      },
+      scope: ['notifications']
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify)
+  })
+
+  t.test('should accept async function', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: 'http://localhost:3000/callback',
+      startRedirectPath: '/login/github',
+      generateStateFunction: async function (request) {
+        return request.query.code
+      },
+      checkStateFunction: async function () {
+        return true
+      },
+      scope: ['notifications']
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify)
+  })
+
+  t.test('returns true', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: 'http://localhost:3000/callback',
+      startRedirectPath: '/login/github',
+      generateStateFunction: function (request) {
+        return request.query.code
+      },
+      checkStateFunction: async function () {
+        return true
+      },
+      scope: ['notifications']
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify)
+  })
+
+  t.test('returns false', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: 'http://localhost:3000/callback',
+      startRedirectPath: '/login/github',
+      generateStateFunction: function (request) {
+        return request.query.code
+      },
+      checkStateFunction: function () {
+        return false
+      },
+      scope: ['notifications']
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+        .catch(e => {
+          reply.code(400)
+          return e.message
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.inject({
+      method: 'GET',
+      url: '/?code=my-code&state=wrong-state'
+    }, function (err, responseEnd) {
+      t.error(err)
+
+      t.equal(responseEnd.statusCode, 400)
+      t.strictSame(responseEnd.payload, 'Invalid state')
+
+      t.end()
+    })
+  })
+
+  t.test('throws', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    const error = new Error('state is invalid')
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: 'http://localhost:3000/callback',
+      startRedirectPath: '/login/github',
+      generateStateFunction: function (request) {
+        return request.query.code
+      },
+      checkStateFunction: async function () {
+        return Promise.reject(error)
+      },
+      scope: ['notifications']
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+        .catch((err) => {
+          reply.code(400).send(err.message)
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.inject({
+      method: 'GET',
+      url: '/?code=my-code&state=wrong-state'
+    }, function (err, responseEnd) {
+      t.error(err)
+
+      t.equal(responseEnd.statusCode, 400)
+      t.strictSame(responseEnd.payload, 'state is invalid')
+
+      t.end()
+    })
+  })
+
+  t.end()
 })
