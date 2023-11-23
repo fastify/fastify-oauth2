@@ -23,6 +23,12 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
 
     if (discoveryHostOptions.error) {
       discoveryScope = discoveryScope.replyWithError(discoveryHostOptions.error)
+    } else if (discoveryHostOptions.noRevocation) {
+      discoveryScope = discoveryScope.reply(200, { ...METADATA_BODY, revocation_endpoint: undefined })
+    } else if (discoveryHostOptions.noAuthorization) {
+      discoveryScope = discoveryScope.reply(200, { ...METADATA_BODY, authorization_endpoint: undefined })
+    } else if (discoveryHostOptions.noToken) {
+      discoveryScope = discoveryScope.reply(200, { ...METADATA_BODY, token_endpoint: undefined })
     } else {
       discoveryScope = discoveryScope.reply(200, discoveryHostOptions.badJSON ? '####$$%' : METADATA_BODY)
     }
@@ -39,6 +45,14 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
     if (discoveryHostOptions.error) {
       t.equal(err.message, 'Problem calling discovery endpoint. See innerError for details.')
       t.equal(err.innerError.code, 'ETIMEDOUT')
+      discoveryScope?.done()
+      t.end()
+      return
+    }
+
+    if (discoveryHostOptions.noToken) {
+      // Let simple-oauth2 configuration fail instead
+      t.equal(err.message, 'Invalid options provided to simple-oauth2 "auth.tokenHost" is required')
       discoveryScope?.done()
       t.end()
       return
@@ -789,6 +803,129 @@ t.test('fastify-oauth2', t => {
     t.teardown(fastify.close.bind(fastify))
 
     makeRequests(t, fastify, undefined, undefined, 'http://github.com', undefined, { error: { code: 'ETIMEDOUT' } })
+  })
+
+  t.test('discovery - should work when OP doesn\'t announce revocation', t => {
+    // not that some Authorization servers might have revocation as optional,
+    // even token and authorization endpoints could be optional
+    // plugin should not break internally due to these responses
+    // however tokenHost is required by schema here
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', undefined, { noRevocation: true })
+  })
+
+  t.test('discovery - should work when OP doesn\'t announce authorization endpoint', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', undefined, { noAuthorization: true })
+  })
+
+  t.test('discovery - should work when OP doesn\'t announce token endpoint', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => {
+          // attempts to refresh the token
+          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+        })
+        .then(token => {
+          return {
+            access_token: token.token.access_token,
+            refresh_token: token.token.refresh_token,
+            expires_in: token.token.expires_in,
+            token_type: token.token.token_type
+          }
+        })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', undefined, { noToken: true })
   })
 
   t.end()

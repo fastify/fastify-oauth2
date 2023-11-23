@@ -361,20 +361,46 @@ function selectPkceFromMetadata (metadata) {
 }
 
 function getAuthFromMetadata (metadata) {
-  const endpoints = [
-    metadata.authorization_endpoint,
-    metadata.token_endpoint,
-    metadata.revocation_endpoint
-  ]
-  const [
-    { host: authorizeHost, path: authorizePath },
-    { host: tokenHost, path: tokenPath },
-    { path: revokePath }
-  ] = endpoints
-    .map(ep => new URL(ep))
-    .map(({ host, protocol, pathname }) => ({ host: `${protocol}//${host}`, path: pathname }))
+  /* bellow comments are from RFC 8414 (https://www.rfc-editor.org/rfc/rfc8414.html#section-2) documentation */
 
-  return { authorizeHost, authorizePath, tokenHost, tokenPath, revokePath }
+  const processedResponse = {}
+  /*
+    authorization_endpoint
+      URL of the authorization server's authorization endpoint
+      [RFC6749].  This is REQUIRED unless no grant types are supported
+      that use the authorization endpoint.
+  */
+  if (metadata.authorization_endpoint) {
+    const { path, host } = formatEndpoint(metadata.authorization_endpoint)
+    processedResponse.authorizePath = path
+    processedResponse.authorizeHost = host
+  }
+  /*
+    token_endpoint
+      URL of the authorization server's token endpoint [RFC6749].  This
+      is REQUIRED unless only the implicit grant type is supported.
+  */
+  if (metadata.token_endpoint) {
+    const { path, host } = formatEndpoint(metadata.token_endpoint)
+    processedResponse.tokenPath = path
+    processedResponse.tokenHost = host
+  }
+  /*
+    revocation_endpoint
+      OPTIONAL.  URL of the authorization server's OAuth 2.0 revocation
+      endpoint [RFC7009].
+  */
+  if (metadata.revocation_endpoint) {
+    const { path } = formatEndpoint(metadata.revocation_endpoint)
+    processedResponse.revokePath = path
+  }
+
+  return processedResponse
+}
+
+function formatEndpoint (ep) {
+  const { host, protocol, pathname } = new URL(ep)
+  return { host: `${protocol}//${host}`, path: pathname }
 }
 
 fastifyOauth2.APPLE_CONFIGURATION = {
