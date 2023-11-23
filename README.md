@@ -120,6 +120,43 @@ fastify.register(oauthPlugin, {
 })
 ```
 
+## Use automated discovery endpoint
+
+When your provider supports OpenID connect discovery and you want to configure authorization, token and revocation endpoints automatically, 
+then you can use discovery option.
+`discovery` is a simple object that requires `issuer` property.
+
+Issuer is expected to be string URL or metadata url.
+Variants with or without trailing slash are supported.
+
+You can see more in [example here](./examples/discovery.js).
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'customOAuth2',
+  scope: ['profile', 'email'],
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>',
+    },
+    // Note how "auth" is not needed anymore when discovery is used.
+  },
+  startRedirectPath: '/login',
+  callbackUri: 'http://localhost:3000/callback',
+  discovery: { issuer: 'https://identity.mycustomdomain.com' }
+  // pkce: 'S256', you can still do this explicitly, but since discovery is used,
+  // it's BEST to let plugin do it itself 
+  // based on what Authorization Server Metadata response
+});
+```
+
+Important notes for discovery:
+
+- You should not set up `credentials.auth` anymore when discovery mechanics is used.
+- When your provider supports it, plugin will also select appropriate PKCE method in authorization code grant
+- In case you still want to select method yourself, and know exactly what you are doing; you can still do it explicitly.
+
 ### Schema configuration
 
 You can specify your own schema for the `startRedirectPath` end-point. It allows you to create a well-documented document when using `@fastify/swagger` together.

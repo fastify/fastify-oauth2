@@ -54,7 +54,6 @@ const OAuth2Options: FastifyOAuth2Options = {
     },
 };
 
-
 expectAssignable<FastifyOAuth2Options>({
     name: 'testOAuthName',
     scope: scope,
@@ -63,6 +62,26 @@ expectAssignable<FastifyOAuth2Options>({
     callbackUriParams: {},
     startRedirectPath: '/login/testOauth',
     pkce: 'S256'
+})
+
+expectAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    startRedirectPath: '/login/testOauth',
+    discovery: { issuer: 'https://idp.mycompany.com' }
+})
+
+expectNotAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    startRedirectPath: '/login/testOauth',
+    discovery: { issuer: 1 }
 })
 
 
