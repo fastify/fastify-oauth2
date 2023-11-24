@@ -15,6 +15,7 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
       authorization_endpoint: 'https://github.com/login/oauth/access_token',
       token_endpoint: 'https://github.com/login/oauth/access_token',
       revocation_endpoint: 'https://github.com/login/oauth/access_token',
+      userinfo_endpoint: discoveryHostOptions.userinfoEndpoint ? discoveryHostOptions.userinfoEndpoint : undefined,
       code_challenge_methods_supported: omitCodeChallenge ? null : pkce === 'S256' ? ['S256', 'plain'] : pkce === 'plain' ? ['plain'] : null
     }
     discoveryScope = nock(discoveryHost)
@@ -98,6 +99,23 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
         .reply(200, RESPONSE_BODY)
         .post('/login/oauth/access_token', 'grant_type=refresh_token&refresh_token=my-refresh-token')
         .reply(200, RESPONSE_BODY_REFRESHED)
+      let userinfoScope
+
+      if (discoveryHostOptions.userinfoEndpoint && !discoveryHostOptions.userinfoBadArgs) {
+        if (discoveryHostOptions.problematicUserinfo) {
+          userinfoScope = nock('https://github.com')
+            .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
+            .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
+            .get('/me')
+            .replyWithError({ code: 'ETIMEDOUT' })
+        } else {
+          userinfoScope = nock(discoveryHostOptions.userinfoNonEncrypted ? 'http://github.com' : 'https://github.com')
+            .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
+            .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
+            .get('/me')
+            .reply(200, discoveryHostOptions.userinfoBadData ? 'not a json' : { sub: 'github.subjectid' })
+        }
+      }
 
       fastify.inject({
         method: 'GET',
@@ -114,6 +132,7 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
 
         githubScope.done()
         discoveryScope?.done()
+        userinfoScope?.done()
         t.end()
       })
     })
@@ -422,20 +441,26 @@ t.test('fastify-oauth2', t => {
       pkce: 'S256'
     })
 
-    fastify.get('/', function (request, reply) {
-      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
-        .then(result => {
-          // attempts to refresh the token
-          return this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
-        })
-        .then(token => {
-          return {
-            access_token: token.token.access_token,
-            refresh_token: token.token.refresh_token,
-            expires_in: token.token.expires_in,
-            token_type: token.token.token_type
-          }
-        })
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const token = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+
+      try {
+        await this.githubOAuth2.userinfo('a try without a discovery option')
+      } catch (error) {
+        t.equal(
+          error.message,
+          'userinfo can not be used without discovery',
+          'error signals to user that they should use discovery for this to work'
+        )
+      }
+
+      return {
+        access_token: token.token.access_token,
+        refresh_token: token.token.refresh_token,
+        expires_in: token.token.expires_in,
+        token_type: token.token.token_type
+      }
     })
 
     t.teardown(fastify.close.bind(fastify))
@@ -481,6 +506,308 @@ t.test('fastify-oauth2', t => {
     t.teardown(fastify.close.bind(fastify))
 
     makeRequests(t, fastify, undefined, 'S256', 'https://github.com')
+  })
+
+  t.test('discovery with userinfo', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+      const userinfo = await this.githubOAuth2.userinfo(refreshResult.token, { params: { a: 1 } })
+
+      t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
+  })
+
+  t.test('discovery with userinfo -> callback API (full)', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+      await new Promise((resolve) => {
+        this.githubOAuth2.userinfo(refreshResult.token, {}, (err, userinfo) => {
+          t.error(err)
+          t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+          resolve()
+        })
+      })
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
+  })
+
+  t.test('discovery with userinfo -> callback API (userinfo request option ommited)', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+      await new Promise((resolve) => {
+        this.githubOAuth2.userinfo(refreshResult.token, (err, userinfo) => {
+          t.error(err)
+          t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+          resolve()
+        })
+      })
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
+  })
+
+  t.test('discovery with userinfo -> fails gracefully when at format is bad', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+      await new Promise((resolve) => {
+        this.githubOAuth2.userinfo(123456789, (err) => {
+          t.equal(err.message,
+            'you should provide token object containing access_token or access_token as string directly',
+            'should match error message')
+          resolve()
+        })
+      })
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadArgs: true })
+  })
+
+  t.test('discovery with userinfo -> fails gracefully when nested at format is bad', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+      await new Promise((resolve) => {
+        this.githubOAuth2.userinfo({ access_token: 123456789 }, (err) => {
+          t.equal(err.message, 'access_token should be string', 'message for nested access token format matched')
+          resolve()
+        })
+      })
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadArgs: true })
+  })
+
+  t.test('discovery with userinfo -> fails gracefully with problematic /me endpoint', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      },
+      userAgent: false
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+      await new Promise((resolve) => {
+        this.githubOAuth2.userinfo(refreshResult.token.access_token, (err) => {
+          t.equal(err.message,
+            'Problem calling userinfo endpoint. See innerError for details.',
+            'should match start of the error message'
+          )
+          resolve()
+        })
+      })
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, userAgent => userAgent === undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', problematicUserinfo: true })
+  })
+
+  t.test('discovery with userinfo -> works with http', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      },
+      userAgent: false
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+      await new Promise((resolve) => {
+        this.githubOAuth2.userinfo(refreshResult.token.access_token, (err) => {
+          t.error(err)
+          resolve()
+        })
+      })
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, userAgent => userAgent === undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'http://github.com/me', userinfoNonEncrypted: true })
+  })
+
+  t.test('discovery with userinfo -> fails gracefully with bad data', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+      await new Promise((resolve) => {
+        this.githubOAuth2.userinfo(refreshResult.token.access_token, (err) => {
+          t.ok(err.message.startsWith('Unexpected token'), 'should match start of the error message')
+          resolve()
+        })
+      })
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadData: true })
   })
 
   t.test('discovery with plain - automatic', t => {

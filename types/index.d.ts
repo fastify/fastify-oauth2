@@ -171,19 +171,27 @@ declare namespace fastifyOauth2 {
             tokenType: TToken,
             httpOptions: Object | undefined,
             callback: (err: any) => void
-        ): void
+        ): void;
 
-        revokeToken(revokeToken: Token, tokenType: TToken, httpOptions: Object | undefined): Promise<void>
+        revokeToken(revokeToken: Token, tokenType: TToken, httpOptions: Object | undefined): Promise<void>;
 
         revokeAllToken(
             revokeToken: Token,
             httpOptions: Object | undefined,
             callback: (err: any) => void
         ): void;
+        
+        revokeAllToken(revokeToken: Token, httpOptions: Object | undefined): Promise<void>;
 
-        revokeAllToken(revokeToken: Token, httpOptions: Object | undefined): Promise<void>
+        userinfo(tokenSetOrToken: Token | string): Promise<Object>;
+
+        userinfo(tokenSetOrToken: Token | string, userInfoExtraOptions: UserInfoExtraOptions | undefined): Promise<Object>;
+
+        userinfo(tokenSetOrToken: Token | string, callback: (err: any, userinfo: Object) => void): void;
+
+        userinfo(tokenSetOrToken: Token | string, userInfoExtraOptions: UserInfoExtraOptions | undefined, callback: (err: any, userinfo: Object) => void): void;
     }
-
+    export type UserInfoExtraOptions = { method?: 'GET'/* | POST */, via?: 'header' /*| 'body'*/, params?: object };
     export const fastifyOauth2: FastifyOauth2
     export {fastifyOauth2 as default}
 }

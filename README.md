@@ -319,7 +319,7 @@ Assuming we have registered multiple OAuth providers like this:
 
 ## Utilities
 
-This fastify plugin adds 5 utility decorators to your fastify instance using the same **namespace**:
+This fastify plugin adds 6 utility decorators to your fastify instance using the same **namespace**:
 
 - `getAccessTokenFromAuthorizationCodeFlow(request, callback)`: A function that uses the Authorization code flow to fetch an OAuth2 token using the data in the last request of the flow. If the callback is not passed it will return a promise. The callback call or promise resolution returns an [AccessToken](https://github.com/lelylan/simple-oauth2/blob/master/API.md#accesstoken) object, which has an `AccessToken.token` property with the following keys:
   - `access_token`
@@ -363,6 +363,36 @@ fastify.googleOAuth2.revokeAllToken(currentAccessToken, undefined, (err) => {
    // Handle the reply here
 });
 ```
+
+- `userinfo(tokenOrTokenSet)`: A function to retrieve userinfo data from Authorization Provider. Both token (as object) or `access_token` string value can be passed.
+
+Important note:
+Userinfo will only work when `discovery` option is used. For a statically configured plugin, you need to make a HTTP call yourself.
+
+```js
+fastify.googleOAuth2.userinfo(currentAccessToken, (err, userinfo) => {
+   // do something with userinfo
+});
+// with custom params
+fastify.googleOAuth2.userinfo(currentAccessToken, { method: 'GET', params: { /* add your custom key value pairs here to be appended to request */ } },  (err, userinfo) => {
+   // do something with userinfo
+});
+
+// or promise version
+const userinfo = await fastify.googleOAuth2.userinfo(currentAccessToken);
+// use custom params
+const userinfo = await fastify.googleOAuth2.userinfo(currentAccessToken, { method: 'GET', params: { /* ... */ } });
+```
+
+There are variants with callback and promises.
+Custom parameters can be passed as option.
+See [Types](./types/index.d.ts) and usage patterns [in examples](./examples/userinfo.js).
+
+Note:
+(At the moment) We only support HTTP `GET` requests to userinfo endpoint sending access token in headers using `Bearer` schema.
+POST is not supported at the moment, but if your Server supports such case and you need it, feel free to [open an issue](https://github.com/fastify/fastify-oauth2/issues/new?assignees=&labels=feature+request&projects=&template=feature.yml).
+
+
 E.g. For `name: 'customOauth2'`, the helpers `getAccessTokenFromAuthorizationCodeFlow` and `getNewAccessTokenUsingRefreshToken` will become accessible like this:
 
 - `fastify.oauth2CustomOauth2.getAccessTokenFromAuthorizationCodeFlow`
