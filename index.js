@@ -420,7 +420,7 @@ function fastifyOauth2 (fastify, options, next) {
   }
 
   function fetchUserInfo (userinfoEndpoint, token, { method, via, params }, cb) {
-    // here userinfo options { method, params } are ignored,
+    // here userinfo options { method, via } are ignored,
     // but it's useful to have a stable API for future when they are implemented/needed
 
     // Supported: a basic one, GET | token via headers | Accept json
