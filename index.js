@@ -475,10 +475,7 @@ function fastifyOauth2 (fastify, options, next) {
     const req = aClient.request(infoUrl, httpOpts, onUserinfoResponse)
       .on('error', errHandler)
 
-    if (via === 'body') {
-      req.write(body.toString())
-    }
-
+    req.write(body.toString())
     req.end()
 
     function onUserinfoResponse (res) {
