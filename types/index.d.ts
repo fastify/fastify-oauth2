@@ -191,7 +191,7 @@ declare namespace fastifyOauth2 {
 
         userinfo(tokenSetOrToken: Token | string, userInfoExtraOptions: UserInfoExtraOptions | undefined, callback: (err: any, userinfo: Object) => void): void;
     }
-    export type UserInfoExtraOptions = { method?: 'GET'/* | POST */, via?: 'header' /*| 'body'*/, params?: object };
+    export type UserInfoExtraOptions = { method?: 'GET' | 'POST', via?: 'header' | 'body', params?: object };
     export const fastifyOauth2: FastifyOauth2
     export {fastifyOauth2 as default}
 }

@@ -314,6 +314,17 @@ function fastifyOauth2 (fastify, options, next) {
         callback(new Error('userinfo can not be used without discovery'))
         return
       }
+      const _method = method.toUpperCase()
+      if (!['GET', 'POST'].includes(_method)) {
+        callback(new Error('userinfo methods supported are only GET and POST'))
+        return
+      }
+
+      if (method === 'GET' && via === 'body') {
+        callback(new Error('body is supported only with POST'))
+        return
+      }
+
       let token
       if (typeof tokenSetOrToken !== 'object' && typeof tokenSetOrToken !== 'string') {
         callback(new Error('you should provide token object containing access_token or access_token as string directly'))
@@ -330,7 +341,7 @@ function fastifyOauth2 (fastify, options, next) {
         token = tokenSetOrToken
       }
 
-      fetchUserInfo(fetchedMetadata.userinfo_endpoint, token, { method, params, via }, callback)
+      fetchUserInfo(fetchedMetadata.userinfo_endpoint, token, { method: _method, params, via }, callback)
     }
 
     const oauth2 = new AuthorizationCode(configured.credentials)
@@ -420,17 +431,8 @@ function fastifyOauth2 (fastify, options, next) {
   }
 
   function fetchUserInfo (userinfoEndpoint, token, { method, via, params }, cb) {
-    // here userinfo options { method, via } are ignored,
-    // but it's useful to have a stable API for future when they are implemented/needed
-
-    // Supported: a basic one, GET | token via headers | Accept json
-
-    // not supported right now due to sheer number of combinations how body and header could be treated,
-    // but OIDC standard defines as possible also:
-    // POST -> via = headers
-    // POST -> via = body, then using Cont. Type (application/x-www-form-urlencoded)
-
     const httpOpts = {
+      method,
       headers: {
         ...options.credentials.http?.headers,
         'User-Agent': userAgent,
@@ -444,28 +446,57 @@ function fastifyOauth2 (fastify, options, next) {
 
     const infoUrl = new URL(userinfoEndpoint)
 
-    Object.entries(params).forEach(([k, v]) => {
-      infoUrl.searchParams.append(k, v)
-    })
+    let body
 
-    ;(userinfoEndpoint.startsWith('https://') ? https : http)
-      .get(userinfoEndpoint, httpOpts, onUserinfoResponse)
-      .on('error', (e) => {
-        const err = new Error('Problem calling userinfo endpoint. See innerError for details.')
-        err.innerError = e
-        cb(err)
+    if (method === 'GET') {
+      Object.entries(params).forEach(([k, v]) => {
+        infoUrl.searchParams.append(k, v)
       })
+    } else {
+      httpOpts.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+      body = new URLSearchParams()
+      if (via === 'body') {
+        delete httpOpts.headers.Authorization
+        body.append('access_token', token)
+      }
+      Object.entries(params).forEach(([k, v]) => {
+        body.append(k, v)
+      })
+    }
+
+    const aClient = (userinfoEndpoint.startsWith('https://') ? https : http)
+
+    if (method === 'GET') {
+      aClient.get(infoUrl, httpOpts, onUserinfoResponse)
+        .on('error', errHandler)
+      return
+    }
+
+    const req = aClient.request(infoUrl, httpOpts, onUserinfoResponse)
+      .on('error', errHandler)
+
+    if (via === 'body') {
+      req.write(body.toString())
+    }
+
+    req.end()
 
     function onUserinfoResponse (res) {
       let rawData = ''
       res.on('data', (chunk) => { rawData = chunk })
       res.on('end', () => {
         try {
-          cb(null, JSON.parse(rawData))
+          cb(null, JSON.parse(rawData)) // should always be JSON since we don't do jwt auth response
         } catch (err) {
           cb(err)
         }
       })
+    }
+
+    function errHandler (e) {
+      const err = new Error('Problem calling userinfo endpoint. See innerError for details.')
+      err.innerError = e
+      cb(err)
     }
   }
 }

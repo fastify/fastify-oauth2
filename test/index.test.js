@@ -101,19 +101,44 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
         .reply(200, RESPONSE_BODY_REFRESHED)
       let userinfoScope
 
+      const gitHost = discoveryHostOptions.userinfoNonEncrypted ? 'http://github.com' : 'https://github.com'
       if (discoveryHostOptions.userinfoEndpoint && !discoveryHostOptions.userinfoBadArgs) {
         if (discoveryHostOptions.problematicUserinfo) {
-          userinfoScope = nock('https://github.com')
+          userinfoScope = nock(gitHost)
             .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
             .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
             .get('/me')
             .replyWithError({ code: 'ETIMEDOUT' })
         } else {
-          userinfoScope = nock(discoveryHostOptions.userinfoNonEncrypted ? 'http://github.com' : 'https://github.com')
-            .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
-            .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
-            .get('/me')
-            .reply(200, discoveryHostOptions.userinfoBadData ? 'not a json' : { sub: 'github.subjectid' })
+          if (discoveryHostOptions.userinfoQuery) {
+            if (discoveryHostOptions.userInfoMethod === 'POST') {
+              if (discoveryHostOptions.userinfoVia === 'body') {
+                userinfoScope = nock(gitHost)
+                  .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
+                  .post('/me', 'access_token=my-access-token-refreshed&a=1')
+                  .reply(200, { sub: 'github.subjectid' })
+              } else {
+                userinfoScope = nock(gitHost)
+                  .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
+                  .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
+                  .post('/me')
+                  .reply(200, { sub: 'github.subjectid' })
+              }
+            } else {
+              userinfoScope = nock(gitHost)
+                .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
+                .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
+                .get('/me')
+                .query({ a: 1 })
+                .reply(200, { sub: 'github.subjectid' })
+            }
+          } else {
+            userinfoScope = nock(gitHost)
+              .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
+              .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
+              .get('/me')
+              .reply(200, discoveryHostOptions.userinfoBadData ? 'not a json' : { sub: 'github.subjectid' })
+          }
         }
       }
 
@@ -530,6 +555,19 @@ t.test('fastify-oauth2', t => {
     fastify.get('/', async function (request, reply) {
       const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+
+      try {
+        await this.githubOAuth2.userinfo(refreshResult.token, { method: 'PUT' })
+      } catch (error) {
+        t.equal(error.message, 'userinfo methods supported are only GET and POST', 'should not work for other methods')
+      }
+
+      try {
+        await this.githubOAuth2.userinfo(refreshResult.token, { method: 'GET', via: 'body' })
+      } catch (error) {
+        t.equal(error.message, 'body is supported only with POST', 'should report incompatible combo')
+      }
+
       const userinfo = await this.githubOAuth2.userinfo(refreshResult.token, { params: { a: 1 } })
 
       t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
@@ -539,7 +577,86 @@ t.test('fastify-oauth2', t => {
 
     t.teardown(fastify.close.bind(fastify))
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoQuery: '?a=1' })
+  })
+
+  t.test('discovery with userinfo POST header', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+
+      const userinfo = await this.githubOAuth2.userinfo(refreshResult.token, { method: 'POST', params: { a: 1 } })
+      t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false,
+      {
+        userinfoEndpoint: 'https://github.com/me',
+        userInfoMethod: 'POST',
+        userinfoQuery: '?a=1'
+      })
+  })
+
+  t.test('discovery with userinfo POST body', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+
+      const userinfo = await this.githubOAuth2.userinfo(refreshResult.token, { method: 'POST', via: 'body', params: { a: 1 } })
+      t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false,
+      {
+        userinfoEndpoint: 'https://github.com/me',
+        userInfoMethod: 'POST',
+        userinfoQuery: '?a=1',
+        userinfoVia: 'body'
+      })
   })
 
   t.test('discovery with userinfo -> callback API (full)', t => {

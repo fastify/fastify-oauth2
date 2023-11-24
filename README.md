@@ -389,9 +389,11 @@ Custom parameters can be passed as option.
 See [Types](./types/index.d.ts) and usage patterns [in examples](./examples/userinfo.js).
 
 Note:
-(At the moment) We only support HTTP `GET` requests to userinfo endpoint sending access token in headers using `Bearer` schema.
-POST is not supported at the moment, but if your Server supports such case and you need it, feel free to [open an issue](https://github.com/fastify/fastify-oauth2/issues/new?assignees=&labels=feature+request&projects=&template=feature.yml).
 
+We support HTTP `GET` and `POST` requests to userinfo endpoint sending access token using `Bearer` schema in headers.
+You can do this by setting (`via: "header"` parameter), but it's not mandatory since it's a default value.
+
+We also support `POST` by sending `access_token` in a request body. You can do this by explicitly providing `via: "body"` parameter.
 
 E.g. For `name: 'customOauth2'`, the helpers `getAccessTokenFromAuthorizationCodeFlow` and `getNewAccessTokenUsingRefreshToken` will become accessible like this:
 

@@ -276,6 +276,9 @@ server.get('/testOauth/callback', async (request, reply) => {
     expectType<void>(server.testOAuthName.userinfo(token.token.access_token, () => {}));
     expectType<void>(server.testOAuthName.userinfo(token.token.access_token, undefined, () => {}));
     expectAssignable<UserInfoExtraOptions>({ method: 'GET', params: {}, via: 'header' });
+    expectAssignable<UserInfoExtraOptions>({ method: 'POST', params: { a: 1 }, via: 'header' });
+    expectAssignable<UserInfoExtraOptions>({ via: 'body' });
+    expectNotAssignable<UserInfoExtraOptions>({ via: 'donkey' });
     expectNotAssignable<UserInfoExtraOptions>({ something: 1 });
     // END userinfo tests
     
