@@ -5,7 +5,8 @@ import fastifyOauth2, {
     Credentials,
     OAuth2Namespace,
     OAuth2Token,
-    ProviderConfiguration
+    ProviderConfiguration,
+    UserInfoExtraOptions
 } from '..';
 import type { ModuleOptions } from 'simple-oauth2';
 import { FastifyInstance } from 'fastify';
@@ -268,6 +269,20 @@ server.get('/testOauth/callback', async (request, reply) => {
 
     expectType<Promise<string>>(server.testOAuthName.generateAuthorizationUri(request, reply));
     expectType<void>(server.testOAuthName.generateAuthorizationUri(request, reply, (err) => {}))
+    // BEGIN userinfo tests
+    expectType<Promise<Object>>(server.testOAuthName.userinfo(token.token));
+    expectType<Promise<Object>>(server.testOAuthName.userinfo(token.token.access_token));
+    expectType<Object>(await server.testOAuthName.userinfo(token.token.access_token));
+    expectType<void>(server.testOAuthName.userinfo(token.token.access_token, () => {}));
+    expectType<void>(server.testOAuthName.userinfo(token.token.access_token, undefined, () => {}));
+    expectAssignable<UserInfoExtraOptions>({ method: 'GET', params: {}, via: 'header' });
+    expectAssignable<UserInfoExtraOptions>({ method: 'POST', params: { a: 1 }, via: 'header' });
+    expectAssignable<UserInfoExtraOptions>({ via: 'body' });
+    expectNotAssignable<UserInfoExtraOptions>({ via: 'donkey' });
+    expectNotAssignable<UserInfoExtraOptions>({ something: 1 });
+    // END userinfo tests
+    
+    expectType<string>(await server.testOAuthName.generateAuthorizationUri(request, reply));
     // error because missing reply argument
     expectError<string>(server.testOAuthName.generateAuthorizationUri(request));
 

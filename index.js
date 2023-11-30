@@ -104,7 +104,7 @@ function fastifyOauth2 (fastify, options, next) {
     ? undefined
     : (options.userAgent || USER_AGENT)
 
-  const configure = (configured) => {
+  const configure = (configured, fetchedMetadata) => {
     const {
       name,
       callbackUri,
@@ -299,6 +299,51 @@ function fastifyOauth2 (fastify, options, next) {
       reply.clearCookie(VERIFIER_COOKIE_NAME, cookieOpts)
     }
 
+    const pUserInfo = promisify(userInfoCallbacked)
+
+    function userinfo (tokenSetOrToken, options, callback) {
+      const _callback = typeof options === 'function' ? options : callback
+      if (!_callback) {
+        return pUserInfo(tokenSetOrToken, options)
+      }
+      return userInfoCallbacked(tokenSetOrToken, options, _callback)
+    }
+
+    function userInfoCallbacked (tokenSetOrToken, { method = 'GET', via = 'header', params = {} } = {}, callback) {
+      if (!configured.discovery) {
+        callback(new Error('userinfo can not be used without discovery'))
+        return
+      }
+      const _method = method.toUpperCase()
+      if (!['GET', 'POST'].includes(_method)) {
+        callback(new Error('userinfo methods supported are only GET and POST'))
+        return
+      }
+
+      if (method === 'GET' && via === 'body') {
+        callback(new Error('body is supported only with POST'))
+        return
+      }
+
+      let token
+      if (typeof tokenSetOrToken !== 'object' && typeof tokenSetOrToken !== 'string') {
+        callback(new Error('you should provide token object containing access_token or access_token as string directly'))
+        return
+      }
+
+      if (typeof tokenSetOrToken === 'object') {
+        if (typeof tokenSetOrToken.access_token !== 'string') {
+          callback(new Error('access_token should be string'))
+          return
+        }
+        token = tokenSetOrToken.access_token
+      } else {
+        token = tokenSetOrToken
+      }
+
+      fetchUserInfo(fetchedMetadata.userinfo_endpoint, token, { method: _method, params, via }, callback)
+    }
+
     const oauth2 = new AuthorizationCode(configured.credentials)
 
     if (startRedirectPath) {
@@ -311,7 +356,8 @@ function fastifyOauth2 (fastify, options, next) {
       getNewAccessTokenUsingRefreshToken,
       generateAuthorizationUri,
       revokeToken,
-      revokeAllToken
+      revokeAllToken,
+      userinfo
     }
 
     try {
@@ -343,7 +389,7 @@ function fastifyOauth2 (fastify, options, next) {
         // otherwise select optimal pkce method for them,
         discoveredOptions.pkce = selectPkceFromMetadata(fetchedMetadata)
       }
-      configure(discoveredOptions)
+      configure(discoveredOptions, fetchedMetadata)
       next()
     })
   } else {
@@ -381,6 +427,73 @@ function fastifyOauth2 (fastify, options, next) {
           cb(err)
         }
       })
+    }
+  }
+
+  function fetchUserInfo (userinfoEndpoint, token, { method, via, params }, cb) {
+    const httpOpts = {
+      method,
+      headers: {
+        ...options.credentials.http?.headers,
+        'User-Agent': userAgent,
+        Authorization: `Bearer ${token}`
+      }
+    }
+
+    if (omitUserAgent) {
+      delete httpOpts.headers['User-Agent']
+    }
+
+    const infoUrl = new URL(userinfoEndpoint)
+
+    let body
+
+    if (method === 'GET') {
+      Object.entries(params).forEach(([k, v]) => {
+        infoUrl.searchParams.append(k, v)
+      })
+    } else {
+      httpOpts.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+      body = new URLSearchParams()
+      if (via === 'body') {
+        delete httpOpts.headers.Authorization
+        body.append('access_token', token)
+      }
+      Object.entries(params).forEach(([k, v]) => {
+        body.append(k, v)
+      })
+    }
+
+    const aClient = (userinfoEndpoint.startsWith('https://') ? https : http)
+
+    if (method === 'GET') {
+      aClient.get(infoUrl, httpOpts, onUserinfoResponse)
+        .on('error', errHandler)
+      return
+    }
+
+    const req = aClient.request(infoUrl, httpOpts, onUserinfoResponse)
+      .on('error', errHandler)
+
+    req.write(body.toString())
+    req.end()
+
+    function onUserinfoResponse (res) {
+      let rawData = ''
+      res.on('data', (chunk) => { rawData = chunk })
+      res.on('end', () => {
+        try {
+          cb(null, JSON.parse(rawData)) // should always be JSON since we don't do jwt auth response
+        } catch (err) {
+          cb(err)
+        }
+      })
+    }
+
+    function errHandler (e) {
+      const err = new Error('Problem calling userinfo endpoint. See innerError for details.')
+      err.innerError = e
+      cb(err)
     }
   }
 }
