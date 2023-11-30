@@ -367,7 +367,13 @@ fastify.googleOAuth2.revokeAllToken(currentAccessToken, undefined, (err) => {
 - `userinfo(tokenOrTokenSet)`: A function to retrieve userinfo data from Authorization Provider. Both token (as object) or `access_token` string value can be passed.
 
 Important note:
-Userinfo will only work when `discovery` option is used. For a statically configured plugin, you need to make a HTTP call yourself.
+Userinfo will only work when `discovery` option is used and such endpoint is advertised by identity provider. 
+
+For a statically configured plugin, you need to make a HTTP call yourself.
+
+See more on OIDC standard definition for [Userinfo endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo)
+
+See more on `userinfo_endpoint` property in [OIDC Discovery Metadata](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata) standard definition.
 
 ```js
 fastify.googleOAuth2.userinfo(currentAccessToken, (err, userinfo) => {

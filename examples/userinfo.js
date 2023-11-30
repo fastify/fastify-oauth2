@@ -40,28 +40,16 @@ fastify.register(oauthPlugin, {
 // using async/await (promises API) ->
 // 1. simple one with async
 fastify.get('/interaction/callback/google', async function (request, reply) {
-  try {
-    const tokenResponse = await this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
-    const userinfo = await this.googleOAuth2.userinfo(tokenResponse.token /* or tokenResponse.token.access_token */)
-    reply.send(userinfo)
-  } catch (error) {
-    // you want to handle error here better
-    console.error(error)
-    reply.send(error.message)
-  }
+  const tokenResponse = await this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+  const userinfo = await this.googleOAuth2.userinfo(tokenResponse.token /* or tokenResponse.token.access_token */)
+  return userinfo
 })
 
 // 2. custom params one with async
 // fastify.get('/interaction/callback/google', { method: 'GET', params: { /* custom parameters to be added */ } }, async function (request, reply) {
-//   try {
-//     const tokenResponse = await this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
-//     const userinfo = await this.googleOAuth2.userinfo(tokenResponse.token /* or tokenResponse.token.access_token */)
-//     reply.send(userinfo)
-//   } catch (error) {
-//     // you want to handle error here better
-//     console.error(error)
-//     reply.send(error.message)
-//   }
+//   const tokenResponse = await this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+//   const userinfo = await this.googleOAuth2.userinfo(tokenResponse.token /* or tokenResponse.token.access_token */)
+//   return userinfo
 // })
 
 // OR with a callback API
