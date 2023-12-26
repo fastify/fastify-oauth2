@@ -1,6 +1,9 @@
 'use strict'
+const url = require('url')
+const http = require('http')
+const https = require('https')
 
-const { randomBytes } = require('node:crypto')
+const { randomBytes, createHash } = require('node:crypto')
 
 const fp = require('fastify-plugin')
 const { AuthorizationCode } = require('simple-oauth2')
@@ -9,9 +12,15 @@ const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-
 const { promisify, callbackify } = require('node:util')
 
 const USER_AGENT = 'fastify-oauth2'
+const VERIFIER_COOKIE_NAME = 'oauth2-code-verifier'
+const PKCE_METHODS = ['S256', 'plain']
 
-function defaultGenerateStateFunction () {
-  return randomBytes(16).toString('base64url')
+const random = (bytes = 32) => randomBytes(bytes).toString('base64url')
+const codeVerifier = random
+const codeChallenge = verifier => createHash('sha256').update(verifier).digest('base64url')
+
+function defaultGenerateStateFunction (request, callback) {
+  callback(null, random(16))
 }
 
 function defaultCheckStateFunction (request, callback) {
@@ -74,156 +83,487 @@ function fastifyOauth2 (fastify, options, next) {
   if (options.userAgent && typeof options.userAgent !== 'string') {
     return next(new Error('options.userAgent should be a string'))
   }
-
+  if (options.pkce && (typeof options.pkce !== 'string' || !PKCE_METHODS.includes(options.pkce))) {
+    return next(new Error('options.pkce should be one of "S256" | "plain" when used'))
+  }
+  if (options.discovery && (typeof options.discovery !== 'object')) {
+    return next(new Error('options.discovery should be an object'))
+  }
+  if (options.discovery && (typeof options.discovery.issuer !== 'string')) {
+    return next(new Error('options.discovery.issuer should be a URL in string format'))
+  }
+  if (options.discovery && options.credentials.auth) {
+    return next(new Error('when options.discovery.issuer is configured, credentials.auth should not be used'))
+  }
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))
   }
-
-  const {
-    name,
-    callbackUri,
-    callbackUriParams = {},
-    tokenRequestParams = {},
-    scope,
-    generateStateFunction = defaultGenerateStateFunction,
-    checkStateFunction = defaultCheckStateFunction,
-    startRedirectPath,
-    tags = [],
-    schema = { tags }
-  } = options
-
+  const omitUserAgent = options.userAgent === false
+  const discovery = options.discovery
   const userAgent = options.userAgent === false
     ? undefined
     : (options.userAgent || USER_AGENT)
-  const credentials = {
-    ...options.credentials,
-    http: {
-      ...options.credentials.http,
-      headers: {
-        'User-Agent': userAgent,
-        ...options.credentials.http?.headers
+
+  const configure = (configured, fetchedMetadata) => {
+    const {
+      name,
+      callbackUri,
+      callbackUriParams = {},
+      credentials,
+      tokenRequestParams = {},
+      scope,
+      generateStateFunction = defaultGenerateStateFunction,
+      checkStateFunction = defaultCheckStateFunction,
+      startRedirectPath,
+      tags = [],
+      schema = { tags }
+    } = configured
+
+    if (userAgent) {
+      configured.credentials.http = {
+        ...configured.credentials.http,
+        headers: {
+          'User-Agent': userAgent,
+          ...configured.credentials.http?.headers
+        }
       }
     }
-  }
-  const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
-  const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
+    const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
+    const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
 
-  function generateAuthorizationUri (request, reply) {
-    const state = generateStateFunction(request)
+    const generateStateFunctionCallbacked = function (request, callback) {
+      const boundGenerateStateFunction = generateStateFunction.bind(fastify)
 
-    reply.setCookie('oauth2-redirect-state', state, cookieOpts)
+      if (generateStateFunction.length <= 1) {
+        callbackify(function (request) {
+          return Promise.resolve(boundGenerateStateFunction(request))
+        })(request, callback)
+      } else {
+        boundGenerateStateFunction(request, callback)
+      }
+    }
 
-    const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
-      redirect_uri: callbackUri,
-      scope,
-      state
-    })
+    function generateAuthorizationUriCallbacked (request, reply, callback) {
+      generateStateFunctionCallbacked(request, function (err, state) {
+        if (err) {
+          callback(err, null)
+          return
+        }
 
-    return oauth2.authorizeURL(urlOptions)
-  }
+        reply.setCookie('oauth2-redirect-state', state, cookieOpts)
 
-  function startRedirectHandler (request, reply) {
-    const authorizationUri = generateAuthorizationUri(request, reply)
+        // when PKCE extension is used
+        let pkceParams = {}
+        if (configured.pkce) {
+          const verifier = codeVerifier()
+          const challenge = configured.pkce === 'S256' ? codeChallenge(verifier) : verifier
+          pkceParams = {
+            code_challenge: challenge,
+            code_challenge_method: configured.pkce
+          }
+          reply.setCookie(VERIFIER_COOKIE_NAME, verifier, cookieOpts)
+        }
 
-    reply.redirect(authorizationUri)
-  }
+        const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
+          redirect_uri: callbackUri,
+          scope,
+          state
+        }, pkceParams)
 
-  const cbk = function (o, code, callback) {
-    const body = Object.assign({}, tokenRequestParams, {
-      code,
-      redirect_uri: callbackUri
-    })
+        callback(null, oauth2.authorizeURL(urlOptions))
+      })
+    }
 
-    return callbackify(o.oauth2.getToken.bind(o.oauth2, body))(callback)
-  }
+    const generateAuthorizationUriPromisified = promisify(generateAuthorizationUriCallbacked)
 
-  function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, callback) {
-    const code = request.query.code
+    function generateAuthorizationUri (request, reply, callback) {
+      if (!callback) {
+        return generateAuthorizationUriPromisified(request, reply)
+      }
 
-    checkStateFunction(request, function (err) {
-      if (err) {
-        callback(err)
+      generateAuthorizationUriCallbacked(request, reply, callback)
+    }
+
+    function startRedirectHandler (request, reply) {
+      generateAuthorizationUriCallbacked(request, reply, function (err, authorizationUri) {
+        if (err) {
+          reply.code(500).send(err.message)
+          return
+        }
+
+        reply.redirect(authorizationUri)
+      })
+    }
+
+    const cbk = function (o, code, pkceParams, callback) {
+      const body = Object.assign({}, tokenRequestParams, {
+        code,
+        redirect_uri: callbackUri
+      }, pkceParams)
+
+      return callbackify(o.oauth2.getToken.bind(o.oauth2, body))(callback)
+    }
+
+    function checkStateFunctionCallbacked (request, callback) {
+      const boundCheckStateFunction = checkStateFunction.bind(fastify)
+
+      if (checkStateFunction.length <= 1) {
+        Promise.resolve(boundCheckStateFunction(request))
+          .then(function (result) {
+            if (result) {
+              callback()
+            } else {
+              callback(new Error('Invalid state'))
+            }
+          })
+          .catch(function (err) { callback(err) })
+      } else {
+        boundCheckStateFunction(request, callback)
+      }
+    }
+
+    function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, reply, callback) {
+      const code = request.query.code
+      const pkceParams = configured.pkce ? { code_verifier: request.cookies['oauth2-code-verifier'] } : {}
+
+      const _callback = typeof reply === 'function' ? reply : callback
+
+      if (reply && typeof reply !== 'function') {
+        // cleanup a cookie if plugin user uses (req, res, cb) signature variant of getAccessToken fn
+        clearCodeVerifierCookie(reply)
+      }
+
+      checkStateFunctionCallbacked(request, function (err) {
+        if (err) {
+          callback(err)
+          return
+        }
+        cbk(fastify[name], code, pkceParams, _callback)
+      })
+    }
+
+    const getAccessTokenFromAuthorizationCodeFlowPromisified = promisify(getAccessTokenFromAuthorizationCodeFlowCallbacked)
+
+    function getAccessTokenFromAuthorizationCodeFlow (request, reply, callback) {
+      const _callback = typeof reply === 'function' ? reply : callback
+
+      if (!_callback) {
+        return getAccessTokenFromAuthorizationCodeFlowPromisified(request, reply)
+      }
+      getAccessTokenFromAuthorizationCodeFlowCallbacked(request, reply, _callback)
+    }
+
+    function getNewAccessTokenUsingRefreshTokenCallbacked (refreshToken, params, callback) {
+      const accessToken = fastify[name].oauth2.createToken(refreshToken)
+      callbackify(accessToken.refresh.bind(accessToken, params))(callback)
+    }
+
+    const getNewAccessTokenUsingRefreshTokenPromisified = promisify(getNewAccessTokenUsingRefreshTokenCallbacked)
+
+    function getNewAccessTokenUsingRefreshToken (refreshToken, params, callback) {
+      if (!callback) {
+        return getNewAccessTokenUsingRefreshTokenPromisified(refreshToken, params)
+      }
+      getNewAccessTokenUsingRefreshTokenCallbacked(refreshToken, params, callback)
+    }
+
+    function revokeTokenCallbacked (token, tokenType, params, callback) {
+      const accessToken = fastify[name].oauth2.createToken(token)
+      callbackify(accessToken.revoke.bind(accessToken, tokenType, params))(callback)
+    }
+
+    const revokeTokenPromisified = promisify(revokeTokenCallbacked)
+
+    function revokeToken (token, tokenType, params, callback) {
+      if (!callback) {
+        return revokeTokenPromisified(token, tokenType, params)
+      }
+      revokeTokenCallbacked(token, tokenType, params, callback)
+    }
+
+    function revokeAllTokenCallbacked (token, params, callback) {
+      const accessToken = fastify[name].oauth2.createToken(token)
+      callbackify(accessToken.revokeAll.bind(accessToken, token, params))(callback)
+    }
+
+    const revokeAllTokenPromisified = promisify(revokeAllTokenCallbacked)
+
+    function revokeAllToken (token, params, callback) {
+      if (!callback) {
+        return revokeAllTokenPromisified(token, params)
+      }
+      revokeAllTokenCallbacked(token, params, callback)
+    }
+
+    function clearCodeVerifierCookie (reply) {
+      reply.clearCookie(VERIFIER_COOKIE_NAME, cookieOpts)
+    }
+
+    const pUserInfo = promisify(userInfoCallbacked)
+
+    function userinfo (tokenSetOrToken, options, callback) {
+      const _callback = typeof options === 'function' ? options : callback
+      if (!_callback) {
+        return pUserInfo(tokenSetOrToken, options)
+      }
+      return userInfoCallbacked(tokenSetOrToken, options, _callback)
+    }
+
+    function userInfoCallbacked (tokenSetOrToken, { method = 'GET', via = 'header', params = {} } = {}, callback) {
+      if (!configured.discovery) {
+        callback(new Error('userinfo can not be used without discovery'))
         return
       }
-      cbk(fastify[name], code, callback)
+      const _method = method.toUpperCase()
+      if (!['GET', 'POST'].includes(_method)) {
+        callback(new Error('userinfo methods supported are only GET and POST'))
+        return
+      }
+
+      if (method === 'GET' && via === 'body') {
+        callback(new Error('body is supported only with POST'))
+        return
+      }
+
+      let token
+      if (typeof tokenSetOrToken !== 'object' && typeof tokenSetOrToken !== 'string') {
+        callback(new Error('you should provide token object containing access_token or access_token as string directly'))
+        return
+      }
+
+      if (typeof tokenSetOrToken === 'object') {
+        if (typeof tokenSetOrToken.access_token !== 'string') {
+          callback(new Error('access_token should be string'))
+          return
+        }
+        token = tokenSetOrToken.access_token
+      } else {
+        token = tokenSetOrToken
+      }
+
+      fetchUserInfo(fetchedMetadata.userinfo_endpoint, token, { method: _method, params, via }, callback)
+    }
+
+    const oauth2 = new AuthorizationCode(configured.credentials)
+
+    if (startRedirectPath) {
+      fastify.get(startRedirectPath, { schema }, startRedirectHandler)
+    }
+
+    const decoration = {
+      oauth2,
+      getAccessTokenFromAuthorizationCodeFlow,
+      getNewAccessTokenUsingRefreshToken,
+      generateAuthorizationUri,
+      revokeToken,
+      revokeAllToken,
+      userinfo
+    }
+
+    try {
+      fastify.decorate(name, decoration)
+      fastify.decorate(`oauth2${name.slice(0, 1).toUpperCase()}${name.slice(1)}`, decoration)
+    } catch (e) {
+      next(e)
+    }
+  }
+
+  if (discovery) {
+    discoverMetadata(discovery.issuer, (err, fetchedMetadata) => {
+      if (err) {
+        next(err)
+        return
+      }
+      const authFromMetadata = getAuthFromMetadata(fetchedMetadata)
+
+      const discoveredOptions = {
+        ...options,
+        credentials: {
+          ...options.credentials,
+          auth: authFromMetadata
+        }
+      }
+      // respect users choice if they provided PKCE method explicitly
+      // even with usage of discovery
+      if (!options.pkce) {
+        // otherwise select optimal pkce method for them,
+        discoveredOptions.pkce = selectPkceFromMetadata(fetchedMetadata)
+      }
+      configure(discoveredOptions, fetchedMetadata)
+      next()
     })
+  } else {
+    configure(options)
+    next()
   }
+  function discoverMetadata (issuer, cb) {
+    const discoveryUri = getDiscoveryUri(issuer)
 
-  const getAccessTokenFromAuthorizationCodeFlowPromisified = promisify(getAccessTokenFromAuthorizationCodeFlowCallbacked)
-
-  function getAccessTokenFromAuthorizationCodeFlow (request, callback) {
-    if (!callback) {
-      return getAccessTokenFromAuthorizationCodeFlowPromisified(request)
+    const httpOpts = {
+      headers: {
+        ...options.credentials.http?.headers,
+        'User-Agent': userAgent
+      }
     }
-    getAccessTokenFromAuthorizationCodeFlowCallbacked(request, callback)
-  }
-
-  function getNewAccessTokenUsingRefreshTokenCallbacked (refreshToken, params, callback) {
-    const accessToken = fastify[name].oauth2.createToken(refreshToken)
-    callbackify(accessToken.refresh.bind(accessToken, params))(callback)
-  }
-
-  const getNewAccessTokenUsingRefreshTokenPromisified = promisify(getNewAccessTokenUsingRefreshTokenCallbacked)
-
-  function getNewAccessTokenUsingRefreshToken (refreshToken, params, callback) {
-    if (!callback) {
-      return getNewAccessTokenUsingRefreshTokenPromisified(refreshToken, params)
+    if (omitUserAgent) {
+      delete httpOpts.headers['User-Agent']
     }
-    getNewAccessTokenUsingRefreshTokenCallbacked(refreshToken, params, callback)
-  }
 
-  function revokeTokenCallbacked (token, tokenType, params, callback) {
-    const accessToken = fastify[name].oauth2.createToken(token)
-    callbackify(accessToken.revoke.bind(accessToken, tokenType, params))(callback)
-  }
+    const req = (discoveryUri.startsWith('https://') ? https : http).get(discoveryUri, httpOpts, onDiscoveryResponse)
 
-  const revokeTokenPromisified = promisify(revokeTokenCallbacked)
+    req.on('error', (e) => {
+      const err = new Error('Problem calling discovery endpoint. See innerError for details.')
+      err.innerError = e
+      cb(err)
+    })
 
-  function revokeToken (token, tokenType, params, callback) {
-    if (!callback) {
-      return revokeTokenPromisified(token, tokenType, params)
+    function onDiscoveryResponse (res) {
+      let rawData = ''
+      res.on('data', (chunk) => { rawData += chunk })
+      res.on('end', () => {
+        try {
+          cb(null, JSON.parse(rawData))
+        } catch (err) {
+          cb(err)
+        }
+      })
     }
-    revokeTokenCallbacked(token, tokenType, params, callback)
   }
 
-  function revokeAllTokenCallbacked (token, params, callback) {
-    const accessToken = fastify[name].oauth2.createToken(token)
-    callbackify(accessToken.revokeAll.bind(accessToken, token, params))(callback)
-  }
-
-  const revokeAllTokenPromisified = promisify(revokeAllTokenCallbacked)
-
-  function revokeAllToken (token, params, callback) {
-    if (!callback) {
-      return revokeAllTokenPromisified(token, params)
+  function fetchUserInfo (userinfoEndpoint, token, { method, via, params }, cb) {
+    const httpOpts = {
+      method,
+      headers: {
+        ...options.credentials.http?.headers,
+        'User-Agent': userAgent,
+        Authorization: `Bearer ${token}`
+      }
     }
-    revokeAllTokenCallbacked(token, params, callback)
+
+    if (omitUserAgent) {
+      delete httpOpts.headers['User-Agent']
+    }
+
+    const infoUrl = new URL(userinfoEndpoint)
+
+    let body
+
+    if (method === 'GET') {
+      Object.entries(params).forEach(([k, v]) => {
+        infoUrl.searchParams.append(k, v)
+      })
+    } else {
+      httpOpts.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+      body = new URLSearchParams()
+      if (via === 'body') {
+        delete httpOpts.headers.Authorization
+        body.append('access_token', token)
+      }
+      Object.entries(params).forEach(([k, v]) => {
+        body.append(k, v)
+      })
+    }
+
+    const aClient = (userinfoEndpoint.startsWith('https://') ? https : http)
+
+    if (method === 'GET') {
+      aClient.get(infoUrl, httpOpts, onUserinfoResponse)
+        .on('error', errHandler)
+      return
+    }
+
+    const req = aClient.request(infoUrl, httpOpts, onUserinfoResponse)
+      .on('error', errHandler)
+
+    req.write(body.toString())
+    req.end()
+
+    function onUserinfoResponse (res) {
+      let rawData = ''
+      res.on('data', (chunk) => { rawData = chunk })
+      res.on('end', () => {
+        try {
+          cb(null, JSON.parse(rawData)) // should always be JSON since we don't do jwt auth response
+        } catch (err) {
+          cb(err)
+        }
+      })
+    }
+
+    function errHandler (e) {
+      const err = new Error('Problem calling userinfo endpoint. See innerError for details.')
+      err.innerError = e
+      cb(err)
+    }
+  }
+}
+
+function getDiscoveryUri (issuer) {
+  // eslint-disable-next-line
+  const parsed = url.parse(issuer)
+
+  if (parsed.pathname.includes('/.well-known/')) {
+    return issuer
+  } else {
+    let pathname
+    if (parsed.pathname.endsWith('/')) {
+      pathname = `${parsed.pathname}.well-known/openid-configuration`
+    } else {
+      pathname = `${parsed.pathname}/.well-known/openid-configuration`
+    }
+    return url.format({ ...parsed, pathname })
+  }
+}
+
+function selectPkceFromMetadata (metadata) {
+  const methodsSupported = metadata.code_challenge_methods_supported
+  if (methodsSupported && methodsSupported.length === 1 && methodsSupported.includes('plain')) {
+    return 'plain'
+  }
+  return 'S256'
+}
+
+function getAuthFromMetadata (metadata) {
+  /* bellow comments are from RFC 8414 (https://www.rfc-editor.org/rfc/rfc8414.html#section-2) documentation */
+
+  const processedResponse = {}
+  /*
+    authorization_endpoint
+      URL of the authorization server's authorization endpoint
+      [RFC6749].  This is REQUIRED unless no grant types are supported
+      that use the authorization endpoint.
+  */
+  if (metadata.authorization_endpoint) {
+    const { path, host } = formatEndpoint(metadata.authorization_endpoint)
+    processedResponse.authorizePath = path
+    processedResponse.authorizeHost = host
+  }
+  /*
+    token_endpoint
+      URL of the authorization server's token endpoint [RFC6749].  This
+      is REQUIRED unless only the implicit grant type is supported.
+  */
+  if (metadata.token_endpoint) {
+    const { path, host } = formatEndpoint(metadata.token_endpoint)
+    processedResponse.tokenPath = path
+    processedResponse.tokenHost = host
+  }
+  /*
+    revocation_endpoint
+      OPTIONAL.  URL of the authorization server's OAuth 2.0 revocation
+      endpoint [RFC7009].
+  */
+  if (metadata.revocation_endpoint) {
+    const { path } = formatEndpoint(metadata.revocation_endpoint)
+    processedResponse.revokePath = path
   }
 
-  const oauth2 = new AuthorizationCode(credentials)
+  return processedResponse
+}
 
-  if (startRedirectPath) {
-    fastify.get(startRedirectPath, { schema }, startRedirectHandler)
-  }
-
-  const decoration = {
-    oauth2,
-    getAccessTokenFromAuthorizationCodeFlow,
-    getNewAccessTokenUsingRefreshToken,
-    generateAuthorizationUri,
-    revokeToken,
-    revokeAllToken
-  }
-
-  try {
-    fastify.decorate(name, decoration)
-    fastify.decorate(`oauth2${name.slice(0, 1).toUpperCase()}${name.slice(1)}`, decoration)
-  } catch (e) {
-    next(e)
-    return
-  }
-
-  next()
+function formatEndpoint (ep) {
+  const { host, protocol, pathname } = new URL(ep)
+  return { host: `${protocol}//${host}`, path: pathname }
 }
 
 fastifyOauth2.APPLE_CONFIGURATION = {

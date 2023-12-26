@@ -1,11 +1,12 @@
-import fastify, { FastifyRequest } from 'fastify';
-import {expectAssignable, expectError, expectType} from 'tsd';
+import fastify, { FastifyInstance, FastifyRequest } from 'fastify';
+import {expectAssignable, expectError, expectType, expectNotAssignable} from 'tsd';
 import fastifyOauth2, {
     FastifyOAuth2Options,
     Credentials,
     OAuth2Namespace,
     OAuth2Token,
-    ProviderConfiguration
+    ProviderConfiguration,
+    UserInfoExtraOptions
 } from '..';
 import type { ModuleOptions } from 'simple-oauth2';
 
@@ -43,20 +44,77 @@ const OAuth2Options: FastifyOAuth2Options = {
     credentials: credentials,
     callbackUri: 'http://localhost/testOauth/callback',
     callbackUriParams: {},
-    generateStateFunction: (request) => {
-        expectAssignable<FastifyRequest>(request);
-        return 'result';
+    generateStateFunction: function (request) {
+      expectType<FastifyInstance>(this)
+      expectAssignable<FastifyRequest>(request);
+      return 'test';
     },
-    checkStateFunction: (request, callback) => {
-        expectAssignable<FastifyRequest>(request);
-        expectType<(err: any) => void>(callback);
+    checkStateFunction: function (request, callback) {
+      expectType<FastifyInstance>(this)
+      expectAssignable<FastifyRequest>(request);
+      expectType<(err: any) => void>(callback);
     },
     startRedirectPath: '/login/testOauth',
     cookie: {
         secure: true,
         sameSite: 'none'
-    }
+    },
 };
+
+expectAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    startRedirectPath: '/login/testOauth',
+    pkce: 'S256'
+})
+
+expectAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    startRedirectPath: '/login/testOauth',
+    discovery: { issuer: 'https://idp.mycompany.com' }
+})
+
+expectNotAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    startRedirectPath: '/login/testOauth',
+    discovery: { issuer: 1 }
+})
+
+
+expectAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    startRedirectPath: '/login/testOauth',
+    pkce: 'plain'
+})
+
+expectNotAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    generateStateFunction: () => {
+    },
+    checkStateFunction: () => {
+    },
+    startRedirectPath: '/login/testOauth',
+    pkce: 'SOMETHING'
+})
 
 const server = fastify();
 
@@ -68,8 +126,7 @@ server.register(fastifyOauth2, {
     scope: scope,
     credentials: credentials,
     callbackUri: 'http://localhost/testOauth/callback',
-    checkStateFunction: () => {
-    },
+    checkStateFunction: () => true,
 })
 
 expectError(server.register(fastifyOauth2, {
@@ -77,8 +134,7 @@ expectError(server.register(fastifyOauth2, {
     scope: scope,
     credentials: credentials,
     callbackUri: 'http://localhost/testOauth/callback',
-    checkStateFunction: () => {
-    },
+    checkStateFunction: () => true,
     startRedirectPath: 2,
 }))
 
@@ -129,8 +185,15 @@ server.get('/testOauth/callback', async (request, reply) => {
 
     expectType<OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
     expectType<Promise<OAuth2Token>>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request));
+
+    expectType<OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply));
+    expectType<Promise<OAuth2Token>>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply));
     expectType<void>(
         server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (err: any, t: OAuth2Token): void => {
+        }),
+    );
+    expectType<void>(
+        server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply, (err: any, t: OAuth2Token): void => {
         }),
     );
     // error because Promise should not return void
@@ -205,7 +268,22 @@ server.get('/testOauth/callback', async (request, reply) => {
         expectError<void>(server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {}))
     }
 
-    expectType<string>(server.testOAuthName.generateAuthorizationUri(request, reply));
+    expectType<Promise<string>>(server.testOAuthName.generateAuthorizationUri(request, reply));
+    expectType<void>(server.testOAuthName.generateAuthorizationUri(request, reply, (err) => {}))
+    // BEGIN userinfo tests
+    expectType<Promise<Object>>(server.testOAuthName.userinfo(token.token));
+    expectType<Promise<Object>>(server.testOAuthName.userinfo(token.token.access_token));
+    expectType<Object>(await server.testOAuthName.userinfo(token.token.access_token));
+    expectType<void>(server.testOAuthName.userinfo(token.token.access_token, () => {}));
+    expectType<void>(server.testOAuthName.userinfo(token.token.access_token, undefined, () => {}));
+    expectAssignable<UserInfoExtraOptions>({ method: 'GET', params: {}, via: 'header' });
+    expectAssignable<UserInfoExtraOptions>({ method: 'POST', params: { a: 1 }, via: 'header' });
+    expectAssignable<UserInfoExtraOptions>({ via: 'body' });
+    expectNotAssignable<UserInfoExtraOptions>({ via: 'donkey' });
+    expectNotAssignable<UserInfoExtraOptions>({ something: 1 });
+    // END userinfo tests
+    
+    expectType<string>(await server.testOAuthName.generateAuthorizationUri(request, reply));
     // error because missing reply argument
     expectError<string>(server.testOAuthName.generateAuthorizationUri(request));
 

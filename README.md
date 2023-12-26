@@ -120,6 +120,43 @@ fastify.register(oauthPlugin, {
 })
 ```
 
+## Use automated discovery endpoint
+
+When your provider supports OpenID connect discovery and you want to configure authorization, token and revocation endpoints automatically, 
+then you can use discovery option.
+`discovery` is a simple object that requires `issuer` property.
+
+Issuer is expected to be string URL or metadata url.
+Variants with or without trailing slash are supported.
+
+You can see more in [example here](./examples/discovery.js).
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'customOAuth2',
+  scope: ['profile', 'email'],
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>',
+    },
+    // Note how "auth" is not needed anymore when discovery is used.
+  },
+  startRedirectPath: '/login',
+  callbackUri: 'http://localhost:3000/callback',
+  discovery: { issuer: 'https://identity.mycustomdomain.com' }
+  // pkce: 'S256', you can still do this explicitly, but since discovery is used,
+  // it's BEST to let plugin do it itself 
+  // based on what Authorization Server Metadata response
+});
+```
+
+Important notes for discovery:
+
+- You should not set up `credentials.auth` anymore when discovery mechanics is used.
+- When your provider supports it, plugin will also select appropriate PKCE method in authorization code grant
+- In case you still want to select method yourself, and know exactly what you are doing; you can still do it explicitly.
+
 ### Schema configuration
 
 You can specify your own schema for the `startRedirectPath` end-point. It allows you to create a well-documented document when using `@fastify/swagger` together.
@@ -185,6 +222,38 @@ When you set it, it is required to provide the function `checkStateFunction` in 
   })
 ```
 
+Async functions are supported here, and the fastify instance can be accessed via `this`.
+
+```js
+  fastify.register(oauthPlugin, {
+    name: 'facebookOAuth2',
+    credentials: {
+      client: {
+        id: '<CLIENT_ID>',
+        secret: '<CLIENT_SECRET>'
+      },
+      auth: oauthPlugin.FACEBOOK_CONFIGURATION
+    },
+    // register a fastify url to start the redirect flow
+    startRedirectPath: '/login/facebook',
+    // facebook redirect here after the user login
+    callbackUri: 'http://localhost:3000/login/facebook/callback',
+    // custom function to generate the state and store it into the redis
+    generateStateFunction: async function (request) {
+      const state = request.query.customCode
+      await this.redis.set(stateKey, state)
+      return state
+    },
+    // custom function to check the state is valid
+    checkStateFunction: async function (request, callback) {
+      if (request.query.state !== request.session.state) {
+        throw new Error('Invalid state')
+      }
+      return true
+    }
+  })
+```
+
 ## Set custom callbackUri Parameters
 
 The `callbackUriParams` accepts an object that will be translated to query parameters for the callback OAUTH flow. The default value is {}.
@@ -206,6 +275,11 @@ fastify.register(oauthPlugin, {
     // custom query param that will be passed to callbackUri
     access_type: 'offline', // will tell Google to send a refreshToken too
   },
+  pkce: 'S256'
+  // check if your provider supports PKCE, 
+  // in case they do, 
+  // use of this parameter is highly encouraged 
+  // in order to prevent authorization code interception attacks
 });
 ```
 
@@ -245,13 +319,21 @@ Assuming we have registered multiple OAuth providers like this:
 
 ## Utilities
 
-This fastify plugin adds 5 utility decorators to your fastify instance using the same **namespace**:
+This fastify plugin adds 6 utility decorators to your fastify instance using the same **namespace**:
 
 - `getAccessTokenFromAuthorizationCodeFlow(request, callback)`: A function that uses the Authorization code flow to fetch an OAuth2 token using the data in the last request of the flow. If the callback is not passed it will return a promise. The callback call or promise resolution returns an [AccessToken](https://github.com/lelylan/simple-oauth2/blob/master/API.md#accesstoken) object, which has an `AccessToken.token` property with the following keys:
   - `access_token`
   - `refresh_token` (optional, only if the `offline scope` was originally requested, as seen in the callbackUriParams example)
   - `token_type` (generally `'Bearer'`)
   - `expires_in` (number of seconds for the token to expire, e.g. `240000`)
+
+- OR `getAccessTokenFromAuthorizationCodeFlow(request, reply, callback)` variant with 3 arguments, which should be used when PKCE extension is used.
+  This allows fastify-oauth2 to delete PKCE code_verifier cookie so it doesn't stay in browser in case server has issue when fetching token. See [Google With PKCE example for more](./examples/google-with-pkce.js).
+  
+  *Important to note*: if your provider supports `S256` as code_challenge_method, always prefer that. 
+  Only use `plain` when your provider doesn't support `S256`.
+
+
 - `getNewAccessTokenUsingRefreshToken(Token, params, callback)`: A function that takes a `AccessToken`-Object as `Token` and retrieves a new `AccessToken`-Object. This is generally useful with background processing workers to re-issue a new AccessToken when the previous AccessToken has expired. The `params` argument is optional and it is an object that can be used to pass in additional parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a Promise. The object resulting from the callback call or the resolved Promise is a new `AccessToken` object (see above). Example of how you would use it for `name:googleOAuth2`:
 ```js
 fastify.googleOAuth2.getNewAccessTokenUsingRefreshToken(currentAccessToken, (err, newAccessToken) => {
@@ -259,12 +341,13 @@ fastify.googleOAuth2.getNewAccessTokenUsingRefreshToken(currentAccessToken, (err
 });
 ```
 
-- `generateAuthorizationUri(requestObject, replyObject)`: A function that returns the authorization uri. This is generally useful when you want to handle the redirect yourself in a specific route. The `requestObject` argument passes the request object to the `generateStateFunction`). You **do not** need to declare a `startRedirectPath` if you use this approach. Example of how you would use it:
+- `generateAuthorizationUri(requestObject, replyObject, callback)`: A function that generates the authorization uri. If the callback is not passed this function will return a Promise. The string resulting from the callback call or the resolved Promise is the authorization uri. This is generally useful when you want to handle the redirect yourself in a specific route. The `requestObject` argument passes the request object to the `generateStateFunction`). You **do not** need to declare a `startRedirectPath` if you use this approach. Example of how you would use it:
 
 ```js
-fastify.get('/external', { /* Hooks can be used here */ }, async (req, reply) => {
-  const authorizationEndpoint = fastify.oauth2CustomOAuth2.generateAuthorizationUri(req, reply);
-  reply.redirect(authorizationEndpoint)
+fastify.get('/external', { /* Hooks can be used here */ }, (req, reply) => {
+  fastify.oauth2CustomOAuth2.generateAuthorizationUri(req, reply, (err, authorizationEndpoint) => {
+    reply.redirect(authorizationEndpoint)
+  });
 });
 ```
 
@@ -280,6 +363,44 @@ fastify.googleOAuth2.revokeAllToken(currentAccessToken, undefined, (err) => {
    // Handle the reply here
 });
 ```
+
+- `userinfo(tokenOrTokenSet)`: A function to retrieve userinfo data from Authorization Provider. Both token (as object) or `access_token` string value can be passed.
+
+Important note:
+Userinfo will only work when `discovery` option is used and such endpoint is advertised by identity provider. 
+
+For a statically configured plugin, you need to make a HTTP call yourself.
+
+See more on OIDC standard definition for [Userinfo endpoint](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo)
+
+See more on `userinfo_endpoint` property in [OIDC Discovery Metadata](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata) standard definition.
+
+```js
+fastify.googleOAuth2.userinfo(currentAccessToken, (err, userinfo) => {
+   // do something with userinfo
+});
+// with custom params
+fastify.googleOAuth2.userinfo(currentAccessToken, { method: 'GET', params: { /* add your custom key value pairs here to be appended to request */ } },  (err, userinfo) => {
+   // do something with userinfo
+});
+
+// or promise version
+const userinfo = await fastify.googleOAuth2.userinfo(currentAccessToken);
+// use custom params
+const userinfo = await fastify.googleOAuth2.userinfo(currentAccessToken, { method: 'GET', params: { /* ... */ } });
+```
+
+There are variants with callback and promises.
+Custom parameters can be passed as option.
+See [Types](./types/index.d.ts) and usage patterns [in examples](./examples/userinfo.js).
+
+Note:
+
+We support HTTP `GET` and `POST` requests to userinfo endpoint sending access token using `Bearer` schema in headers.
+You can do this by setting (`via: "header"` parameter), but it's not mandatory since it's a default value.
+
+We also support `POST` by sending `access_token` in a request body. You can do this by explicitly providing `via: "body"` parameter.
+
 E.g. For `name: 'customOauth2'`, the helpers `getAccessTokenFromAuthorizationCodeFlow` and `getNewAccessTokenUsingRefreshToken` will become accessible like this:
 
 - `fastify.oauth2CustomOauth2.getAccessTokenFromAuthorizationCodeFlow`

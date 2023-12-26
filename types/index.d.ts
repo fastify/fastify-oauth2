@@ -1,4 +1,4 @@
-import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyPluginCallback, FastifyReply, FastifyRequest, FastifyInstance } from 'fastify';
 import { CookieSerializeOptions } from "@fastify/cookie";
 
 interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth2Options> {
@@ -20,6 +20,16 @@ interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth
 }
 
 declare namespace fastifyOauth2 {
+  export interface FastifyGenerateStateFunction {
+    (this: FastifyInstance, request: FastifyRequest): Promise<string> | string
+    (this: FastifyInstance, request: FastifyRequest, callback: (err: any, state: string) => void): void
+  }
+
+  export interface FastifyCheckStateFunction {
+    (this: FastifyInstance, request: FastifyRequest): Promise<boolean> | boolean
+    (this: FastifyInstance, request: FastifyRequest, callback: (err?: any) => void): void
+  }
+
   export interface FastifyOAuth2Options {
     name: string;
     scope?: string[];
@@ -27,13 +37,15 @@ declare namespace fastifyOauth2 {
     callbackUri: string;
     callbackUriParams?: Record<string, string>;
     tokenRequestParams?: Record<string, string>;
-    generateStateFunction?: (request: FastifyRequest) => string;
-    checkStateFunction?: (request: FastifyRequest, callback : (err: any) => void) => void;
+    generateStateFunction?: FastifyGenerateStateFunction;
+    checkStateFunction?: FastifyCheckStateFunction;
     startRedirectPath?: string;
     tags?: string[];
     schema?: object;
     cookie?: CookieSerializeOptions;
     userAgent?: string | false;
+    pkce?: 'S256' | 'plain';
+    discovery?: { issuer: string; }
   }
 
     export type TToken = 'access_token' | 'refresh_token'
@@ -121,6 +133,17 @@ declare namespace fastifyOauth2 {
 
         getAccessTokenFromAuthorizationCodeFlow(
             request: FastifyRequest,
+            reply: FastifyReply,
+        ): Promise<OAuth2Token>;
+
+        getAccessTokenFromAuthorizationCodeFlow(
+            request: FastifyRequest,
+            callback: (err: any, token: OAuth2Token) => void,
+        ): void;
+
+        getAccessTokenFromAuthorizationCodeFlow(
+            request: FastifyRequest,
+            reply: FastifyReply,
             callback: (err: any, token: OAuth2Token) => void,
         ): void;
 
@@ -135,14 +158,20 @@ declare namespace fastifyOauth2 {
         generateAuthorizationUri(
             request: FastifyRequest,
             reply: FastifyReply,
-        ): string;
+          callback: (err: any, uri: string) => void
+        ): void
+
+        generateAuthorizationUri(
+            request: FastifyRequest,
+            reply: FastifyReply,
+        ): Promise<string>;
 
         revokeToken(
             revokeToken: Token,
             tokenType: TToken,
             httpOptions: Record<string, string> | undefined,
             callback: (err: any) => void
-        ): void
+        ): void;
 
         revokeToken(revokeToken: Token, tokenType: TToken, httpOptions: Record<string, string> | undefined): Promise<void>
 
@@ -151,10 +180,19 @@ declare namespace fastifyOauth2 {
             httpOptions: Record<string, string> | undefined,
             callback: (err: any) => void
         ): void;
+        
+        revokeAllToken(revokeToken: Token, httpOptions: Object | undefined): Promise<void>;
 
         revokeAllToken(revokeToken: Token, httpOptions: Record<string, string> | undefined): Promise<void>
     }
 
+        userinfo(tokenSetOrToken: Token | string, userInfoExtraOptions: UserInfoExtraOptions | undefined): Promise<Object>;
+
+        userinfo(tokenSetOrToken: Token | string, callback: (err: any, userinfo: Object) => void): void;
+
+        userinfo(tokenSetOrToken: Token | string, userInfoExtraOptions: UserInfoExtraOptions | undefined, callback: (err: any, userinfo: Object) => void): void;
+    }
+    export type UserInfoExtraOptions = { method?: 'GET' | 'POST', via?: 'header' | 'body', params?: object };
     export const fastifyOauth2: FastifyOauth2
     export {fastifyOauth2 as default}
 }
