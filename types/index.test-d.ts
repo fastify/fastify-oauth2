@@ -1,4 +1,4 @@
-import fastify from 'fastify';
+import fastify, { FastifyRequest } from 'fastify';
 import {expectAssignable, expectError, expectType} from 'tsd';
 import fastifyOauth2, {
     FastifyOAuth2Options,
@@ -43,6 +43,14 @@ const OAuth2Options: FastifyOAuth2Options = {
     credentials: credentials,
     callbackUri: 'http://localhost/testOauth/callback',
     callbackUriParams: {},
+    generateStateFunction: (request) => {
+        expectAssignable<FastifyRequest>(request);
+        return 'result';
+    },
+    checkStateFunction: (request, callback) => {
+        expectAssignable<FastifyRequest>(request);
+        expectType<(err: any) => void>(callback);
+    },
     startRedirectPath: '/login/testOauth',
     cookie: {
         secure: true,
