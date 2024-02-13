@@ -35,8 +35,8 @@ declare namespace fastifyOauth2 {
     scope?: string[];
     credentials: Credentials;
     callbackUri: string;
-    callbackUriParams?: Object;
-    tokenRequestParams?: Object;
+    callbackUriParams?: Record<string, string>;
+    tokenRequestParams?: Record<string, string>;
     generateStateFunction?: FastifyGenerateStateFunction;
     checkStateFunction?: FastifyCheckStateFunction;
     startRedirectPath?: string;
@@ -149,11 +149,11 @@ declare namespace fastifyOauth2 {
 
         getNewAccessTokenUsingRefreshToken(
             refreshToken: Token,
-            params: Object,
+            params: Record<string, string>,
             callback: (err: any, token: OAuth2Token) => void,
         ): void;
 
-        getNewAccessTokenUsingRefreshToken(refreshToken: Token, params: Object): Promise<OAuth2Token>;
+        getNewAccessTokenUsingRefreshToken(refreshToken: Token, params: Record<string, string>): Promise<OAuth2Token>;
 
         generateAuthorizationUri(
             request: FastifyRequest,
@@ -169,21 +169,22 @@ declare namespace fastifyOauth2 {
         revokeToken(
             revokeToken: Token,
             tokenType: TToken,
-            httpOptions: Object | undefined,
+            httpOptions: Record<string, string> | undefined,
             callback: (err: any) => void
         ): void;
 
-        revokeToken(revokeToken: Token, tokenType: TToken, httpOptions: Object | undefined): Promise<void>;
+        revokeToken(revokeToken: Token, tokenType: TToken, httpOptions: Record<string, string> | undefined): Promise<void>
 
         revokeAllToken(
             revokeToken: Token,
-            httpOptions: Object | undefined,
+            httpOptions: Record<string, string> | undefined,
             callback: (err: any) => void
         ): void;
         
         revokeAllToken(revokeToken: Token, httpOptions: Object | undefined): Promise<void>;
 
-        userinfo(tokenSetOrToken: Token | string): Promise<Object>;
+        revokeAllToken(revokeToken: Token, httpOptions: Record<string, string> | undefined): Promise<void>
+    }
 
         userinfo(tokenSetOrToken: Token | string, userInfoExtraOptions: UserInfoExtraOptions | undefined): Promise<Object>;
 

@@ -1,5 +1,5 @@
-import fastify from 'fastify';
-import {expectAssignable, expectError, expectNotAssignable, expectType} from 'tsd';
+import fastify, { FastifyInstance, FastifyRequest } from 'fastify';
+import {expectAssignable, expectError, expectType, expectNotAssignable} from 'tsd';
 import fastifyOauth2, {
     FastifyOAuth2Options,
     Credentials,
@@ -9,7 +9,6 @@ import fastifyOauth2, {
     UserInfoExtraOptions
 } from '..';
 import type { ModuleOptions } from 'simple-oauth2';
-import { FastifyInstance } from 'fastify';
 
 /**
  * Preparing some data for testing.
@@ -45,13 +44,15 @@ const OAuth2Options: FastifyOAuth2Options = {
     credentials: credentials,
     callbackUri: 'http://localhost/testOauth/callback',
     callbackUriParams: {},
-    generateStateFunction: function () {
+    generateStateFunction: function (request) {
       expectType<FastifyInstance>(this)
-      return 'test'
+      expectAssignable<FastifyRequest>(request);
+      return 'test';
     },
-    checkStateFunction: function () {
+    checkStateFunction: function (request, callback) {
       expectType<FastifyInstance>(this)
-      return true
+      expectAssignable<FastifyRequest>(request);
+      expectType<(err: any) => void>(callback);
     },
     startRedirectPath: '/login/testOauth',
     cookie: {
@@ -152,7 +153,7 @@ expectType<string[]>(scope);
 expectType<string[]>(tags);
 expectType<Credentials>(credentials);
 
-// Ensure duplicayed simple-oauth2 are compatible with simple-oauth2
+// Ensure duplicated simple-oauth2 are compatible with simple-oauth2
 expectAssignable<ModuleOptions<string>>(credentials);
 expectAssignable<ModuleOptions["auth"]>(auth);
 // Ensure published types of simple-oauth2 are accepted
