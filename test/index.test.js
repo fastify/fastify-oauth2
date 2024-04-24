@@ -1878,6 +1878,26 @@ t.test('credentials.auth should not be provided when discovery is used', t => {
     })
 })
 
+t.test('not providing options.discovery.issuer and credentials.auth', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      }
+    },
+    callbackUri: '/callback'
+  })
+    .ready(err => {
+      t.strictSame(err.message, 'options.discovery.issuer or credentials.auth have to be given')
+    })
+})
+
 t.test('options.schema', t => {
   const fastify = createFastify({ logger: { level: 'silent' }, exposeHeadRoutes: false })
 
