@@ -50,8 +50,8 @@ function fastifyOauth2 (fastify, options, next) {
   if (typeof options.credentials !== 'object') {
     return next(new Error('options.credentials should be an object'))
   }
-  if (typeof options.callbackUri !== 'string') {
-    return next(new Error('options.callbackUri should be a string'))
+  if (typeof options.callbackUri !== 'string' && typeof options.callbackUri !== 'function') {
+    return next(new Error('options.callbackUri should be a string or a function'))
   }
   if (options.callbackUriParams && typeof options.callbackUriParams !== 'object') {
     return next(new Error('options.callbackUriParams should be a object'))
@@ -165,7 +165,7 @@ function fastifyOauth2 (fastify, options, next) {
         }
 
         const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
-          redirect_uri: callbackUri,
+          redirect_uri: typeof callbackUri === 'function' ? callbackUri(request) : callbackUri,
           scope,
           state
         }, pkceParams)
@@ -195,10 +195,10 @@ function fastifyOauth2 (fastify, options, next) {
       })
     }
 
-    const cbk = function (o, code, pkceParams, callback) {
+    const cbk = function (o, request, code, pkceParams, callback) {
       const body = Object.assign({}, tokenRequestParams, {
         code,
-        redirect_uri: callbackUri
+        redirect_uri: typeof callbackUri === 'function' ? callbackUri(request) : callbackUri
       }, pkceParams)
 
       return callbackify(o.oauth2.getToken.bind(o.oauth2, body))(callback)
@@ -238,7 +238,7 @@ function fastifyOauth2 (fastify, options, next) {
           callback(err)
           return
         }
-        cbk(fastify[name], code, pkceParams, _callback)
+        cbk(fastify[name], request, code, pkceParams, _callback)
       })
     }
 

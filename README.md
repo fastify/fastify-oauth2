@@ -34,6 +34,8 @@ fastify.register(oauthPlugin, {
   startRedirectPath: '/login/facebook',
   // facebook redirect here after the user login
   callbackUri: 'http://localhost:3000/login/facebook/callback'
+  // You can also define callbackUri as a function that takes a FastifyRequest and returns a string
+  // callbackUri: req => `${req.protocol}://${req.hostname}/login/facebook/callback`,
 })
 
 fastify.get('/login/facebook/callback', async function (request, reply) {

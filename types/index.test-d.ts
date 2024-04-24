@@ -74,6 +74,16 @@ expectAssignable<FastifyOAuth2Options>({
     name: 'testOAuthName',
     scope: scope,
     credentials: credentials,
+    callbackUri: req => `${req.protocol}://${req.hostname}/callback`,
+    callbackUriParams: {},
+    startRedirectPath: '/login/testOauth',
+    pkce: 'S256'
+})
+
+expectAssignable<FastifyOAuth2Options>({
+    name: 'testOAuthName',
+    scope: scope,
+    credentials: credentials,
     callbackUri: 'http://localhost/testOauth/callback',
     callbackUriParams: {},
     startRedirectPath: '/login/testOauth',

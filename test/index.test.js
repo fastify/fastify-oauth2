@@ -1399,7 +1399,7 @@ t.test('options.credentials should be an object', t => {
     })
 })
 
-t.test('options.callbackUri should be an object', t => {
+t.test('options.callbackUri should be a string or a function', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
@@ -1415,7 +1415,7 @@ t.test('options.callbackUri should be an object', t => {
     }
   })
     .ready(err => {
-      t.strictSame(err.message, 'options.callbackUri should be a string')
+      t.strictSame(err.message, 'options.callbackUri should be a string or a function')
     })
 })
 
