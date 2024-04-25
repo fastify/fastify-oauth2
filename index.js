@@ -95,6 +95,9 @@ function fastifyOauth2 (fastify, options, next) {
   if (options.discovery && options.credentials.auth) {
     return next(new Error('when options.discovery.issuer is configured, credentials.auth should not be used'))
   }
+  if (!options.discovery && !options.credentials.auth) {
+    return next(new Error('options.discovery.issuer or credentials.auth have to be given'))
+  }
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))
   }
