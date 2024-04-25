@@ -28,19 +28,19 @@
   ],
   "homepage": "https://github.com/fastify/fastify-oauth2#readme",
   "devDependencies": {
-    "@fastify/pre-commit": "^2.0.2",
-    "@types/node": "^20.5.3",
-    "@types/simple-oauth2": "^5.0.4",
-    "fastify": "^4.21.0",
-    "nock": "^13.3.3",
+    "@fastify/pre-commit": "^2.1.0",
+    "@types/node": "^20.11.30",
+    "@types/simple-oauth2": "^5.0.7",
+    "fastify": "^4.26.2",
+    "nock": "^13.5.4",
     "simple-get": "^4.0.1",
     "snazzy": "^9.0.0",
     "standard": "^17.1.0",
-    "tap": "^16.3.8",
+    "tap": "^18.7.1",
     "tsd": "^0.31.0"
   },
   "dependencies": {
-    "@fastify/cookie": "^9.0.4",
+    "@fastify/cookie": "^9.3.1",
     "fastify-plugin": "^4.5.1",
     "simple-oauth2": "^5.0.0"
   },
