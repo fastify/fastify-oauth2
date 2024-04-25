@@ -107,7 +107,7 @@ declare namespace fastifyOauth2 {
             /** Parameter name used to send the client id. Default to client_id. */
             idParamName?: string | undefined;
         };
-        auth: ProviderConfiguration;
+        auth?: ProviderConfiguration;
         /**
          * Used to set global options to the internal http library (wreck).
          * All options except baseUrl are allowed
