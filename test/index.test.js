@@ -210,6 +210,51 @@ t.test('fastify-oauth2', t => {
     makeRequests(t, fastify)
   })
 
+  t.test('callbackUri as function', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: req => `${req.protocol}://localhost:3000/callback`,
+      scope: ['notifications']
+    })
+
+    fastify.get('/', function (request, reply) {
+      if (this.githubOAuth2 !== this.oauth2GithubOAuth2) {
+        throw new Error('Expected oauth2GithubOAuth2 to match githubOAuth2')
+      }
+      this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
+        if (err) throw err
+
+        // attempts to refresh the token
+        this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token, undefined, (err, result) => {
+          if (err) throw err
+
+          const newToken = result
+
+          reply.send({
+            access_token: newToken.token.access_token,
+            refresh_token: newToken.token.refresh_token,
+            expires_in: newToken.token.expires_in,
+            token_type: newToken.token.token_type
+          })
+        })
+      })
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify)
+  })
+
   t.test('promise', t => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
@@ -1399,7 +1444,7 @@ t.test('options.credentials should be an object', t => {
     })
 })
 
-t.test('options.callbackUri should be an object', t => {
+t.test('options.callbackUri should be a string or a function', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
@@ -1415,7 +1460,7 @@ t.test('options.callbackUri should be an object', t => {
     }
   })
     .ready(err => {
-      t.strictSame(err.message, 'options.callbackUri should be a string')
+      t.strictSame(err.message, 'options.callbackUri should be a string or a function')
     })
 })
 
