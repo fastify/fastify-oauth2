@@ -17,6 +17,8 @@ npm i @fastify/oauth2
 
 ## Usage
 
+Two separate endpoints need to be created when using the fastify-oauth2 module, one for the callback from the OAuth2 service provider (such as Facebook or Discord) and another for initializing the OAuth2 login flow.
+
 ```js
 const fastify = require('fastify')({ logger: { level: 'trace' } })
 const oauthPlugin = require('@fastify/oauth2')
@@ -30,23 +32,40 @@ fastify.register(oauthPlugin, {
     },
     auth: oauthPlugin.FACEBOOK_CONFIGURATION
   },
-  // register a fastify url to start the redirect flow
+  // register a fastify url to start the redirect flow to the service provider's OAuth2 login
   startRedirectPath: '/login/facebook',
-  // facebook redirect here after the user login
+  // service provider redirects here after user login
   callbackUri: 'http://localhost:3000/login/facebook/callback'
 })
 
+// This is the new endpoint that initializes the OAuth2 login flow
+fastify.get('/login/facebook', {}, (req, reply) => {
+  fastify.facebookOAuth2.generateAuthorizationUri(
+    req,
+    reply,
+    (err, authorizationEndpoint) => {
+     if (err) console.error(err)
+     reply.redirect(authorizationEndpoint)
+    }
+  );
+});
+
+// The service provider redirect the user here after successful login
 fastify.get('/login/facebook/callback', async function (request, reply) {
   const { token } = await this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
-
+  
   console.log(token.access_token)
 
-  // if later you need to refresh the token you can use
+  // if later need to refresh the token this can be used
   // const { token: newToken } = await this.getNewAccessTokenUsingRefreshToken(token)
 
   reply.send({ access_token: token.access_token })
 })
 ```
+
+In short, it is necessary to initially navigate to the `/login/facebook` endpoint manually in a web browser. This will redirect to the OAuth2 service provider's login screen. From there, the service provider will automatically redirect back to the `/login/facebook/callback` endpoint where the access token can be retrieved and used. The `CLIENT_ID` and `CLIENT_SECRET` need to be replaced with the ones provided by the service provider.
+
+A complete example is provided at [fastify-discord-oauth2-example](https://github.com/fastify/fastify-oauth2/blob/master/examples/discord.js)
 
 ### Usage with `@fastify/cookie`
 
