@@ -41,6 +41,7 @@ fastify.register(oauthPlugin, {
 })
 
 // This is the new endpoint that initializes the OAuth2 login flow
+// This endpoint is only required if startRedirectPath has not been provided
 fastify.get('/login/facebook', {}, (req, reply) => {
   fastify.facebookOAuth2.generateAuthorizationUri(
     req,
