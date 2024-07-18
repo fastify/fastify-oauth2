@@ -31,7 +31,7 @@
     "@fastify/pre-commit": "^2.1.0",
     "@types/node": "^20.11.30",
     "@types/simple-oauth2": "^5.0.7",
-    "fastify": "^4.26.2",
+    "fastify": "^5.0.0-alpha.3",
     "nock": "^13.5.4",
     "simple-get": "^4.0.1",
     "snazzy": "^9.0.0",
@@ -40,8 +40,8 @@
     "tsd": "^0.31.0"
   },
   "dependencies": {
-    "@fastify/cookie": "^9.3.1",
-    "fastify-plugin": "^4.5.1",
+    "@fastify/cookie": "^10.0.0-pre.fv5.1",
+    "fastify-plugin": "^5.0.0-pre.fv5.1",
     "simple-oauth2": "^5.0.0"
   },
   "publishConfig": {
