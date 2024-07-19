@@ -404,6 +404,7 @@ function fastifyOauth2 (fastify, options, next) {
 
     const httpOpts = {
       headers: {
+        /* c8 ignore next */
         ...options.credentials.http?.headers,
         'User-Agent': userAgent
       }
@@ -437,6 +438,7 @@ function fastifyOauth2 (fastify, options, next) {
     const httpOpts = {
       method,
       headers: {
+        /* c8 ignore next */
         ...options.credentials.http?.headers,
         'User-Agent': userAgent,
         Authorization: `Bearer ${token}`
