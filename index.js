@@ -702,7 +702,7 @@ fastifyOauth2.YANDEX_CONFIGURATION = {
 }
 
 module.exports = fp(fastifyOauth2, {
-  fastify: '4.x',
+  fastify: '5.x',
   name: '@fastify/oauth2'
 })
 module.exports.default = fastifyOauth2
