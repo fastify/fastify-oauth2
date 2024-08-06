@@ -485,7 +485,7 @@ function fastifyOauth2 (fastify, options, next) {
 
     function onUserinfoResponse (res) {
       let rawData = ''
-      res.on('data', (chunk) => { rawData = chunk })
+      res.on('data', (chunk) => { rawData += chunk })
       res.on('end', () => {
         try {
           cb(null, JSON.parse(rawData)) // should always be JSON since we don't do jwt auth response
