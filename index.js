@@ -28,7 +28,7 @@ function defaultCheckStateFunction (request, callback) {
   const state = request.query.state
   const stateCookie =
     request.cookies[
-      this.redirectStateCookieName || DEFAULT_REDIRECT_STATE_COOKIE_NAME
+      this.redirectStateCookieName
     ]
   if (stateCookie && state === stateCookie) {
     callback()
@@ -135,7 +135,9 @@ function fastifyOauth2 (fastify, options, next) {
       scope,
       generateStateFunction = defaultGenerateStateFunction,
       checkStateFunction = defaultCheckStateFunction.bind({
-        redirectStateCookieName: configured.redirectStateCookieName
+        redirectStateCookieName:
+          configured.redirectStateCookieName ||
+          DEFAULT_REDIRECT_STATE_COOKIE_NAME
       }),
       startRedirectPath,
       tags = [],
