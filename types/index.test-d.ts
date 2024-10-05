@@ -58,6 +58,8 @@ const OAuth2Options: FastifyOAuth2Options = {
         secure: true,
         sameSite: 'none'
     },
+    redirectStateCookieName: 'redirect-state-cookie',
+    verifierCookieName: 'verifier-cookie',
 };
 
 expectAssignable<FastifyOAuth2Options>({
