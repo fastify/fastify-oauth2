@@ -2920,3 +2920,142 @@ t.test('options.checkStateFunction', t => {
 
   t.end()
 })
+
+t.test('options.redirectStateCookieName', (t) => {
+  t.plan(2)
+
+  t.test('should be a string', (t) => {
+    t.plan(1)
+
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify
+      .register(
+        fastifyOauth2, {
+          name: 'the-name',
+          credentials: {
+            client: {
+              id: 'my-client-id',
+              secret: 'my-secret'
+            },
+            auth: fastifyOauth2.GITHUB_CONFIGURATION
+          },
+          callbackUri: '/callback',
+          redirectStateCookieName: 42
+        }
+      )
+      .ready((err) => {
+        t.strictSame(
+          err.message,
+          'options.redirectStateCookieName should be a string'
+        )
+      })
+  })
+
+  t.test('with custom cookie name', (t) => {
+    t.plan(4)
+
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      startRedirectPath: '/login',
+      redirectStateCookieName: 'custom-redirect-state'
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.inject(
+      {
+        method: 'GET',
+        url: '/login'
+      },
+      function (err, responseEnd) {
+        t.error(err)
+
+        t.equal(responseEnd.statusCode, 302)
+        t.matchStrict(responseEnd.cookies[0].name, 'custom-redirect-state')
+        t.matchStrict(responseEnd.cookies[0].value, String)
+
+        t.end()
+      }
+    )
+  })
+})
+
+t.test('options.verifierCookieName', (t) => {
+  t.plan(2)
+
+  t.test('should be a string', (t) => {
+    t.plan(1)
+
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify
+      .register(fastifyOauth2, {
+        name: 'the-name',
+        credentials: {
+          client: {
+            id: 'my-client-id',
+            secret: 'my-secret'
+          },
+          auth: fastifyOauth2.GITHUB_CONFIGURATION
+        },
+        callbackUri: '/callback',
+        verifierCookieName: 42
+      })
+      .ready((err) => {
+        t.strictSame(
+          err.message,
+          'options.verifierCookieName should be a string'
+        )
+      })
+  })
+
+  t.test('with custom cookie name', (t) => {
+    t.plan(4)
+
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      startRedirectPath: '/login',
+      verifierCookieName: 'custom-verifier',
+      pkce: 'plain'
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    fastify.inject(
+      {
+        method: 'GET',
+        url: '/login'
+      },
+      function (err, responseEnd) {
+        t.error(err)
+
+        t.equal(responseEnd.statusCode, 302)
+        t.matchStrict(responseEnd.cookies[1].name, 'custom-verifier')
+        t.matchStrict(responseEnd.cookies[1].value, String)
+
+        t.end()
+      }
+    )
+  })
+})

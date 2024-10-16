@@ -95,6 +95,17 @@ fastify.register(oauthPlugin, {
 })
 ```
 
+Additionally, you can customize the names of the cookies by setting the `redirectStateCookieName` and `verifierCookieName` options. 
+The default values for these cookies are `oauth2-code-verifier` for `verifierCookieName` and `oauth2-redirect-state` for `redirectStateCookieName`.
+
+```js
+fastify.register(oauthPlugin, {
+  ...,
+  redirectStateCookieName: 'custom-redirect-state',
+  verifierCookieName: 'custom-code-verifier'
+})
+```
+
 ### Preset configurations
 
 You can choose some default setup to assign to `auth` option.

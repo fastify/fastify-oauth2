@@ -46,6 +46,8 @@ declare namespace fastifyOauth2 {
     userAgent?: string | false;
     pkce?: 'S256' | 'plain';
     discovery?: { issuer: string; }
+    redirectStateCookieName?: string;
+    verifierCookieName?: string;
   }
 
     export type TToken = 'access_token' | 'refresh_token'

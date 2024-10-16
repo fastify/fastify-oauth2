@@ -11,8 +11,9 @@ const kGenerateCallbackUriParams = Symbol.for('fastify-oauth2.generate-callback-
 
 const { promisify, callbackify } = require('node:util')
 
+const DEFAULT_VERIFIER_COOKIE_NAME = 'oauth2-code-verifier'
+const DEFAULT_REDIRECT_STATE_COOKIE_NAME = 'oauth2-redirect-state'
 const USER_AGENT = 'fastify-oauth2'
-const VERIFIER_COOKIE_NAME = 'oauth2-code-verifier'
 const PKCE_METHODS = ['S256', 'plain']
 
 const random = (bytes = 32) => randomBytes(bytes).toString('base64url')
@@ -25,7 +26,10 @@ function defaultGenerateStateFunction (request, callback) {
 
 function defaultCheckStateFunction (request, callback) {
   const state = request.query.state
-  const stateCookie = request.cookies['oauth2-redirect-state']
+  const stateCookie =
+    request.cookies[
+      this.redirectStateCookieName
+    ]
   if (stateCookie && state === stateCookie) {
     callback()
     return
@@ -98,6 +102,20 @@ function fastifyOauth2 (fastify, options, next) {
   if (!options.discovery && !options.credentials.auth) {
     return next(new Error('options.discovery.issuer or credentials.auth have to be given'))
   }
+  if (
+    options.verifierCookieName &&
+    typeof options.verifierCookieName !== 'string'
+  ) {
+    return next(new Error('options.verifierCookieName should be a string'))
+  }
+  if (
+    options.redirectStateCookieName &&
+    typeof options.redirectStateCookieName !== 'string'
+  ) {
+    return next(
+      new Error('options.redirectStateCookieName should be a string')
+    )
+  }
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))
   }
@@ -116,10 +134,16 @@ function fastifyOauth2 (fastify, options, next) {
       tokenRequestParams = {},
       scope,
       generateStateFunction = defaultGenerateStateFunction,
-      checkStateFunction = defaultCheckStateFunction,
+      checkStateFunction = defaultCheckStateFunction.bind({
+        redirectStateCookieName:
+          configured.redirectStateCookieName ||
+          DEFAULT_REDIRECT_STATE_COOKIE_NAME
+      }),
       startRedirectPath,
       tags = [],
-      schema = { tags }
+      schema = { tags },
+      redirectStateCookieName = DEFAULT_REDIRECT_STATE_COOKIE_NAME,
+      verifierCookieName = DEFAULT_VERIFIER_COOKIE_NAME
     } = configured
 
     if (userAgent) {
@@ -153,7 +177,7 @@ function fastifyOauth2 (fastify, options, next) {
           return
         }
 
-        reply.setCookie('oauth2-redirect-state', state, cookieOpts)
+        reply.setCookie(redirectStateCookieName, state, cookieOpts)
 
         // when PKCE extension is used
         let pkceParams = {}
@@ -164,7 +188,7 @@ function fastifyOauth2 (fastify, options, next) {
             code_challenge: challenge,
             code_challenge_method: configured.pkce
           }
-          reply.setCookie(VERIFIER_COOKIE_NAME, verifier, cookieOpts)
+          reply.setCookie(verifierCookieName, verifier, cookieOpts)
         }
 
         const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
@@ -227,7 +251,7 @@ function fastifyOauth2 (fastify, options, next) {
 
     function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, reply, callback) {
       const code = request.query.code
-      const pkceParams = configured.pkce ? { code_verifier: request.cookies['oauth2-code-verifier'] } : {}
+      const pkceParams = configured.pkce ? { code_verifier: request.cookies[verifierCookieName] } : {}
 
       const _callback = typeof reply === 'function' ? reply : callback
 
@@ -299,7 +323,7 @@ function fastifyOauth2 (fastify, options, next) {
     }
 
     function clearCodeVerifierCookie (reply) {
-      reply.clearCookie(VERIFIER_COOKIE_NAME, cookieOpts)
+      reply.clearCookie(verifierCookieName, cookieOpts)
     }
 
     const pUserInfo = promisify(userInfoCallbacked)
