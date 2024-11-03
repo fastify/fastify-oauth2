@@ -293,7 +293,7 @@ server.get('/testOauth/callback', async (request, reply) => {
     expectNotAssignable<UserInfoExtraOptions>({ via: 'donkey' });
     expectNotAssignable<UserInfoExtraOptions>({ something: 1 });
     // END userinfo tests
-    
+
     expectType<string>(await server.testOAuthName.generateAuthorizationUri(request, reply));
     // error because missing reply argument
     expectError<string>(server.testOAuthName.generateAuthorizationUri(request));

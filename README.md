@@ -56,7 +56,7 @@ fastify.get('/login/facebook', {}, (req, reply) => {
 // The service provider redirect the user here after successful login
 fastify.get('/login/facebook/callback', async function (request, reply) {
   const { token } = await this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
-  
+
   console.log(token.access_token)
 
   // if later need to refresh the token this can be used
@@ -95,7 +95,7 @@ fastify.register(oauthPlugin, {
 })
 ```
 
-Additionally, you can customize the names of the cookies by setting the `redirectStateCookieName` and `verifierCookieName` options. 
+Additionally, you can customize the names of the cookies by setting the `redirectStateCookieName` and `verifierCookieName` options.
 The default values for these cookies are `oauth2-code-verifier` for `verifierCookieName` and `oauth2-redirect-state` for `redirectStateCookieName`.
 
 ```js
@@ -155,7 +155,7 @@ fastify.register(oauthPlugin, {
 
 ## Use automated discovery endpoint
 
-When your provider supports OpenID connect discovery and you want to configure authorization, token and revocation endpoints automatically, 
+When your provider supports OpenID connect discovery and you want to configure authorization, token and revocation endpoints automatically,
 then you can use discovery option.
 `discovery` is a simple object that requires `issuer` property.
 
@@ -179,7 +179,7 @@ fastify.register(oauthPlugin, {
   callbackUri: 'http://localhost:3000/callback',
   discovery: { issuer: 'https://identity.mycustomdomain.com' }
   // pkce: 'S256', you can still do this explicitly, but since discovery is used,
-  // it's BEST to let plugin do it itself 
+  // it's BEST to let plugin do it itself
   // based on what Authorization Server Metadata response
 });
 ```
@@ -309,9 +309,9 @@ fastify.register(oauthPlugin, {
     access_type: 'offline', // will tell Google to send a refreshToken too
   },
   pkce: 'S256'
-  // check if your provider supports PKCE, 
-  // in case they do, 
-  // use of this parameter is highly encouraged 
+  // check if your provider supports PKCE,
+  // in case they do,
+  // use of this parameter is highly encouraged
   // in order to prevent authorization code interception attacks
 });
 ```
@@ -362,8 +362,8 @@ This fastify plugin adds 6 utility decorators to your fastify instance using the
 
 - OR `getAccessTokenFromAuthorizationCodeFlow(request, reply, callback)` variant with 3 arguments, which should be used when PKCE extension is used.
   This allows fastify-oauth2 to delete PKCE code_verifier cookie so it doesn't stay in browser in case server has issue when fetching token. See [Google With PKCE example for more](./examples/google-with-pkce.js).
-  
-  *Important to note*: if your provider supports `S256` as code_challenge_method, always prefer that. 
+
+  *Important to note*: if your provider supports `S256` as code_challenge_method, always prefer that.
   Only use `plain` when your provider doesn't support `S256`.
 
 
@@ -400,7 +400,7 @@ fastify.googleOAuth2.revokeAllToken(currentAccessToken, undefined, (err) => {
 - `userinfo(tokenOrTokenSet)`: A function to retrieve userinfo data from Authorization Provider. Both token (as object) or `access_token` string value can be passed.
 
 Important note:
-Userinfo will only work when `discovery` option is used and such endpoint is advertised by identity provider. 
+Userinfo will only work when `discovery` option is used and such endpoint is advertised by identity provider.
 
 For a statically configured plugin, you need to make a HTTP call yourself.
 

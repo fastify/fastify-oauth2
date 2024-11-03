@@ -182,7 +182,7 @@ declare namespace fastifyOauth2 {
             httpOptions: Object | undefined,
             callback: (err: any) => void
         ): void;
-        
+
         revokeAllToken(revokeToken: Token, httpOptions: Object | undefined): Promise<void>;
 
         userinfo(tokenSetOrToken: Token | string): Promise<Object>;
