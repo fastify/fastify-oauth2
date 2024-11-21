@@ -283,6 +283,7 @@ server.get('/testOauth/callback', async (request, reply) => {
     expectType<Promise<Object>>(server.testOAuthName.userinfo(token.token));
     expectType<Promise<Object>>(server.testOAuthName.userinfo(token.token.access_token));
     expectType<Object>(await server.testOAuthName.userinfo(token.token.access_token));
+    expectType<{a: string}>(await server.testOAuthName.userinfo<{a: string}>(token.token.access_token));
     expectType<void>(server.testOAuthName.userinfo(token.token.access_token, () => {}));
     expectType<void>(server.testOAuthName.userinfo(token.token.access_token, undefined, () => {}));
     expectAssignable<UserInfoExtraOptions>({ method: 'GET', params: {}, via: 'header' });
