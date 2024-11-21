@@ -183,13 +183,13 @@ declare namespace fastifyOauth2 {
         
         revokeAllToken(revokeToken: Token, httpOptions: Object | undefined): Promise<void>;
 
-        userinfo<TUserInfo>(tokenSetOrToken: Token | string): Promise<TUserInfo>;
+        userinfo<TUserInfo = Object>(tokenSetOrToken: Token | string): Promise<TUserInfo>;
 
-        userinfo<TUserInfo>(tokenSetOrToken: Token | string, userInfoExtraOptions: UserInfoExtraOptions | undefined): Promise<TUserInfo>;
+        userinfo<TUserInfo = Object>(tokenSetOrToken: Token | string, userInfoExtraOptions: UserInfoExtraOptions | undefined): Promise<TUserInfo>;
 
-        userinfo<TUserInfo>(tokenSetOrToken: Token | string, callback: (err: any, userinfo: TUserInfo) => void): void;
+        userinfo<TUserInfo = Object>(tokenSetOrToken: Token | string, callback: (err: any, userinfo: TUserInfo) => void): void;
 
-        userinfo<TUserInfo>(tokenSetOrToken: Token | string, userInfoExtraOptions: UserInfoExtraOptions | undefined, callback: (err: any, userinfo: TUserInfo) => void): void;
+        userinfo<TUserInfo = Object>(tokenSetOrToken: Token | string, userInfoExtraOptions: UserInfoExtraOptions | undefined, callback: (err: any, userinfo: TUserInfo) => void): void;
     }
     export type UserInfoExtraOptions = { method?: 'GET' | 'POST', via?: 'header' | 'body', params?: object };
     export const fastifyOauth2: FastifyOauth2
