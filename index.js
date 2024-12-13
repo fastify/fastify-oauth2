@@ -1,7 +1,7 @@
 'use strict'
-const url = require('url')
-const http = require('http')
-const https = require('https')
+const url = require('node:url')
+const http = require('node:http')
+const https = require('node:https')
 
 const { randomBytes, createHash } = require('node:crypto')
 
