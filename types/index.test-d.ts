@@ -1,4 +1,3 @@
-/* eslint-disable n/handle-callback-err -- Testing types, not actual code */
 import fastify, { FastifyInstance } from 'fastify'
 import { expectAssignable, expectError, expectNotAssignable, expectType } from 'tsd'
 import fastifyOauth2, {
@@ -199,18 +198,18 @@ server.get('/testOauth/callback', async (request, reply) => {
   expectType<OAuth2Token>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply))
   expectType<Promise<OAuth2Token>>(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply))
   expectType<void>(
-    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (err: any, t: OAuth2Token): void => {
+    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (_err: any, _t: OAuth2Token): void => {
     })
   )
   expectType<void>(
-    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply, (err: any, t: OAuth2Token): void => {
+    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply, (_err: any, _t: OAuth2Token): void => {
     })
   )
   // error because Promise should not return void
   expectError<void>(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request))
   // error because non-Promise function call should return void and have a callback argument
   expectError<OAuth2Token>(
-    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (err: any, t: OAuth2Token): void => {
+    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, (_err: any, _t: OAuth2Token): void => {
     })
   )
 
@@ -229,7 +228,7 @@ server.get('/testOauth/callback', async (request, reply) => {
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(
         token.token,
         {},
-        (err: any, t: OAuth2Token): void => {
+        (_err: any, _t: OAuth2Token): void => {
         }
       )
     )
@@ -241,12 +240,12 @@ server.get('/testOauth/callback', async (request, reply) => {
     expectError<Promise<void>>(server.testOAuthName.revokeToken(token.token, 'test', undefined))
     // Correct way
     expectType<void>(
-      server.testOAuthName.revokeToken(token.token, 'refresh_token', undefined, (err: any): void => {
+      server.testOAuthName.revokeToken(token.token, 'refresh_token', undefined, (_err: any): void => {
       })
     )
     // Expect error because invalid Type test isn't an access_token or refresh_token
     expectError<void>(
-      server.testOAuthName.revokeToken(token.token, 'test', undefined, (err: any): void => {
+      server.testOAuthName.revokeToken(token.token, 'test', undefined, (_err: any): void => {
       })
     )
     // Expect error because invalid Type test isn't an access_token or refresh_token
@@ -259,7 +258,7 @@ server.get('/testOauth/callback', async (request, reply) => {
     // Correct way
     expectType<Promise<void>>(server.testOAuthName.revokeAllToken(token.token, undefined))
     // Correct way too
-    expectType<void>(server.testOAuthName.revokeAllToken(token.token, undefined, (err: any): void => {
+    expectType<void>(server.testOAuthName.revokeAllToken(token.token, undefined, (_err: any): void => {
     }))
     // Invalid content
     expectError<void>(server.testOAuthName.revokeAllToken(token.token, undefined, undefined))
@@ -270,7 +269,7 @@ server.get('/testOauth/callback', async (request, reply) => {
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(
         token.token,
         {},
-        (err: any, t: OAuth2Token): void => {
+        (_err: any, _t: OAuth2Token): void => {
         }
       )
     )
@@ -279,7 +278,7 @@ server.get('/testOauth/callback', async (request, reply) => {
   }
 
   expectType<Promise<string>>(server.testOAuthName.generateAuthorizationUri(request, reply))
-  expectType<void>(server.testOAuthName.generateAuthorizationUri(request, reply, (err) => {}))
+  expectType<void>(server.testOAuthName.generateAuthorizationUri(request, reply, (_err) => {}))
   // BEGIN userinfo tests
   expectType<Promise<Object>>(server.testOAuthName.userinfo(token.token))
   expectType<Promise<Object>>(server.testOAuthName.userinfo(token.token.access_token))
