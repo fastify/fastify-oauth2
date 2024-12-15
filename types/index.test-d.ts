@@ -1,4 +1,5 @@
-import fastify from 'fastify'
+/* eslint-disable n/handle-callback-err -- Testing types, not actual code */
+import fastify, { FastifyInstance } from 'fastify'
 import { expectAssignable, expectError, expectNotAssignable, expectType } from 'tsd'
 import fastifyOauth2, {
   FastifyOAuth2Options,
@@ -9,7 +10,6 @@ import fastifyOauth2, {
   UserInfoExtraOptions
 } from '..'
 import type { ModuleOptions } from 'simple-oauth2'
-import { FastifyInstance } from 'fastify'
 
 /**
  * Preparing some data for testing.
