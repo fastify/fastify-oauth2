@@ -18,6 +18,26 @@
     "url": "git+https://github.com/fastify/fastify-oauth2.git"
   },
   "author": "Tommaso Allevi - @allevo",
+  "contributors": [
+    {
+      "name": "Matteo Collina",
+      "email": "hello@matteocollina.com"
+    },
+    {
+      "name": "Manuel Spigolon",
+      "email": "behemoth89@gmail.com"
+    },
+    {
+      "name": "KaKa Ng",
+      "email": "kaka@kakang.dev",
+      "url": "https://github.com/climba03003"
+    },
+    {
+      "name": "Frazer Smith",
+      "email": "frazer.dev@icloud.com",
+      "url": "https://github.com/fdawgs"
+    }
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/fastify/fastify-oauth2/issues"
@@ -27,6 +47,16 @@
     "oauth2"
   ],
   "homepage": "https://github.com/fastify/fastify-oauth2#readme",
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/fastify"
+    },
+    {
+      "type": "opencollective",
+      "url": "https://opencollective.com/fastify"
+    }
+  ],
   "devDependencies": {
     "@fastify/pre-commit": "^2.1.0",
     "@types/node": "^22.0.0",
