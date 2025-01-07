@@ -1,4 +1,5 @@
 'use strict'
+
 const url = require('node:url')
 const http = require('node:http')
 const https = require('node:https')
@@ -155,7 +156,7 @@ function fastifyOauth2 (fastify, options, next) {
         }
       }
     }
-    const generateCallbackUriParams = (credentials.auth && credentials.auth[kGenerateCallbackUriParams]) || defaultGenerateCallbackUriParams
+    const generateCallbackUriParams = credentials.auth?.[kGenerateCallbackUriParams] || defaultGenerateCallbackUriParams
     const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
 
     const generateStateFunctionCallbacked = function (request, callback) {
