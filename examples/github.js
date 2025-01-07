@@ -79,7 +79,7 @@ fastify.get('/login/github/verifyAccessToken', function (request, reply) {
       body: JSON.stringify({ access_token: accessToken }),
       json: true
     },
-    function (err, res, data) {
+    function (err, _res, data) {
       if (err) {
         reply.send(err)
         return
