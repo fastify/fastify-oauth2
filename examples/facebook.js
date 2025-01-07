@@ -33,7 +33,7 @@ fastify.get('/login/facebook/callback', function (request, reply) {
         Authorization: 'Bearer ' + result.access_token
       },
       json: true
-    }, function (err, res, data) {
+    }, function (err, _res, data) {
       if (err) {
         reply.send(err)
         return

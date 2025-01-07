@@ -272,7 +272,7 @@ t.test('fastify-oauth2', t => {
       scope: ['notifications']
     })
 
-    fastify.get('/', function (request, reply) {
+    fastify.get('/', function (request) {
       return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
           // attempts to refresh the token
@@ -350,7 +350,7 @@ t.test('fastify-oauth2', t => {
       userAgent: 'test/1.2.3'
     })
 
-    fastify.get('/', function (request, reply) {
+    fastify.get('/', function (request) {
       return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
           // attempts to refresh the token
@@ -394,7 +394,7 @@ t.test('fastify-oauth2', t => {
       userAgent: 'test/1.2.3'
     })
 
-    fastify.get('/', function (request, reply) {
+    fastify.get('/', function (request) {
       return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
           // attempts to refresh the token
@@ -433,7 +433,7 @@ t.test('fastify-oauth2', t => {
       userAgent: false
     })
 
-    fastify.get('/', function (request, reply) {
+    fastify.get('/', function (request) {
       return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
           // attempts to refresh the token
@@ -2602,7 +2602,7 @@ t.test('options.generateStateFunction', t => {
         auth: fastifyOauth2.GITHUB_CONFIGURATION
       },
       callbackUri: '/callback',
-      generateStateFunction: function (request) {
+      generateStateFunction: function () {
         return Promise.reject(new Error('generate state failed'))
       },
       checkStateFunction: () => true,
@@ -2644,7 +2644,7 @@ t.test('options.generateStateFunction', t => {
       },
       callbackUri: '/callback',
       startRedirectPath: '/gh',
-      generateStateFunction: function (request) {
+      generateStateFunction: function () {
         return Promise.reject(new Error('generate state failed'))
       },
       checkStateFunction: () => true,
@@ -2716,7 +2716,7 @@ t.test('options.checkStateFunction', t => {
       scope: ['notifications']
     })
 
-    fastify.get('/', function (request, reply) {
+    fastify.get('/', function (request) {
       return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
           // attempts to refresh the token
@@ -2760,7 +2760,7 @@ t.test('options.checkStateFunction', t => {
       scope: ['notifications']
     })
 
-    fastify.get('/', function (request, reply) {
+    fastify.get('/', function (request) {
       return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
           // attempts to refresh the token
@@ -2804,7 +2804,7 @@ t.test('options.checkStateFunction', t => {
       scope: ['notifications']
     })
 
-    fastify.get('/', function (request, reply) {
+    fastify.get('/', function (request) {
       return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
         .then(result => {
           // attempts to refresh the token

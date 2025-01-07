@@ -34,7 +34,7 @@ fastify.get('/login/google/callback', function (request, reply) {
         Authorization: 'Bearer ' + result.token.access_token
       },
       json: true
-    }, function (err, res, data) {
+    }, function (err, _res, data) {
       if (err) {
         reply.send(err)
         return

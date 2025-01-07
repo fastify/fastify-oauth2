@@ -42,7 +42,7 @@ fastify.get('/login/linkedin/callback', function (request, reply) {
           },
           json: true
         },
-        function (err, res, data) {
+        function (err, _res, data) {
           if (err) {
             reply.send(err)
             return
