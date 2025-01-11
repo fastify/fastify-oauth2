@@ -73,7 +73,7 @@ A complete example is provided at [fastify-discord-oauth2-example](https://githu
 ### Usage with `@fastify/cookie`
 
 Since v7.2.0, `@fastify/oauth2` requires the use of cookies to securely implement the OAuth2 exchange. Therefore, if you need `@fastify/cookie` yourself,
-you will need to register it  _before_ `@fastify/oauth2`.
+you will need to register it _before_ `@fastify/oauth2`.
 
 ```js
 const fastify = require('fastify')({ logger: { level: 'trace' } })
@@ -220,7 +220,7 @@ fastify.register(oauthPlugin, {
 
 ## Set custom state
 
-The `generateStateFunction` accepts a function to generate the `state` parameter for the OAUTH flow. This function receives the Fastify instance's `request` object as parameter.
+The `generateStateFunction` accepts a function to generate the `state` parameter for the OAUTH flow. This function receives the Fastify instance's `request` object as a parameter.
 The `state` parameter will be also set into a `httpOnly`, `sameSite: Lax` cookie.
 When you set it, it is required to provide the function `checkStateFunction` in order to validate the states generated.
 
@@ -334,7 +334,7 @@ E.g. For `name: 'customOauth2'`, the `simple-oauth2` instance will become access
 
 `fastify.oauth2CustomOauth2.oauth2` and `fastify.customOauth2.oauth2`
 
-In this manner we are able to register multiple OAuth providers and each OAuth providers `simple-oauth2` instance will live in it's own **namespace**.
+In this manner, we can register multiple OAuth providers and each OAuth providers `simple-oauth2` instance will live in its own **namespace**.
 
 E.g.
 
