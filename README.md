@@ -1,6 +1,6 @@
 # @fastify/oauth2
 
-[![CI](https://github.com/fastify/fastify-oauth2/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/fastify/fastify-oauth2/actions/workflows/ci.yml)
+[![CI](https://github.com/fastify/fastify-oauth2/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/fastify/fastify-oauth2/actions/workflows/ci.yml)
 [![NPM version](https://img.shields.io/npm/v/@fastify/oauth2.svg?style=flat)](https://www.npmjs.com/package/@fastify/oauth2)
 [![neostandard javascript style](https://img.shields.io/badge/code_style-neostandard-brightgreen?style=flat)](https://github.com/neostandard/neostandard)
 
@@ -68,7 +68,7 @@ fastify.get('/login/facebook/callback', async function (request, reply) {
 
 In short, it is necessary to initially navigate to the `/login/facebook` endpoint manually in a web browser. This will redirect to the OAuth2 service provider's login screen. From there, the service provider will automatically redirect back to the `/login/facebook/callback` endpoint where the access token can be retrieved and used. The `CLIENT_ID` and `CLIENT_SECRET` need to be replaced with the ones provided by the service provider.
 
-A complete example is provided at [fastify-discord-oauth2-example](https://github.com/fastify/fastify-oauth2/blob/master/examples/discord.js)
+A complete example is provided at [fastify-discord-oauth2-example](https://github.com/fastify/fastify-oauth2/blob/main/examples/discord.js)
 
 ### Usage with `@fastify/cookie`
 
