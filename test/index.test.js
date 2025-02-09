@@ -4,6 +4,7 @@ const t = require('tap')
 const nock = require('nock')
 const createFastify = require('fastify')
 const crypto = require('node:crypto')
+const { Readable } = require('node:stream')
 const fastifyOauth2 = require('..')
 
 nock.disableNetConnect()
@@ -132,12 +133,31 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
                 .query({ a: 1 })
                 .reply(200, { sub: 'github.subjectid' })
             }
+          } else if (discoveryHostOptions.userinfoBadData) {
+            userinfoScope = nock(gitHost)
+              .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
+              .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
+              .get('/me')
+              .reply(200, 'not a json')
+          } else if (discoveryHostOptions.userinfoChunks) {
+            function createStream () {
+              const stream = new Readable()
+              stream.push('{"sub":"gith')
+              stream.push('ub.subjectid"}')
+              stream.push(null)
+              return stream
+            }
+            userinfoScope = nock(gitHost)
+              .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
+              .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
+              .get('/me')
+              .reply(200, createStream())
           } else {
             userinfoScope = nock(gitHost)
               .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
               .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
               .get('/me')
-              .reply(200, discoveryHostOptions.userinfoBadData ? 'not a json' : { sub: 'github.subjectid' })
+              .reply(200, { sub: 'github.subjectid' })
           }
         }
       }
@@ -778,6 +798,44 @@ t.test('fastify-oauth2', t => {
     t.teardown(fastify.close.bind(fastify))
 
     makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
+  })
+
+  t.test('discovery with userinfo -> handles responses with multiple "data" events', t => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        }
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications'],
+      discovery: {
+        issuer: 'https://github.com'
+      }
+    })
+
+    fastify.get('/', async function (request, reply) {
+      const result = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
+      await new Promise((resolve) => {
+        this.githubOAuth2.userinfo(refreshResult.token, {}, (err, userinfo) => {
+          t.error(err)
+          t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+          resolve()
+        })
+      })
+
+      return { ...refreshResult.token, expires_at: undefined }
+    })
+
+    t.teardown(fastify.close.bind(fastify))
+
+    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoChunks: true })
   })
 
   t.test('discovery with userinfo -> fails gracefully when at format is bad', t => {
