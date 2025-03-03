@@ -1533,7 +1533,7 @@ test('options.callbackUriParams should be an object', t => {
     .ready(), undefined, 'options.callbackUriParams should be a object')
 })
 
-test('options.callbackUriParams', t => {
+test('options.callbackUriParams', (t, end) => {
   const fastify = createFastify({ logger: { level: 'silent' } })
 
   fastify.register(fastifyOauth2, {
@@ -1650,7 +1650,7 @@ test('options.tokenRequestParams', async t => {
   githubScope.done()
 })
 
-test('generateAuthorizationUri redirect with request object', t => {
+test('generateAuthorizationUri redirect with request object', (t, end) => {
   const fastify = createFastify()
 
   fastify.register(fastifyOauth2, {
@@ -1691,7 +1691,7 @@ test('generateAuthorizationUri redirect with request object', t => {
   })
 })
 
-test('generateAuthorizationUri redirect with request object and callback', t => {
+test('generateAuthorizationUri redirect with request object and callback', (t, end) => {
   const fastify = createFastify()
 
   fastify.register(fastifyOauth2, {
@@ -1959,7 +1959,7 @@ test('not providing options.discovery.issuer and credentials.auth', t => {
     .ready(), undefined, 'options.discovery.issuer or credentials.auth have to be given')
 })
 
-test('options.schema', t => {
+test('options.schema', (t, end) => {
   const fastify = createFastify({ logger: { level: 'silent' }, exposeHeadRoutes: false })
 
   fastify.addHook('onRoute', function (routeOptions) {
