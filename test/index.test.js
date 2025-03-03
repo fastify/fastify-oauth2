@@ -9,7 +9,7 @@ const fastifyOauth2 = require('..')
 
 nock.disableNetConnect()
 
-function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, omitCodeChallenge, discoveryHostOptions = {}) {
+function makeRequests (t, end, fastify, userAgentHeaderMatcher, pkce, discoveryHost, omitCodeChallenge, discoveryHostOptions = {}) {
   let discoveryScope
   if (discoveryHost) {
     const METADATA_BODY = {
@@ -40,7 +40,7 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
     if (discoveryHostOptions.badJSON) {
       t.assert.ok(err.message.startsWith('Unexpected token'))
       discoveryScope?.done()
-      t.end()
+      end()
       return
     }
 
@@ -48,7 +48,7 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
       t.assert.deepStrictEqual(err.message, 'Problem calling discovery endpoint. See innerError for details.')
       t.assert.deepStrictEqual(err.innerError.code, 'ETIMEDOUT')
       discoveryScope?.done()
-      t.end()
+      end()
       return
     }
 
@@ -56,7 +56,7 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
       // Let simple-oauth2 configuration fail instead
       t.assert.deepStrictEqual(err.message, 'Invalid options provided to simple-oauth2 "auth.tokenHost" is required')
       discoveryScope?.done()
-      t.end()
+      end()
       return
     }
 
@@ -178,7 +178,7 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
         githubScope.done()
         discoveryScope?.done()
         userinfoScope?.done()
-        t.end()
+        end()
       })
     })
   })
@@ -186,7 +186,6 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
 
 test('fastify-oauth2', async t => {
   await t.test('callback', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -228,11 +227,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
   await t.test('callbackUri as function', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -274,11 +272,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
   await t.test('promise', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -313,11 +310,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
   await t.test('wrong state', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -352,12 +348,11 @@ test('fastify-oauth2', async t => {
       t.assert.deepStrictEqual(responseEnd.statusCode, 400)
       t.assert.deepStrictEqual(responseEnd.payload, 'Invalid state')
 
-      t.end()
+      end()
     })
   })
 
   await t.test('custom user-agent', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -393,11 +388,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, 'test/1.2.3')
+    makeRequests(t, end, fastify, 'test/1.2.3')
   })
 
   await t.test('overridden user-agent', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -438,11 +432,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, /^foo\/4\.5\.6$/)
+    makeRequests(t, end, fastify, /^foo\/4\.5\.6$/)
   })
 
   await t.test('disabled user-agent', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -478,11 +471,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, userAgent => userAgent === undefined)
+    makeRequests(t, end, fastify, userAgent => userAgent === undefined)
   })
 
   await t.test('pkce.plain', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -518,11 +510,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'plain')
+    makeRequests(t, end, fastify, undefined, 'plain')
   })
 
   await t.test('pkce.S256', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -564,11 +555,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256')
+    makeRequests(t, end, fastify, undefined, 'S256')
   })
 
   await t.test('discovery with S256 - automatic', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -605,11 +595,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com')
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com')
   })
 
   await t.test('discovery with userinfo', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -653,11 +642,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoQuery: '?a=1' })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoQuery: '?a=1' })
   })
 
   await t.test('discovery with userinfo POST header', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -688,7 +676,7 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false,
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false,
       {
         userinfoEndpoint: 'https://github.com/me',
         userInfoMethod: 'POST',
@@ -697,7 +685,6 @@ test('fastify-oauth2', async t => {
   })
 
   await t.test('discovery with userinfo POST body', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -728,7 +715,7 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false,
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false,
       {
         userinfoEndpoint: 'https://github.com/me',
         userInfoMethod: 'POST',
@@ -738,7 +725,6 @@ test('fastify-oauth2', async t => {
   })
 
   await t.test('discovery with userinfo -> callback API (full)', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -773,11 +759,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
   })
 
   await t.test('discovery with userinfo -> callback API (userinfo request option ommited)', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -812,11 +797,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
   })
 
   await t.test('discovery with userinfo -> handles responses with multiple "data" events', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -851,11 +835,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoChunks: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoChunks: true })
   })
 
   await t.test('discovery with userinfo -> fails gracefully when at format is bad', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -891,11 +874,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadArgs: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadArgs: true })
   })
 
   await t.test('discovery with userinfo -> fails gracefully when nested at format is bad', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -929,11 +911,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadArgs: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadArgs: true })
   })
 
   await t.test('discovery with userinfo -> fails gracefully with problematic /me endpoint', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -971,11 +952,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, userAgent => userAgent === undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', problematicUserinfo: true })
+    makeRequests(t, end, fastify, userAgent => userAgent === undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', problematicUserinfo: true })
   })
 
   await t.test('discovery with userinfo -> works with http', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1010,11 +990,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, userAgent => userAgent === undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'http://github.com/me', userinfoNonEncrypted: true })
+    makeRequests(t, end, fastify, userAgent => userAgent === undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'http://github.com/me', userinfoNonEncrypted: true })
   })
 
   await t.test('discovery with userinfo -> fails gracefully with bad data', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1048,11 +1027,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadData: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadData: true })
   })
 
   await t.test('discovery with plain - automatic', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1089,11 +1067,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'plain', 'https://github.com')
+    makeRequests(t, end, fastify, undefined, 'plain', 'https://github.com')
   })
 
   await t.test('discovery with no code challenge method - explicitly set instead', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1131,11 +1108,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', true)
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', true)
   })
 
   await t.test('discovery with S256 - automatic, supported full discovery URL', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1172,11 +1148,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com')
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com')
   })
 
   await t.test('discovery with S256 - automatic, supported deep mount without a trailing slash', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1213,11 +1188,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com/deepmount') // no trailin slash
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com/deepmount') // no trailin slash
   })
 
   await t.test('discovery - supports HTTP', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1254,11 +1228,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'http://github.com')
+    makeRequests(t, end, fastify, undefined, 'S256', 'http://github.com')
   })
 
   await t.test('discovery - supports omitting user agent', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1296,11 +1269,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, userAgent => userAgent === undefined, 'S256', 'http://github.com')
+    makeRequests(t, end, fastify, userAgent => userAgent === undefined, 'S256', 'http://github.com')
   })
 
   await t.test('discovery - failed gracefully when discovery host gives bad data', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1337,11 +1309,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, undefined, 'http://github.com', undefined, { badJSON: true })
+    makeRequests(t, end, fastify, undefined, undefined, 'http://github.com', undefined, { badJSON: true })
   })
 
   await t.test('discovery - failed gracefully when discovery host errs with ETIMEDOUT or similar', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1378,11 +1349,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, undefined, 'http://github.com', undefined, { error: { code: 'ETIMEDOUT' } })
+    makeRequests(t, end, fastify, undefined, undefined, 'http://github.com', undefined, { error: { code: 'ETIMEDOUT' } })
   })
 
   await t.test('discovery - should work when OP doesn\'t announce revocation', (t, end) => {
-    t.end = end
     // not that some Authorization servers might have revocation as optional,
     // even token and authorization endpoints could be optional
     // plugin should not break internally due to these responses
@@ -1422,11 +1392,10 @@ test('fastify-oauth2', async t => {
     })
 
     after(() => fastify.close())
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', undefined, { noRevocation: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', undefined, { noRevocation: true })
   })
 
   await t.test('discovery - should work when OP doesn\'t announce authorization endpoint', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1463,11 +1432,10 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', undefined, { noAuthorization: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', undefined, { noAuthorization: true })
   })
 
   await t.test('discovery - should work when OP doesn\'t announce token endpoint', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1504,7 +1472,7 @@ test('fastify-oauth2', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', undefined, { noToken: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', undefined, { noToken: true })
   })
 })
 
@@ -1521,12 +1489,10 @@ test('options.credentials should be an object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name'
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.credentials should be an object')
-    })
+    .ready(), undefined, 'options.credentials should be an object')
 })
 
 test('options.callbackUri should be a string or a function', t => {
@@ -1534,7 +1500,7 @@ test('options.callbackUri should be a string or a function', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1544,9 +1510,7 @@ test('options.callbackUri should be a string or a function', t => {
       auth: fastifyOauth2.GITHUB_CONFIGURATION
     }
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.callbackUri should be a string or a function')
-    })
+    .ready(), undefined, 'options.callbackUri should be a string or a function')
 })
 
 test('options.callbackUriParams should be an object', t => {
@@ -1554,7 +1518,7 @@ test('options.callbackUriParams should be an object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1566,9 +1530,7 @@ test('options.callbackUriParams should be an object', t => {
     callbackUri: '/callback',
     callbackUriParams: 1
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.callbackUriParams should be a object')
-    })
+    .ready(), undefined, 'options.callbackUriParams should be a object')
 })
 
 test('options.callbackUriParams', t => {
@@ -1605,7 +1567,7 @@ test('options.callbackUriParams', t => {
       t.assert.deepStrictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&access_type=offline&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
       t.assert.ok(matched)
-      t.end()
+      end()
     })
   })
 })
@@ -1615,7 +1577,7 @@ test('options.tokenRequestParams should be an object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1627,14 +1589,10 @@ test('options.tokenRequestParams should be an object', t => {
     callbackUri: '/callback',
     tokenRequestParams: 1
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.tokenRequestParams should be a object')
-    })
+    .ready(), undefined, 'options.tokenRequestParams should be a object')
 })
 
-test('options.tokenRequestParams', t => {
-  t.plan(2)
-
+test('options.tokenRequestParams', async t => {
   const fastify = createFastify({ logger: { level: 'silent' } })
   const oAuthCode = '123456789'
 
@@ -1683,18 +1641,13 @@ test('options.tokenRequestParams', t => {
 
   after(() => fastify.close())
 
-  fastify.listen({ port: 0 }, function (err) {
-    t.assert.ifError(err)
-
-    fastify.inject({
-      method: 'GET',
-      url: '/callback?code=' + oAuthCode
-    }, function (err) {
-      t.assert.ifError(err)
-
-      githubScope.done()
-    })
+  await fastify.listen({ port: 0 })
+  await fastify.inject({
+    method: 'GET',
+    url: '/callback?code=' + oAuthCode
   })
+
+  githubScope.done()
 })
 
 test('generateAuthorizationUri redirect with request object', t => {
@@ -1734,7 +1687,7 @@ test('generateAuthorizationUri redirect with request object', t => {
     t.assert.deepStrictEqual(responseStart.statusCode, 302)
     const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
     t.assert.ok(matched)
-    t.end()
+    end()
   })
 })
 
@@ -1780,7 +1733,7 @@ test('generateAuthorizationUri redirect with request object and callback', t => 
     t.assert.deepStrictEqual(responseStart.statusCode, 302)
     const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
     t.assert.ok(matched)
-    t.end()
+    end()
   })
 })
 
@@ -1789,7 +1742,7 @@ test('options.startRedirectPath should be a string', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1801,9 +1754,7 @@ test('options.startRedirectPath should be a string', t => {
     callbackUri: '/callback',
     startRedirectPath: 42
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.startRedirectPath should be a string')
-    })
+    .ready(), undefined, 'options.startRedirectPath should be a string')
 })
 
 test('options.generateStateFunction ^ options.checkStateFunction', t => {
@@ -1811,7 +1762,7 @@ test('options.generateStateFunction ^ options.checkStateFunction', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1823,9 +1774,7 @@ test('options.generateStateFunction ^ options.checkStateFunction', t => {
     callbackUri: '/callback',
     checkStateFunction: () => { }
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.checkStateFunction and options.generateStateFunction have to be given')
-    })
+    .ready(), undefined, 'options.checkStateFunction and options.generateStateFunction have to be given')
 })
 
 test('options.tags should be a array', t => {
@@ -1833,7 +1782,7 @@ test('options.tags should be a array', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1845,9 +1794,7 @@ test('options.tags should be a array', t => {
     callbackUri: '/callback',
     tags: 'invalid tags'
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.tags should be a array')
-    })
+    .ready(), undefined, 'options.tags should be a array')
 })
 
 test('options.schema should be a object', t => {
@@ -1855,7 +1802,7 @@ test('options.schema should be a object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1867,9 +1814,7 @@ test('options.schema should be a object', t => {
     callbackUri: '/callback',
     schema: 1
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.schema should be a object')
-    })
+    .ready(), undefined, 'options.schema should be a object')
 })
 
 test('options.cookie should be an object', t => {
@@ -1877,7 +1822,7 @@ test('options.cookie should be an object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1889,9 +1834,7 @@ test('options.cookie should be an object', t => {
     callbackUri: '/callback',
     cookie: 1
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.cookie should be an object')
-    })
+    .ready(), undefined, 'options.cookie should be an object')
 })
 
 test('options.userAgent should be a string', t => {
@@ -1899,7 +1842,7 @@ test('options.userAgent should be a string', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1911,9 +1854,7 @@ test('options.userAgent should be a string', t => {
     callbackUri: '/callback',
     userAgent: 1
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.userAgent should be a string')
-    })
+    .ready(), undefined, 'options.userAgent should be a string')
 })
 
 test('options.pkce', t => {
@@ -1921,7 +1862,7 @@ test('options.pkce', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1933,9 +1874,7 @@ test('options.pkce', t => {
     callbackUri: '/callback',
     pkce: {}
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.pkce should be one of "S256" | "plain" when used')
-    })
+    .ready(), undefined, 'options.pkce should be one of "S256" | "plain" when used')
 })
 
 test('options.discovery should be object', t => {
@@ -1943,7 +1882,7 @@ test('options.discovery should be object', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1955,9 +1894,7 @@ test('options.discovery should be object', t => {
     callbackUri: '/callback',
     discovery: 'string'
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.discovery should be an object')
-    })
+    .ready(), undefined, 'options.discovery should be an object')
 })
 
 test('options.discovery.issuer should be URL', t => {
@@ -1965,7 +1902,7 @@ test('options.discovery.issuer should be URL', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1979,9 +1916,7 @@ test('options.discovery.issuer should be URL', t => {
       issuer: {}
     }
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.discovery.issuer should be a URL in string format')
-    })
+    .ready(), undefined, 'options.discovery.issuer should be URL')
 })
 
 test('credentials.auth should not be provided when discovery is used', t => {
@@ -1989,7 +1924,7 @@ test('credentials.auth should not be provided when discovery is used', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -2003,9 +1938,7 @@ test('credentials.auth should not be provided when discovery is used', t => {
       issuer: 'https://valid.iss'
     }
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'when options.discovery.issuer is configured, credentials.auth should not be used')
-    })
+    .ready(), undefined, 'credentials.auth should not be provided when discovery is used')
 })
 
 test('not providing options.discovery.issuer and credentials.auth', t => {
@@ -2013,7 +1946,7 @@ test('not providing options.discovery.issuer and credentials.auth', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -2023,9 +1956,7 @@ test('not providing options.discovery.issuer and credentials.auth', t => {
     },
     callbackUri: '/callback'
   })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'options.discovery.issuer or credentials.auth have to be given')
-    })
+    .ready(), undefined, 'options.discovery.issuer or credentials.auth have to be given')
 })
 
 test('options.schema', t => {
@@ -2033,7 +1964,7 @@ test('options.schema', t => {
 
   fastify.addHook('onRoute', function (routeOptions) {
     t.assert.deepStrictEqual(routeOptions.schema, { tags: ['oauth2', 'oauth'] })
-    t.end()
+    end()
   })
 
   fastify.register(fastifyOauth2, {
@@ -2064,7 +1995,7 @@ test('already decorated', t => {
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify
+  return t.assert.rejects(fastify
     .decorate('githubOAuth2', false)
     .register(fastifyOauth2, {
       name: 'githubOAuth2',
@@ -2077,16 +2008,13 @@ test('already decorated', t => {
       },
       callbackUri: '/callback'
     })
-    .ready(err => {
-      t.assert.deepStrictEqual(err.message, 'The decorator \'githubOAuth2\' has already been added!')
-    })
+    .ready(), undefined, 'The decorator \'githubOAuth2\' has already been added!')
 })
 
 test('preset configuration generate-callback-uri-params', async t => {
   t.plan(3)
 
   await t.test('array scope', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2120,13 +2048,12 @@ test('preset configuration generate-callback-uri-params', async t => {
         t.assert.deepStrictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&response_mode=form_post&redirect_uri=%2Fcallback&scope=email&state=(.*)/)
         t.assert.ok(matched)
-        t.end()
+        end()
       })
     })
   })
 
   await t.test('string scope', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2160,13 +2087,12 @@ test('preset configuration generate-callback-uri-params', async t => {
         t.assert.deepStrictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&response_mode=form_post&redirect_uri=%2Fcallback&scope=name&state=(.*)/)
         t.assert.ok(matched)
-        t.end()
+        end()
       })
     })
   })
 
   await t.test('no scope', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2200,7 +2126,7 @@ test('preset configuration generate-callback-uri-params', async t => {
         t.assert.deepStrictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=&state=(.*)/)
         t.assert.ok(matched)
-        t.end()
+        end()
       })
     })
   })
@@ -2234,7 +2160,7 @@ test('preset configuration generate-callback-uri-params', t => {
   }
 })
 
-test('revoke token for gitlab with callback', (t) => {
+test('revoke token for gitlab with callback', (t, end) => {
   t.plan(3)
   const fastify = createFastify({ logger: { level: 'silent' } })
 
@@ -2279,12 +2205,12 @@ test('revoke token for gitlab with callback', (t) => {
       t.assert.deepStrictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
-      t.end()
+      end()
     })
   })
 })
 
-test('revoke token for gitlab promisify', (t) => {
+test('revoke token for gitlab promisify', (t, end) => {
   t.plan(3)
   const fastify = createFastify({ logger: { level: 'silent' } })
 
@@ -2330,12 +2256,12 @@ test('revoke token for gitlab promisify', (t) => {
       t.assert.deepStrictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
-      t.end()
+      end()
     })
   })
 })
 
-test('revoke all token for gitlab promisify', (t) => {
+test('revoke all token for gitlab promisify', (t, end) => {
   t.plan(3)
   const fastify = createFastify({ logger: { level: 'silent' } })
 
@@ -2384,12 +2310,12 @@ test('revoke all token for gitlab promisify', (t) => {
       t.assert.deepStrictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
-      t.end()
+      end()
     })
   })
 })
 
-test('revoke all token for linkedin callback', (t) => {
+test('revoke all token for linkedin callback', (t, end) => {
   t.plan(3)
   const fastify = createFastify({ logger: { level: 'silent' } })
 
@@ -2437,14 +2363,13 @@ test('revoke all token for linkedin callback', (t) => {
       t.assert.deepStrictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
-      t.end()
+      end()
     })
   })
 })
 
 test('options.generateStateFunction', async t => {
   await t.test('with request', (t, end) => {
-    t.end = end
     t.plan(5)
     const fastify = createFastify()
 
@@ -2481,17 +2406,17 @@ test('options.generateStateFunction', async t => {
         t.assert.deepStrictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
         t.assert.ok(matched)
+        end()
       })
     })
   })
 
-  await t.test('should be an object', (t, end) => {
-    t.end = end
+  await t.test('should be an object', (t) => {
     t.plan(1)
 
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify.register(fastifyOauth2, {
+    return t.assert.rejects(fastify.register(fastifyOauth2, {
       name: 'the-name',
       credentials: {
         client: {
@@ -2503,13 +2428,10 @@ test('options.generateStateFunction', async t => {
       callbackUri: '/callback',
       generateStateFunction: 42
     })
-      .ready(err => {
-        t.assert.deepStrictEqual(err.message, 'options.generateStateFunction should be a function')
-      })
+      .ready(), undefined, 'options.generateStateFunction should be a function')
   })
 
   await t.test('with signing key', (t, end) => {
-    t.end = end
     t.plan(5)
     const fastify = createFastify()
 
@@ -2555,12 +2477,12 @@ test('options.generateStateFunction', async t => {
         t.assert.deepStrictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=1e864fbd840212c1ed9ce60175d373f3a48681b2/)
         t.assert.ok(matched)
+        end()
       })
     })
   })
 
   await t.test('should accept fastify instance as this', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2597,12 +2519,11 @@ test('options.generateStateFunction', async t => {
       t.assert.deepStrictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
       t.assert.ok(matched)
-      t.end()
+      end()
     })
   })
 
   await t.test('should accept async function', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2638,12 +2559,11 @@ test('options.generateStateFunction', async t => {
       t.assert.deepStrictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
       t.assert.ok(matched)
-      t.end()
+      end()
     })
   })
 
   await t.test('should accept callback function', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2679,12 +2599,11 @@ test('options.generateStateFunction', async t => {
       t.assert.deepStrictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
       t.assert.ok(matched)
-      t.end()
+      end()
     })
   })
 
   await t.test('throws', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2721,12 +2640,11 @@ test('options.generateStateFunction', async t => {
       t.assert.ifError(err)
       t.assert.deepStrictEqual(responseStart.statusCode, 500)
       t.assert.deepStrictEqual(responseStart.body, 'generate state failed')
-      t.end()
+      end()
     })
   })
 
   await t.test('throws with start redirect path', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2757,21 +2675,18 @@ test('options.generateStateFunction', async t => {
       t.assert.ifError(err)
       t.assert.deepStrictEqual(responseStart.statusCode, 500)
       t.assert.deepStrictEqual(responseStart.body, 'generate state failed')
-      t.end()
+      end()
     })
   })
-
-  t.end()
 })
 
 test('options.checkStateFunction', async t => {
-  await t.test('should be an object', (t, end) => {
-    t.end = end
+  await t.test('should be an object', (t) => {
     t.plan(1)
 
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify.register(fastifyOauth2, {
+    return t.assert.rejects(fastify.register(fastifyOauth2, {
       name: 'the-name',
       credentials: {
         client: {
@@ -2784,13 +2699,10 @@ test('options.checkStateFunction', async t => {
       generateStateFunction: () => { },
       checkStateFunction: 42
     })
-      .ready(err => {
-        t.assert.deepStrictEqual(err.message, 'options.checkStateFunction should be a function')
-      })
+      .ready(), undefined, 'options.checkStateFunction should be a function')
   })
 
   await t.test('should accept fastify instance as this', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2832,11 +2744,10 @@ test('options.checkStateFunction', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
   await t.test('should accept async function', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2877,11 +2788,10 @@ test('options.checkStateFunction', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
   await t.test('returns true', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2922,11 +2832,10 @@ test('options.checkStateFunction', async t => {
 
     after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
   await t.test('returns false', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2968,12 +2877,11 @@ test('options.checkStateFunction', async t => {
       t.assert.deepStrictEqual(responseEnd.statusCode, 400)
       t.assert.deepStrictEqual(responseEnd.payload, 'Invalid state')
 
-      t.end()
+      end()
     })
   })
 
   await t.test('throws', (t, end) => {
-    t.end = end
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     const error = new Error('state is invalid')
@@ -3016,11 +2924,9 @@ test('options.checkStateFunction', async t => {
       t.assert.deepStrictEqual(responseEnd.statusCode, 400)
       t.assert.deepStrictEqual(responseEnd.payload, 'state is invalid')
 
-      t.end()
+      end()
     })
   })
-
-  t.end()
 })
 
 test('options.redirectStateCookieName', async (t) => {
@@ -3031,7 +2937,7 @@ test('options.redirectStateCookieName', async (t) => {
 
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify
+    return t.assert.rejects(fastify
       .register(
         fastifyOauth2, {
           name: 'the-name',
@@ -3046,15 +2952,10 @@ test('options.redirectStateCookieName', async (t) => {
           redirectStateCookieName: 42
         }
       )
-      .ready((err) => {
-        t.assert.deepStrictEqual(
-          err.message,
-          'options.redirectStateCookieName should be a string'
-        )
-      })
+      .ready(), undefined, 'options.redirectStateCookieName should be a string')
   })
 
-  await t.test('with custom cookie name', (t) => {
+  await t.test('with custom cookie name', (t, end) => {
     t.plan(4)
 
     const fastify = createFastify({ logger: { level: 'silent' } })
@@ -3084,10 +2985,10 @@ test('options.redirectStateCookieName', async (t) => {
         t.assert.ifError(err)
 
         t.assert.deepStrictEqual(responseEnd.statusCode, 302)
-        t.matchStrict(responseEnd.cookies[0].name, 'custom-redirect-state')
-        t.matchStrict(responseEnd.cookies[0].value, String)
+        t.assert.deepStrictEqual(responseEnd.cookies[0].name, 'custom-redirect-state')
+        t.assert.ok(typeof responseEnd.cookies[0].value === 'string')
 
-        t.end()
+        end()
       }
     )
   })
@@ -3101,7 +3002,7 @@ test('options.verifierCookieName', async (t) => {
 
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify
+    return t.assert.rejects(fastify
       .register(fastifyOauth2, {
         name: 'the-name',
         credentials: {
@@ -3114,15 +3015,10 @@ test('options.verifierCookieName', async (t) => {
         callbackUri: '/callback',
         verifierCookieName: 42
       })
-      .ready((err) => {
-        t.assert.deepStrictEqual(
-          err.message,
-          'options.verifierCookieName should be a string'
-        )
-      })
+      .ready(), undefined, 'options.verifierCookieName should be a string')
   })
 
-  await t.test('with custom cookie name', (t) => {
+  await t.test('with custom cookie name', (t, end) => {
     t.plan(4)
 
     const fastify = createFastify({ logger: { level: 'silent' } })
@@ -3153,10 +3049,10 @@ test('options.verifierCookieName', async (t) => {
         t.assert.ifError(err)
 
         t.assert.deepStrictEqual(responseEnd.statusCode, 302)
-        t.matchStrict(responseEnd.cookies[1].name, 'custom-verifier')
-        t.matchStrict(responseEnd.cookies[1].value, String)
+        t.assert.deepStrictEqual(responseEnd.cookies[1].name, 'custom-verifier')
+        t.assert.ok(typeof responseEnd.cookies[1].value === 'string')
 
-        t.end()
+        end()
       }
     )
   })
