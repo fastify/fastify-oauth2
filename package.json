@@ -11,7 +11,7 @@
     "test": "npm run test:unit && npm run test:typescript",
     "test:coverage": "npm run test:unit -- --cov --coverage-report=html",
     "test:typescript": "tsd",
-    "test:unit": "tap"
+    "test:unit": "c8 --100 node --test"
   },
   "repository": {
     "type": "git",
