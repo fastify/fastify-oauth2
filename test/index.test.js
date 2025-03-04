@@ -45,8 +45,8 @@ function makeRequests (t, end, fastify, userAgentHeaderMatcher, pkce, discoveryH
     }
 
     if (discoveryHostOptions.error) {
-      t.assert.deepStrictEqual(err.message, 'Problem calling discovery endpoint. See innerError for details.')
-      t.assert.deepStrictEqual(err.innerError.code, 'ETIMEDOUT')
+      t.assert.strictEqual(err.message, 'Problem calling discovery endpoint. See innerError for details.')
+      t.assert.strictEqual(err.innerError.code, 'ETIMEDOUT')
       discoveryScope?.done()
       end()
       return
@@ -54,7 +54,7 @@ function makeRequests (t, end, fastify, userAgentHeaderMatcher, pkce, discoveryH
 
     if (discoveryHostOptions.noToken) {
       // Let simple-oauth2 configuration fail instead
-      t.assert.deepStrictEqual(err.message, 'Invalid options provided to simple-oauth2 "auth.tokenHost" is required')
+      t.assert.strictEqual(err.message, 'Invalid options provided to simple-oauth2 "auth.tokenHost" is required')
       discoveryScope?.done()
       end()
       return
@@ -68,14 +68,14 @@ function makeRequests (t, end, fastify, userAgentHeaderMatcher, pkce, discoveryH
     }, function (err, responseStart) {
       t.assert.ifError(err)
 
-      t.assert.deepStrictEqual(responseStart.statusCode, 302)
+      t.assert.strictEqual(responseStart.statusCode, 302)
 
       const { searchParams } = new URL(responseStart.headers.location)
       const [state, codeChallengeMethod, codeChallenge] = ['state', 'code_challenge_method', 'code_challenge'].map(k => searchParams.get(k))
 
       t.assert.ok(state)
       if (pkce) {
-        t.assert.deepStrictEqual(codeChallengeMethod, pkce, 'pkce method must match')
+        t.assert.strictEqual(codeChallengeMethod, pkce, 'pkce method must match')
         t.assert.ok(codeChallenge, 'code challenge is present')
       }
 
@@ -172,7 +172,7 @@ function makeRequests (t, end, fastify, userAgentHeaderMatcher, pkce, discoveryH
       }, function (err, responseEnd) {
         t.assert.ifError(err)
 
-        t.assert.deepStrictEqual(responseEnd.statusCode, 200)
+        t.assert.strictEqual(responseEnd.statusCode, 200)
         t.assert.deepStrictEqual(JSON.parse(responseEnd.payload), RESPONSE_BODY_REFRESHED)
 
         githubScope.done()
@@ -345,8 +345,8 @@ test('fastify-oauth2', async t => {
     }, function (err, responseEnd) {
       t.assert.ifError(err)
 
-      t.assert.deepStrictEqual(responseEnd.statusCode, 400)
-      t.assert.deepStrictEqual(responseEnd.payload, 'Invalid state')
+      t.assert.strictEqual(responseEnd.statusCode, 400)
+      t.assert.strictEqual(responseEnd.payload, 'Invalid state')
 
       end()
     })
@@ -538,7 +538,7 @@ test('fastify-oauth2', async t => {
       try {
         await this.githubOAuth2.userinfo('a try without a discovery option')
       } catch (error) {
-        t.assert.deepStrictEqual(
+        t.assert.strictEqual(
           error.message,
           'userinfo can not be used without discovery',
           'error signals to user that they should use discovery for this to work'
@@ -624,18 +624,18 @@ test('fastify-oauth2', async t => {
       try {
         await this.githubOAuth2.userinfo(refreshResult.token, { method: 'PUT' })
       } catch (error) {
-        t.assert.deepStrictEqual(error.message, 'userinfo methods supported are only GET and POST', 'should not work for other methods')
+        t.assert.strictEqual(error.message, 'userinfo methods supported are only GET and POST', 'should not work for other methods')
       }
 
       try {
         await this.githubOAuth2.userinfo(refreshResult.token, { method: 'GET', via: 'body' })
       } catch (error) {
-        t.assert.deepStrictEqual(error.message, 'body is supported only with POST', 'should report incompatible combo')
+        t.assert.strictEqual(error.message, 'body is supported only with POST', 'should report incompatible combo')
       }
 
       const userinfo = await this.githubOAuth2.userinfo(refreshResult.token, { params: { a: 1 } })
 
-      t.assert.deepStrictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
+      t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
 
       return { ...refreshResult.token, expires_at: undefined }
     })
@@ -669,7 +669,7 @@ test('fastify-oauth2', async t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
 
       const userinfo = await this.githubOAuth2.userinfo(refreshResult.token, { method: 'POST', params: { a: 1 } })
-      t.assert.deepStrictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
+      t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
 
       return { ...refreshResult.token, expires_at: undefined }
     })
@@ -708,7 +708,7 @@ test('fastify-oauth2', async t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
 
       const userinfo = await this.githubOAuth2.userinfo(refreshResult.token, { method: 'POST', via: 'body', params: { a: 1 } })
-      t.assert.deepStrictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
+      t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
 
       return { ...refreshResult.token, expires_at: undefined }
     })
@@ -749,7 +749,7 @@ test('fastify-oauth2', async t => {
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(refreshResult.token, {}, (err, userinfo) => {
           t.assert.ifError(err)
-          t.assert.deepStrictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
+          t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
           resolve()
         })
       })
@@ -787,7 +787,7 @@ test('fastify-oauth2', async t => {
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(refreshResult.token, (err, userinfo) => {
           t.assert.ifError(err)
-          t.assert.deepStrictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
+          t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
           resolve()
         })
       })
@@ -825,7 +825,7 @@ test('fastify-oauth2', async t => {
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(refreshResult.token, {}, (err, userinfo) => {
           t.assert.ifError(err)
-          t.assert.deepStrictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
+          t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
           resolve()
         })
       })
@@ -862,7 +862,7 @@ test('fastify-oauth2', async t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(123456789, (err) => {
-          t.assert.deepStrictEqual(err.message,
+          t.assert.strictEqual(err.message,
             'you should provide token object containing access_token or access_token as string directly',
             'should match error message')
           resolve()
@@ -901,7 +901,7 @@ test('fastify-oauth2', async t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo({ access_token: 123456789 }, (err) => {
-          t.assert.deepStrictEqual(err.message, 'access_token should be string', 'message for nested access token format matched')
+          t.assert.strictEqual(err.message, 'access_token should be string', 'message for nested access token format matched')
           resolve()
         })
       })
@@ -939,7 +939,7 @@ test('fastify-oauth2', async t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(refreshResult.token.access_token, (err) => {
-          t.assert.deepStrictEqual(err.message,
+          t.assert.strictEqual(err.message,
             'Problem calling userinfo endpoint. See innerError for details.',
             'should match start of the error message'
           )
@@ -1564,7 +1564,7 @@ test('options.callbackUriParams', (t, end) => {
     }, function (err, responseStart) {
       t.assert.ifError(err)
 
-      t.assert.deepStrictEqual(responseStart.statusCode, 302)
+      t.assert.strictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&access_type=offline&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
       t.assert.ok(matched)
       end()
@@ -1684,7 +1684,7 @@ test('generateAuthorizationUri redirect with request object', (t, end) => {
     query: { code: 'generated_code' }
   }, function (err, responseStart) {
     t.assert.ifError(err)
-    t.assert.deepStrictEqual(responseStart.statusCode, 302)
+    t.assert.strictEqual(responseStart.statusCode, 302)
     const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
     t.assert.ok(matched)
     end()
@@ -1730,7 +1730,7 @@ test('generateAuthorizationUri redirect with request object and callback', (t, e
     query: { code: 'generated_code' }
   }, function (err, responseStart) {
     t.assert.ifError(err)
-    t.assert.deepStrictEqual(responseStart.statusCode, 302)
+    t.assert.strictEqual(responseStart.statusCode, 302)
     const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
     t.assert.ok(matched)
     end()
@@ -2045,7 +2045,7 @@ test('preset configuration generate-callback-uri-params', async t => {
       }, function (err, responseStart) {
         t.assert.ifError(err)
 
-        t.assert.deepStrictEqual(responseStart.statusCode, 302)
+        t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&response_mode=form_post&redirect_uri=%2Fcallback&scope=email&state=(.*)/)
         t.assert.ok(matched)
         end()
@@ -2084,7 +2084,7 @@ test('preset configuration generate-callback-uri-params', async t => {
       }, function (err, responseStart) {
         t.assert.ifError(err)
 
-        t.assert.deepStrictEqual(responseStart.statusCode, 302)
+        t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&response_mode=form_post&redirect_uri=%2Fcallback&scope=name&state=(.*)/)
         t.assert.ok(matched)
         end()
@@ -2123,7 +2123,7 @@ test('preset configuration generate-callback-uri-params', async t => {
       }, function (err, responseStart) {
         t.assert.ifError(err)
 
-        t.assert.deepStrictEqual(responseStart.statusCode, 302)
+        t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=&state=(.*)/)
         t.assert.ok(matched)
         end()
@@ -2154,9 +2154,9 @@ test('preset configuration generate-callback-uri-params', t => {
 
   for (const configName of presetConfigs) {
     t.assert.ok(fastifyOauth2[configName])
-    t.assert.deepStrictEqual(typeof fastifyOauth2[configName].tokenHost, 'string')
-    t.assert.deepStrictEqual(typeof fastifyOauth2[configName].tokenPath, 'string')
-    t.assert.deepStrictEqual(typeof fastifyOauth2[configName].authorizePath, 'string')
+    t.assert.strictEqual(typeof fastifyOauth2[configName].tokenHost, 'string')
+    t.assert.strictEqual(typeof fastifyOauth2[configName].tokenPath, 'string')
+    t.assert.strictEqual(typeof fastifyOauth2[configName].authorizePath, 'string')
   }
 })
 
@@ -2202,7 +2202,7 @@ test('revoke token for gitlab with callback', (t, end) => {
       url: '/'
     }, function (err, responseStart) {
       t.assert.ifError(err, 'No error should be thrown')
-      t.assert.deepStrictEqual(responseStart.statusCode, 200)
+      t.assert.strictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
       end()
@@ -2253,7 +2253,7 @@ test('revoke token for gitlab promisify', (t, end) => {
       url: '/'
     }, function (err, responseStart) {
       t.assert.ifError(err, 'No error should be thrown')
-      t.assert.deepStrictEqual(responseStart.statusCode, 200)
+      t.assert.strictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
       end()
@@ -2307,7 +2307,7 @@ test('revoke all token for gitlab promisify', (t, end) => {
       url: '/'
     }, function (err, responseStart) {
       t.assert.ifError(err, 'No error should be thrown')
-      t.assert.deepStrictEqual(responseStart.statusCode, 200)
+      t.assert.strictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
       end()
@@ -2360,7 +2360,7 @@ test('revoke all token for linkedin callback', (t, end) => {
       url: '/'
     }, function (err, responseStart) {
       t.assert.ifError(err, 'No error should be thrown')
-      t.assert.deepStrictEqual(responseStart.statusCode, 200)
+      t.assert.strictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
       end()
@@ -2403,7 +2403,7 @@ test('options.generateStateFunction', async t => {
         query: { code: 'generated_code' }
       }, function (err, responseStart) {
         t.assert.ifError(err)
-        t.assert.deepStrictEqual(responseStart.statusCode, 302)
+        t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
         t.assert.ok(matched)
         end()
@@ -2474,7 +2474,7 @@ test('options.generateStateFunction', async t => {
         headers: { foo: 'foo' }
       }, function (err, responseStart) {
         t.assert.ifError(err)
-        t.assert.deepStrictEqual(responseStart.statusCode, 302)
+        t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=1e864fbd840212c1ed9ce60175d373f3a48681b2/)
         t.assert.ok(matched)
         end()
@@ -2496,7 +2496,7 @@ test('options.generateStateFunction', async t => {
       },
       callbackUri: '/callback',
       generateStateFunction: function (request) {
-        t.assert.deepStrictEqual(this, fastify)
+        t.assert.strictEqual(this, fastify)
         return request.query.code
       },
       checkStateFunction: () => true,
@@ -2516,7 +2516,7 @@ test('options.generateStateFunction', async t => {
       query: { code: 'generated_code' }
     }, function (err, responseStart) {
       t.assert.ifError(err)
-      t.assert.deepStrictEqual(responseStart.statusCode, 302)
+      t.assert.strictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
       t.assert.ok(matched)
       end()
@@ -2556,7 +2556,7 @@ test('options.generateStateFunction', async t => {
       query: { code: 'generated_code' }
     }, function (err, responseStart) {
       t.assert.ifError(err)
-      t.assert.deepStrictEqual(responseStart.statusCode, 302)
+      t.assert.strictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
       t.assert.ok(matched)
       end()
@@ -2596,7 +2596,7 @@ test('options.generateStateFunction', async t => {
       query: { code: 'generated_code' }
     }, function (err, responseStart) {
       t.assert.ifError(err)
-      t.assert.deepStrictEqual(responseStart.statusCode, 302)
+      t.assert.strictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
       t.assert.ok(matched)
       end()
@@ -2638,8 +2638,8 @@ test('options.generateStateFunction', async t => {
       query: { code: 'generated_code' }
     }, function (err, responseStart) {
       t.assert.ifError(err)
-      t.assert.deepStrictEqual(responseStart.statusCode, 500)
-      t.assert.deepStrictEqual(responseStart.body, 'generate state failed')
+      t.assert.strictEqual(responseStart.statusCode, 500)
+      t.assert.strictEqual(responseStart.body, 'generate state failed')
       end()
     })
   })
@@ -2673,8 +2673,8 @@ test('options.generateStateFunction', async t => {
       query: { code: 'generated_code' }
     }, function (err, responseStart) {
       t.assert.ifError(err)
-      t.assert.deepStrictEqual(responseStart.statusCode, 500)
-      t.assert.deepStrictEqual(responseStart.body, 'generate state failed')
+      t.assert.strictEqual(responseStart.statusCode, 500)
+      t.assert.strictEqual(responseStart.body, 'generate state failed')
       end()
     })
   })
@@ -2720,7 +2720,7 @@ test('options.checkStateFunction', async t => {
         return request.query.code
       },
       checkStateFunction: function () {
-        t.assert.deepStrictEqual(this, fastify)
+        t.assert.strictEqual(this, fastify)
         return true
       },
       scope: ['notifications']
@@ -2874,8 +2874,8 @@ test('options.checkStateFunction', async t => {
     }, function (err, responseEnd) {
       t.assert.ifError(err)
 
-      t.assert.deepStrictEqual(responseEnd.statusCode, 400)
-      t.assert.deepStrictEqual(responseEnd.payload, 'Invalid state')
+      t.assert.strictEqual(responseEnd.statusCode, 400)
+      t.assert.strictEqual(responseEnd.payload, 'Invalid state')
 
       end()
     })
@@ -2921,8 +2921,8 @@ test('options.checkStateFunction', async t => {
     }, function (err, responseEnd) {
       t.assert.ifError(err)
 
-      t.assert.deepStrictEqual(responseEnd.statusCode, 400)
-      t.assert.deepStrictEqual(responseEnd.payload, 'state is invalid')
+      t.assert.strictEqual(responseEnd.statusCode, 400)
+      t.assert.strictEqual(responseEnd.payload, 'state is invalid')
 
       end()
     })
@@ -2984,8 +2984,8 @@ test('options.redirectStateCookieName', async (t) => {
       function (err, responseEnd) {
         t.assert.ifError(err)
 
-        t.assert.deepStrictEqual(responseEnd.statusCode, 302)
-        t.assert.deepStrictEqual(responseEnd.cookies[0].name, 'custom-redirect-state')
+        t.assert.strictEqual(responseEnd.statusCode, 302)
+        t.assert.strictEqual(responseEnd.cookies[0].name, 'custom-redirect-state')
         t.assert.ok(typeof responseEnd.cookies[0].value === 'string')
 
         end()
@@ -3048,8 +3048,8 @@ test('options.verifierCookieName', async (t) => {
       function (err, responseEnd) {
         t.assert.ifError(err)
 
-        t.assert.deepStrictEqual(responseEnd.statusCode, 302)
-        t.assert.deepStrictEqual(responseEnd.cookies[1].name, 'custom-verifier')
+        t.assert.strictEqual(responseEnd.statusCode, 302)
+        t.assert.strictEqual(responseEnd.cookies[1].name, 'custom-verifier')
         t.assert.ok(typeof responseEnd.cookies[1].value === 'string')
 
         end()
