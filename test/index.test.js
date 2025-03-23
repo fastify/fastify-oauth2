@@ -1,6 +1,6 @@
 'use strict'
 
-const t = require('tap')
+const { test, after } = require('node:test')
 const nock = require('nock')
 const createFastify = require('fastify')
 const crypto = require('node:crypto')
@@ -9,7 +9,7 @@ const fastifyOauth2 = require('..')
 
 nock.disableNetConnect()
 
-function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, omitCodeChallenge, discoveryHostOptions = {}) {
+function makeRequests (t, end, fastify, userAgentHeaderMatcher, pkce, discoveryHost, omitCodeChallenge, discoveryHostOptions = {}) {
   let discoveryScope
   if (discoveryHost) {
     const METADATA_BODY = {
@@ -38,45 +38,45 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
 
   fastify.listen({ port: 0 }, function (err) {
     if (discoveryHostOptions.badJSON) {
-      t.ok(err.message.startsWith('Unexpected token'))
+      t.assert.ok(err.message.startsWith('Unexpected token'))
       discoveryScope?.done()
-      t.end()
+      end()
       return
     }
 
     if (discoveryHostOptions.error) {
-      t.equal(err.message, 'Problem calling discovery endpoint. See innerError for details.')
-      t.equal(err.innerError.code, 'ETIMEDOUT')
+      t.assert.strictEqual(err.message, 'Problem calling discovery endpoint. See innerError for details.')
+      t.assert.strictEqual(err.innerError.code, 'ETIMEDOUT')
       discoveryScope?.done()
-      t.end()
+      end()
       return
     }
 
     if (discoveryHostOptions.noToken) {
       // Let simple-oauth2 configuration fail instead
-      t.equal(err.message, 'Invalid options provided to simple-oauth2 "auth.tokenHost" is required')
+      t.assert.strictEqual(err.message, 'Invalid options provided to simple-oauth2 "auth.tokenHost" is required')
       discoveryScope?.done()
-      t.end()
+      end()
       return
     }
 
-    t.error(err, 'not expecting error here!')
+    t.assert.ifError(err, 'not expecting error here!')
 
     fastify.inject({
       method: 'GET',
       url: '/login/github'
     }, function (err, responseStart) {
-      t.error(err)
+      t.assert.ifError(err)
 
-      t.equal(responseStart.statusCode, 302)
+      t.assert.strictEqual(responseStart.statusCode, 302)
 
       const { searchParams } = new URL(responseStart.headers.location)
       const [state, codeChallengeMethod, codeChallenge] = ['state', 'code_challenge_method', 'code_challenge'].map(k => searchParams.get(k))
 
-      t.ok(state)
+      t.assert.ok(state)
       if (pkce) {
-        t.strictSame(codeChallengeMethod, pkce, 'pkce method must match')
-        t.ok(codeChallenge, 'code challenge is present')
+        t.assert.strictEqual(codeChallengeMethod, pkce, 'pkce method must match')
+        t.assert.ok(codeChallenge, 'code challenge is present')
       }
 
       const RESPONSE_BODY = {
@@ -170,22 +170,22 @@ function makeRequests (t, fastify, userAgentHeaderMatcher, pkce, discoveryHost, 
           'oauth2-code-verifier': pkce ? 'myverifier' : undefined
         }
       }, function (err, responseEnd) {
-        t.error(err)
+        t.assert.ifError(err)
 
-        t.equal(responseEnd.statusCode, 200)
-        t.strictSame(JSON.parse(responseEnd.payload), RESPONSE_BODY_REFRESHED)
+        t.assert.strictEqual(responseEnd.statusCode, 200)
+        t.assert.deepStrictEqual(JSON.parse(responseEnd.payload), RESPONSE_BODY_REFRESHED)
 
         githubScope.done()
         discoveryScope?.done()
         userinfoScope?.done()
-        t.end()
+        end()
       })
     })
   })
 }
 
-t.test('fastify-oauth2', t => {
-  t.test('callback', t => {
+test('fastify-oauth2', async t => {
+  await t.test('callback', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -225,12 +225,12 @@ t.test('fastify-oauth2', t => {
       })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
-  t.test('callbackUri as function', t => {
+  await t.test('callbackUri as function', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -270,12 +270,12 @@ t.test('fastify-oauth2', t => {
       })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
-  t.test('promise', t => {
+  await t.test('promise', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -308,12 +308,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
-  t.test('wrong state', t => {
+  await t.test('wrong state', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -337,22 +337,22 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.inject({
       method: 'GET',
       url: '/?code=my-code&state=wrong-state'
     }, function (err, responseEnd) {
-      t.error(err)
+      t.assert.ifError(err)
 
-      t.equal(responseEnd.statusCode, 400)
-      t.strictSame(responseEnd.payload, 'Invalid state')
+      t.assert.strictEqual(responseEnd.statusCode, 400)
+      t.assert.strictEqual(responseEnd.payload, 'Invalid state')
 
-      t.end()
+      end()
     })
   })
 
-  t.test('custom user-agent', t => {
+  await t.test('custom user-agent', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -386,12 +386,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, 'test/1.2.3')
+    makeRequests(t, end, fastify, 'test/1.2.3')
   })
 
-  t.test('overridden user-agent', t => {
+  await t.test('overridden user-agent', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -430,12 +430,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, /^foo\/4\.5\.6$/)
+    makeRequests(t, end, fastify, /^foo\/4\.5\.6$/)
   })
 
-  t.test('disabled user-agent', t => {
+  await t.test('disabled user-agent', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -469,12 +469,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, userAgent => userAgent === undefined)
+    makeRequests(t, end, fastify, userAgent => userAgent === undefined)
   })
 
-  t.test('pkce.plain', t => {
+  await t.test('pkce.plain', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -508,12 +508,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'plain')
+    makeRequests(t, end, fastify, undefined, 'plain')
   })
 
-  t.test('pkce.S256', t => {
+  await t.test('pkce.S256', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -538,7 +538,7 @@ t.test('fastify-oauth2', t => {
       try {
         await this.githubOAuth2.userinfo('a try without a discovery option')
       } catch (error) {
-        t.equal(
+        t.assert.strictEqual(
           error.message,
           'userinfo can not be used without discovery',
           'error signals to user that they should use discovery for this to work'
@@ -553,12 +553,12 @@ t.test('fastify-oauth2', t => {
       }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256')
+    makeRequests(t, end, fastify, undefined, 'S256')
   })
 
-  t.test('discovery with S256 - automatic', t => {
+  await t.test('discovery with S256 - automatic', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -593,12 +593,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com')
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com')
   })
 
-  t.test('discovery with userinfo', t => {
+  await t.test('discovery with userinfo', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -624,28 +624,28 @@ t.test('fastify-oauth2', t => {
       try {
         await this.githubOAuth2.userinfo(refreshResult.token, { method: 'PUT' })
       } catch (error) {
-        t.equal(error.message, 'userinfo methods supported are only GET and POST', 'should not work for other methods')
+        t.assert.strictEqual(error.message, 'userinfo methods supported are only GET and POST', 'should not work for other methods')
       }
 
       try {
         await this.githubOAuth2.userinfo(refreshResult.token, { method: 'GET', via: 'body' })
       } catch (error) {
-        t.equal(error.message, 'body is supported only with POST', 'should report incompatible combo')
+        t.assert.strictEqual(error.message, 'body is supported only with POST', 'should report incompatible combo')
       }
 
       const userinfo = await this.githubOAuth2.userinfo(refreshResult.token, { params: { a: 1 } })
 
-      t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+      t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
 
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoQuery: '?a=1' })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoQuery: '?a=1' })
   })
 
-  t.test('discovery with userinfo POST header', t => {
+  await t.test('discovery with userinfo POST header', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -669,14 +669,14 @@ t.test('fastify-oauth2', t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
 
       const userinfo = await this.githubOAuth2.userinfo(refreshResult.token, { method: 'POST', params: { a: 1 } })
-      t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+      t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
 
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false,
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false,
       {
         userinfoEndpoint: 'https://github.com/me',
         userInfoMethod: 'POST',
@@ -684,7 +684,7 @@ t.test('fastify-oauth2', t => {
       })
   })
 
-  t.test('discovery with userinfo POST body', t => {
+  await t.test('discovery with userinfo POST body', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -708,14 +708,14 @@ t.test('fastify-oauth2', t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
 
       const userinfo = await this.githubOAuth2.userinfo(refreshResult.token, { method: 'POST', via: 'body', params: { a: 1 } })
-      t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+      t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
 
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false,
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false,
       {
         userinfoEndpoint: 'https://github.com/me',
         userInfoMethod: 'POST',
@@ -724,7 +724,7 @@ t.test('fastify-oauth2', t => {
       })
   })
 
-  t.test('discovery with userinfo -> callback API (full)', t => {
+  await t.test('discovery with userinfo -> callback API (full)', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -748,8 +748,8 @@ t.test('fastify-oauth2', t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(refreshResult.token, {}, (err, userinfo) => {
-          t.error(err)
-          t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+          t.assert.ifError(err)
+          t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
           resolve()
         })
       })
@@ -757,12 +757,12 @@ t.test('fastify-oauth2', t => {
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
   })
 
-  t.test('discovery with userinfo -> callback API (userinfo request option ommited)', t => {
+  await t.test('discovery with userinfo -> callback API (userinfo request option ommited)', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -786,8 +786,8 @@ t.test('fastify-oauth2', t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(refreshResult.token, (err, userinfo) => {
-          t.error(err)
-          t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+          t.assert.ifError(err)
+          t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
           resolve()
         })
       })
@@ -795,12 +795,12 @@ t.test('fastify-oauth2', t => {
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me' })
   })
 
-  t.test('discovery with userinfo -> handles responses with multiple "data" events', t => {
+  await t.test('discovery with userinfo -> handles responses with multiple "data" events', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -824,8 +824,8 @@ t.test('fastify-oauth2', t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(refreshResult.token, {}, (err, userinfo) => {
-          t.error(err)
-          t.equal(userinfo.sub, 'github.subjectid', 'should match an id')
+          t.assert.ifError(err)
+          t.assert.strictEqual(userinfo.sub, 'github.subjectid', 'should match an id')
           resolve()
         })
       })
@@ -833,12 +833,12 @@ t.test('fastify-oauth2', t => {
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoChunks: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoChunks: true })
   })
 
-  t.test('discovery with userinfo -> fails gracefully when at format is bad', t => {
+  await t.test('discovery with userinfo -> fails gracefully when at format is bad', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -862,7 +862,7 @@ t.test('fastify-oauth2', t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(123456789, (err) => {
-          t.equal(err.message,
+          t.assert.strictEqual(err.message,
             'you should provide token object containing access_token or access_token as string directly',
             'should match error message')
           resolve()
@@ -872,12 +872,12 @@ t.test('fastify-oauth2', t => {
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadArgs: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadArgs: true })
   })
 
-  t.test('discovery with userinfo -> fails gracefully when nested at format is bad', t => {
+  await t.test('discovery with userinfo -> fails gracefully when nested at format is bad', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -901,7 +901,7 @@ t.test('fastify-oauth2', t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo({ access_token: 123456789 }, (err) => {
-          t.equal(err.message, 'access_token should be string', 'message for nested access token format matched')
+          t.assert.strictEqual(err.message, 'access_token should be string', 'message for nested access token format matched')
           resolve()
         })
       })
@@ -909,12 +909,12 @@ t.test('fastify-oauth2', t => {
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadArgs: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadArgs: true })
   })
 
-  t.test('discovery with userinfo -> fails gracefully with problematic /me endpoint', t => {
+  await t.test('discovery with userinfo -> fails gracefully with problematic /me endpoint', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -939,7 +939,7 @@ t.test('fastify-oauth2', t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(refreshResult.token.access_token, (err) => {
-          t.equal(err.message,
+          t.assert.strictEqual(err.message,
             'Problem calling userinfo endpoint. See innerError for details.',
             'should match start of the error message'
           )
@@ -950,12 +950,12 @@ t.test('fastify-oauth2', t => {
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, userAgent => userAgent === undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', problematicUserinfo: true })
+    makeRequests(t, end, fastify, userAgent => userAgent === undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', problematicUserinfo: true })
   })
 
-  t.test('discovery with userinfo -> works with http', t => {
+  await t.test('discovery with userinfo -> works with http', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -980,7 +980,7 @@ t.test('fastify-oauth2', t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(refreshResult.token.access_token, (err) => {
-          t.error(err)
+          t.assert.ifError(err)
           resolve()
         })
       })
@@ -988,12 +988,12 @@ t.test('fastify-oauth2', t => {
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, userAgent => userAgent === undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'http://github.com/me', userinfoNonEncrypted: true })
+    makeRequests(t, end, fastify, userAgent => userAgent === undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'http://github.com/me', userinfoNonEncrypted: true })
   })
 
-  t.test('discovery with userinfo -> fails gracefully with bad data', t => {
+  await t.test('discovery with userinfo -> fails gracefully with bad data', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1017,7 +1017,7 @@ t.test('fastify-oauth2', t => {
       const refreshResult = await this.githubOAuth2.getNewAccessTokenUsingRefreshToken(result.token)
       await new Promise((resolve) => {
         this.githubOAuth2.userinfo(refreshResult.token.access_token, (err) => {
-          t.ok(err.message.startsWith('Unexpected token'), 'should match start of the error message')
+          t.assert.ok(err.message.startsWith('Unexpected token'), 'should match start of the error message')
           resolve()
         })
       })
@@ -1025,12 +1025,12 @@ t.test('fastify-oauth2', t => {
       return { ...refreshResult.token, expires_at: undefined }
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadData: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', false, { userinfoEndpoint: 'https://github.com/me', userinfoBadData: true })
   })
 
-  t.test('discovery with plain - automatic', t => {
+  await t.test('discovery with plain - automatic', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1065,12 +1065,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'plain', 'https://github.com')
+    makeRequests(t, end, fastify, undefined, 'plain', 'https://github.com')
   })
 
-  t.test('discovery with no code challenge method - explicitly set instead', t => {
+  await t.test('discovery with no code challenge method - explicitly set instead', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1106,12 +1106,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', true)
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', true)
   })
 
-  t.test('discovery with S256 - automatic, supported full discovery URL', t => {
+  await t.test('discovery with S256 - automatic, supported full discovery URL', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1146,12 +1146,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com')
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com')
   })
 
-  t.test('discovery with S256 - automatic, supported deep mount without a trailing slash', t => {
+  await t.test('discovery with S256 - automatic, supported deep mount without a trailing slash', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1186,12 +1186,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com/deepmount') // no trailin slash
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com/deepmount') // no trailin slash
   })
 
-  t.test('discovery - supports HTTP', t => {
+  await t.test('discovery - supports HTTP', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1226,12 +1226,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'http://github.com')
+    makeRequests(t, end, fastify, undefined, 'S256', 'http://github.com')
   })
 
-  t.test('discovery - supports omitting user agent', t => {
+  await t.test('discovery - supports omitting user agent', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1267,12 +1267,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, userAgent => userAgent === undefined, 'S256', 'http://github.com')
+    makeRequests(t, end, fastify, userAgent => userAgent === undefined, 'S256', 'http://github.com')
   })
 
-  t.test('discovery - failed gracefully when discovery host gives bad data', t => {
+  await t.test('discovery - failed gracefully when discovery host gives bad data', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1307,12 +1307,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, undefined, 'http://github.com', undefined, { badJSON: true })
+    makeRequests(t, end, fastify, undefined, undefined, 'http://github.com', undefined, { badJSON: true })
   })
 
-  t.test('discovery - failed gracefully when discovery host errs with ETIMEDOUT or similar', t => {
+  await t.test('discovery - failed gracefully when discovery host errs with ETIMEDOUT or similar', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1347,12 +1347,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, undefined, 'http://github.com', undefined, { error: { code: 'ETIMEDOUT' } })
+    makeRequests(t, end, fastify, undefined, undefined, 'http://github.com', undefined, { error: { code: 'ETIMEDOUT' } })
   })
 
-  t.test('discovery - should work when OP doesn\'t announce revocation', t => {
+  await t.test('discovery - should work when OP doesn\'t announce revocation', (t, end) => {
     // not that some Authorization servers might have revocation as optional,
     // even token and authorization endpoints could be optional
     // plugin should not break internally due to these responses
@@ -1391,11 +1391,11 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', undefined, { noRevocation: true })
+    after(() => fastify.close())
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', undefined, { noRevocation: true })
   })
 
-  t.test('discovery - should work when OP doesn\'t announce authorization endpoint', t => {
+  await t.test('discovery - should work when OP doesn\'t announce authorization endpoint', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1430,12 +1430,12 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', undefined, { noAuthorization: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', undefined, { noAuthorization: true })
   })
 
-  t.test('discovery - should work when OP doesn\'t announce token endpoint', t => {
+  await t.test('discovery - should work when OP doesn\'t announce token endpoint', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -1470,44 +1470,37 @@ t.test('fastify-oauth2', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify, undefined, 'S256', 'https://github.com', undefined, { noToken: true })
+    makeRequests(t, end, fastify, undefined, 'S256', 'https://github.com', undefined, { noToken: true })
   })
-
-  t.end()
 })
 
-t.test('options.name should be a string', t => {
+test('options.name should be a string', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2)
-    .ready(err => {
-      t.strictSame(err.message, 'options.name should be a string')
-    })
+  t.assert.rejects(fastify.register(fastifyOauth2).ready(), undefined, 'options.name should be a string')
 })
 
-t.test('options.credentials should be an object', t => {
+test('options.credentials should be an object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name'
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.credentials should be an object')
-    })
+    .ready(), undefined, 'options.credentials should be an object')
 })
 
-t.test('options.callbackUri should be a string or a function', t => {
+test('options.callbackUri should be a string or a function', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1517,17 +1510,15 @@ t.test('options.callbackUri should be a string or a function', t => {
       auth: fastifyOauth2.GITHUB_CONFIGURATION
     }
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.callbackUri should be a string or a function')
-    })
+    .ready(), undefined, 'options.callbackUri should be a string or a function')
 })
 
-t.test('options.callbackUriParams should be an object', t => {
+test('options.callbackUriParams should be an object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1539,12 +1530,10 @@ t.test('options.callbackUriParams should be an object', t => {
     callbackUri: '/callback',
     callbackUriParams: 1
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.callbackUriParams should be a object')
-    })
+    .ready(), undefined, 'options.callbackUriParams should be a object')
 })
 
-t.test('options.callbackUriParams', t => {
+test('options.callbackUriParams', (t, end) => {
   const fastify = createFastify({ logger: { level: 'silent' } })
 
   fastify.register(fastifyOauth2, {
@@ -1564,31 +1553,31 @@ t.test('options.callbackUriParams', t => {
     scope: ['notifications']
   })
 
-  t.teardown(fastify.close.bind(fastify))
+  after(() => fastify.close())
 
   fastify.listen({ port: 0 }, function (err) {
-    t.error(err)
+    t.assert.ifError(err)
 
     fastify.inject({
       method: 'GET',
       url: '/login/github'
     }, function (err, responseStart) {
-      t.error(err)
+      t.assert.ifError(err)
 
-      t.equal(responseStart.statusCode, 302)
+      t.assert.strictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&access_type=offline&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
-      t.ok(matched)
-      t.end()
+      t.assert.ok(matched)
+      end()
     })
   })
 })
 
-t.test('options.tokenRequestParams should be an object', t => {
+test('options.tokenRequestParams should be an object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1600,14 +1589,10 @@ t.test('options.tokenRequestParams should be an object', t => {
     callbackUri: '/callback',
     tokenRequestParams: 1
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.tokenRequestParams should be a object')
-    })
+    .ready(), undefined, 'options.tokenRequestParams should be a object')
 })
 
-t.test('options.tokenRequestParams', t => {
-  t.plan(2)
-
+test('options.tokenRequestParams', async t => {
   const fastify = createFastify({ logger: { level: 'silent' } })
   const oAuthCode = '123456789'
 
@@ -1654,23 +1639,18 @@ t.test('options.tokenRequestParams', t => {
       })
   })
 
-  t.teardown(fastify.close.bind(fastify))
+  after(() => fastify.close())
 
-  fastify.listen({ port: 0 }, function (err) {
-    t.error(err)
-
-    fastify.inject({
-      method: 'GET',
-      url: '/callback?code=' + oAuthCode
-    }, function (err) {
-      t.error(err)
-
-      githubScope.done()
-    })
+  await fastify.listen({ port: 0 })
+  await fastify.inject({
+    method: 'GET',
+    url: '/callback?code=' + oAuthCode
   })
+
+  githubScope.done()
 })
 
-t.test('generateAuthorizationUri redirect with request object', t => {
+test('generateAuthorizationUri redirect with request object', (t, end) => {
   const fastify = createFastify()
 
   fastify.register(fastifyOauth2, {
@@ -1684,7 +1664,7 @@ t.test('generateAuthorizationUri redirect with request object', t => {
     },
     callbackUri: '/callback',
     generateStateFunction: (request) => {
-      t.ok(request, 'the request param has been set')
+      t.assert.ok(request, 'the request param has been set')
       return request.query.code
     },
     checkStateFunction: () => true,
@@ -1696,22 +1676,22 @@ t.test('generateAuthorizationUri redirect with request object', t => {
     return reply.redirect(redirectUrl)
   })
 
-  t.teardown(fastify.close.bind(fastify))
+  after(() => fastify.close())
 
   fastify.inject({
     method: 'GET',
     url: '/gh',
     query: { code: 'generated_code' }
   }, function (err, responseStart) {
-    t.error(err)
-    t.equal(responseStart.statusCode, 302)
+    t.assert.ifError(err)
+    t.assert.strictEqual(responseStart.statusCode, 302)
     const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
-    t.ok(matched)
-    t.end()
+    t.assert.ok(matched)
+    end()
   })
 })
 
-t.test('generateAuthorizationUri redirect with request object and callback', t => {
+test('generateAuthorizationUri redirect with request object and callback', (t, end) => {
   const fastify = createFastify()
 
   fastify.register(fastifyOauth2, {
@@ -1725,7 +1705,7 @@ t.test('generateAuthorizationUri redirect with request object and callback', t =
     },
     callbackUri: '/callback',
     generateStateFunction: (request) => {
-      t.ok(request, 'the request param has been set')
+      t.assert.ok(request, 'the request param has been set')
       return request.query.code
     },
     checkStateFunction: () => true,
@@ -1742,27 +1722,27 @@ t.test('generateAuthorizationUri redirect with request object and callback', t =
     })
   })
 
-  t.teardown(fastify.close.bind(fastify))
+  after(() => fastify.close())
 
   fastify.inject({
     method: 'GET',
     url: '/gh',
     query: { code: 'generated_code' }
   }, function (err, responseStart) {
-    t.error(err)
-    t.equal(responseStart.statusCode, 302)
+    t.assert.ifError(err)
+    t.assert.strictEqual(responseStart.statusCode, 302)
     const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
-    t.ok(matched)
-    t.end()
+    t.assert.ok(matched)
+    end()
   })
 })
 
-t.test('options.startRedirectPath should be a string', t => {
+test('options.startRedirectPath should be a string', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1774,17 +1754,15 @@ t.test('options.startRedirectPath should be a string', t => {
     callbackUri: '/callback',
     startRedirectPath: 42
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.startRedirectPath should be a string')
-    })
+    .ready(), undefined, 'options.startRedirectPath should be a string')
 })
 
-t.test('options.generateStateFunction ^ options.checkStateFunction', t => {
+test('options.generateStateFunction ^ options.checkStateFunction', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1796,17 +1774,15 @@ t.test('options.generateStateFunction ^ options.checkStateFunction', t => {
     callbackUri: '/callback',
     checkStateFunction: () => { }
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.checkStateFunction and options.generateStateFunction have to be given')
-    })
+    .ready(), undefined, 'options.checkStateFunction and options.generateStateFunction have to be given')
 })
 
-t.test('options.tags should be a array', t => {
+test('options.tags should be a array', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1818,17 +1794,15 @@ t.test('options.tags should be a array', t => {
     callbackUri: '/callback',
     tags: 'invalid tags'
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.tags should be a array')
-    })
+    .ready(), undefined, 'options.tags should be a array')
 })
 
-t.test('options.schema should be a object', t => {
+test('options.schema should be a object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1840,17 +1814,15 @@ t.test('options.schema should be a object', t => {
     callbackUri: '/callback',
     schema: 1
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.schema should be a object')
-    })
+    .ready(), undefined, 'options.schema should be a object')
 })
 
-t.test('options.cookie should be an object', t => {
+test('options.cookie should be an object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1862,17 +1834,15 @@ t.test('options.cookie should be an object', t => {
     callbackUri: '/callback',
     cookie: 1
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.cookie should be an object')
-    })
+    .ready(), undefined, 'options.cookie should be an object')
 })
 
-t.test('options.userAgent should be a string', t => {
+test('options.userAgent should be a string', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1884,17 +1854,15 @@ t.test('options.userAgent should be a string', t => {
     callbackUri: '/callback',
     userAgent: 1
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.userAgent should be a string')
-    })
+    .ready(), undefined, 'options.userAgent should be a string')
 })
 
-t.test('options.pkce', t => {
+test('options.pkce', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1906,17 +1874,15 @@ t.test('options.pkce', t => {
     callbackUri: '/callback',
     pkce: {}
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.pkce should be one of "S256" | "plain" when used')
-    })
+    .ready(), undefined, 'options.pkce should be one of "S256" | "plain" when used')
 })
 
-t.test('options.discovery should be object', t => {
+test('options.discovery should be object', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1928,17 +1894,15 @@ t.test('options.discovery should be object', t => {
     callbackUri: '/callback',
     discovery: 'string'
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.discovery should be an object')
-    })
+    .ready(), undefined, 'options.discovery should be an object')
 })
 
-t.test('options.discovery.issuer should be URL', t => {
+test('options.discovery.issuer should be URL', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1952,17 +1916,15 @@ t.test('options.discovery.issuer should be URL', t => {
       issuer: {}
     }
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.discovery.issuer should be a URL in string format')
-    })
+    .ready(), undefined, 'options.discovery.issuer should be URL')
 })
 
-t.test('credentials.auth should not be provided when discovery is used', t => {
+test('credentials.auth should not be provided when discovery is used', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1976,17 +1938,15 @@ t.test('credentials.auth should not be provided when discovery is used', t => {
       issuer: 'https://valid.iss'
     }
   })
-    .ready(err => {
-      t.strictSame(err.message, 'when options.discovery.issuer is configured, credentials.auth should not be used')
-    })
+    .ready(), undefined, 'credentials.auth should not be provided when discovery is used')
 })
 
-t.test('not providing options.discovery.issuer and credentials.auth', t => {
+test('not providing options.discovery.issuer and credentials.auth', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify.register(fastifyOauth2, {
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
     name: 'the-name',
     credentials: {
       client: {
@@ -1996,17 +1956,15 @@ t.test('not providing options.discovery.issuer and credentials.auth', t => {
     },
     callbackUri: '/callback'
   })
-    .ready(err => {
-      t.strictSame(err.message, 'options.discovery.issuer or credentials.auth have to be given')
-    })
+    .ready(), undefined, 'options.discovery.issuer or credentials.auth have to be given')
 })
 
-t.test('options.schema', t => {
+test('options.schema', (t, end) => {
   const fastify = createFastify({ logger: { level: 'silent' }, exposeHeadRoutes: false })
 
   fastify.addHook('onRoute', function (routeOptions) {
-    t.strictSame(routeOptions.schema, { tags: ['oauth2', 'oauth'] })
-    t.end()
+    t.assert.deepStrictEqual(routeOptions.schema, { tags: ['oauth2', 'oauth'] })
+    end()
   })
 
   fastify.register(fastifyOauth2, {
@@ -2032,12 +1990,12 @@ t.test('options.schema', t => {
   fastify.ready()
 })
 
-t.test('already decorated', t => {
+test('already decorated', t => {
   t.plan(1)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
 
-  fastify
+  return t.assert.rejects(fastify
     .decorate('githubOAuth2', false)
     .register(fastifyOauth2, {
       name: 'githubOAuth2',
@@ -2050,15 +2008,13 @@ t.test('already decorated', t => {
       },
       callbackUri: '/callback'
     })
-    .ready(err => {
-      t.strictSame(err.message, 'The decorator \'githubOAuth2\' has already been added!')
-    })
+    .ready(), undefined, 'The decorator \'githubOAuth2\' has already been added!')
 })
 
-t.test('preset configuration generate-callback-uri-params', t => {
+test('preset configuration generate-callback-uri-params', async t => {
   t.plan(3)
 
-  t.test('array scope', t => {
+  await t.test('array scope', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2078,26 +2034,26 @@ t.test('preset configuration generate-callback-uri-params', t => {
       scope: ['email']
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.listen({ port: 0 }, function (err) {
-      t.error(err)
+      t.assert.ifError(err)
 
       fastify.inject({
         method: 'GET',
         url: '/login/apple'
       }, function (err, responseStart) {
-        t.error(err)
+        t.assert.ifError(err)
 
-        t.equal(responseStart.statusCode, 302)
+        t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&response_mode=form_post&redirect_uri=%2Fcallback&scope=email&state=(.*)/)
-        t.ok(matched)
-        t.end()
+        t.assert.ok(matched)
+        end()
       })
     })
   })
 
-  t.test('string scope', t => {
+  await t.test('string scope', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2117,26 +2073,26 @@ t.test('preset configuration generate-callback-uri-params', t => {
       scope: 'name'
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.listen({ port: 0 }, function (err) {
-      t.error(err)
+      t.assert.ifError(err)
 
       fastify.inject({
         method: 'GET',
         url: '/login/apple'
       }, function (err, responseStart) {
-        t.error(err)
+        t.assert.ifError(err)
 
-        t.equal(responseStart.statusCode, 302)
+        t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&response_mode=form_post&redirect_uri=%2Fcallback&scope=name&state=(.*)/)
-        t.ok(matched)
-        t.end()
+        t.assert.ok(matched)
+        end()
       })
     })
   })
 
-  t.test('no scope', t => {
+  await t.test('no scope', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2156,27 +2112,27 @@ t.test('preset configuration generate-callback-uri-params', t => {
       scope: ''
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.listen({ port: 0 }, function (err) {
-      t.error(err)
+      t.assert.ifError(err)
 
       fastify.inject({
         method: 'GET',
         url: '/login/apple'
       }, function (err, responseStart) {
-        t.error(err)
+        t.assert.ifError(err)
 
-        t.equal(responseStart.statusCode, 302)
+        t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=&state=(.*)/)
-        t.ok(matched)
-        t.end()
+        t.assert.ok(matched)
+        end()
       })
     })
   })
 })
 
-t.test('preset configuration generate-callback-uri-params', t => {
+test('preset configuration generate-callback-uri-params', t => {
   t.plan(56)
 
   const presetConfigs = [
@@ -2197,14 +2153,14 @@ t.test('preset configuration generate-callback-uri-params', t => {
   ]
 
   for (const configName of presetConfigs) {
-    t.ok(fastifyOauth2[configName])
-    t.equal(typeof fastifyOauth2[configName].tokenHost, 'string')
-    t.equal(typeof fastifyOauth2[configName].tokenPath, 'string')
-    t.equal(typeof fastifyOauth2[configName].authorizePath, 'string')
+    t.assert.ok(fastifyOauth2[configName])
+    t.assert.strictEqual(typeof fastifyOauth2[configName].tokenHost, 'string')
+    t.assert.strictEqual(typeof fastifyOauth2[configName].tokenPath, 'string')
+    t.assert.strictEqual(typeof fastifyOauth2[configName].authorizePath, 'string')
   }
 })
 
-t.test('revoke token for gitlab with callback', (t) => {
+test('revoke token for gitlab with callback', (t, end) => {
   t.plan(3)
   const fastify = createFastify({ logger: { level: 'silent' } })
 
@@ -2232,10 +2188,10 @@ t.test('revoke token for gitlab with callback', (t) => {
     })
   })
 
-  t.teardown(fastify.close.bind(fastify))
+  after(() => fastify.close())
 
   fastify.listen({ port: 0 }, function (err) {
-    t.error(err)
+    t.assert.ifError(err)
 
     const gitlabRevoke = nock('https://gitlab.com')
       .post('/oauth/revoke', 'token=testToken&token_type_hint=access_token')
@@ -2245,16 +2201,16 @@ t.test('revoke token for gitlab with callback', (t) => {
       method: 'GET',
       url: '/'
     }, function (err, responseStart) {
-      t.error(err, 'No error should be thrown')
-      t.equal(responseStart.statusCode, 200)
+      t.assert.ifError(err, 'No error should be thrown')
+      t.assert.strictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
-      t.end()
+      end()
     })
   })
 })
 
-t.test('revoke token for gitlab promisify', (t) => {
+test('revoke token for gitlab promisify', (t, end) => {
   t.plan(3)
   const fastify = createFastify({ logger: { level: 'silent' } })
 
@@ -2283,10 +2239,10 @@ t.test('revoke token for gitlab promisify', (t) => {
     })
   })
 
-  t.teardown(fastify.close.bind(fastify))
+  after(() => fastify.close())
 
   fastify.listen({ port: 0 }, function (err) {
-    t.error(err)
+    t.assert.ifError(err)
 
     const gitlabRevoke = nock('https://gitlab.com')
       .post('/oauth/revoke', 'token=testToken&token_type_hint=access_token')
@@ -2296,16 +2252,16 @@ t.test('revoke token for gitlab promisify', (t) => {
       method: 'GET',
       url: '/'
     }, function (err, responseStart) {
-      t.error(err, 'No error should be thrown')
-      t.equal(responseStart.statusCode, 200)
+      t.assert.ifError(err, 'No error should be thrown')
+      t.assert.strictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
-      t.end()
+      end()
     })
   })
 })
 
-t.test('revoke all token for gitlab promisify', (t) => {
+test('revoke all token for gitlab promisify', (t, end) => {
   t.plan(3)
   const fastify = createFastify({ logger: { level: 'silent' } })
 
@@ -2335,10 +2291,10 @@ t.test('revoke all token for gitlab promisify', (t) => {
     })
   })
 
-  t.teardown(fastify.close.bind(fastify))
+  after(() => fastify.close())
 
   fastify.listen({ port: 0 }, function (err) {
-    t.error(err)
+    t.assert.ifError(err)
 
     const gitlabRevoke = nock('https://gitlab.com')
       .post('/oauth/revoke', 'token=testToken&token_type_hint=access_token')
@@ -2350,16 +2306,16 @@ t.test('revoke all token for gitlab promisify', (t) => {
       method: 'GET',
       url: '/'
     }, function (err, responseStart) {
-      t.error(err, 'No error should be thrown')
-      t.equal(responseStart.statusCode, 200)
+      t.assert.ifError(err, 'No error should be thrown')
+      t.assert.strictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
-      t.end()
+      end()
     })
   })
 })
 
-t.test('revoke all token for linkedin callback', (t) => {
+test('revoke all token for linkedin callback', (t, end) => {
   t.plan(3)
   const fastify = createFastify({ logger: { level: 'silent' } })
 
@@ -2388,10 +2344,10 @@ t.test('revoke all token for linkedin callback', (t) => {
     })
   })
 
-  t.teardown(fastify.close.bind(fastify))
+  after(() => fastify.close())
 
   fastify.listen({ port: 0 }, function (err) {
-    t.error(err)
+    t.assert.ifError(err)
 
     const gitlabRevoke = nock('https://www.linkedin.com')
       .post('/oauth/v2/revoke', 'token=testToken&token_type_hint=access_token')
@@ -2403,17 +2359,17 @@ t.test('revoke all token for linkedin callback', (t) => {
       method: 'GET',
       url: '/'
     }, function (err, responseStart) {
-      t.error(err, 'No error should be thrown')
-      t.equal(responseStart.statusCode, 200)
+      t.assert.ifError(err, 'No error should be thrown')
+      t.assert.strictEqual(responseStart.statusCode, 200)
       gitlabRevoke.done()
 
-      t.end()
+      end()
     })
   })
 })
 
-t.test('options.generateStateFunction', t => {
-  t.test('with request', t => {
+test('options.generateStateFunction', async t => {
+  await t.test('with request', (t, end) => {
     t.plan(5)
     const fastify = createFastify()
 
@@ -2429,37 +2385,38 @@ t.test('options.generateStateFunction', t => {
       startRedirectPath: '/login/github',
       callbackUri: '/callback',
       generateStateFunction: (request) => {
-        t.ok(request, 'the request param has been set')
+        t.assert.ok(request, 'the request param has been set')
         return request.query.code
       },
       checkStateFunction: () => true,
       scope: ['notifications']
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.listen({ port: 0 }, function (err) {
-      t.error(err)
+      t.assert.ifError(err)
 
       fastify.inject({
         method: 'GET',
         url: '/login/github',
         query: { code: 'generated_code' }
       }, function (err, responseStart) {
-        t.error(err)
-        t.equal(responseStart.statusCode, 302)
+        t.assert.ifError(err)
+        t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
-        t.ok(matched)
+        t.assert.ok(matched)
+        end()
       })
     })
   })
 
-  t.test('should be an object', t => {
+  await t.test('should be an object', (t) => {
     t.plan(1)
 
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify.register(fastifyOauth2, {
+    return t.assert.rejects(fastify.register(fastifyOauth2, {
       name: 'the-name',
       credentials: {
         client: {
@@ -2471,12 +2428,10 @@ t.test('options.generateStateFunction', t => {
       callbackUri: '/callback',
       generateStateFunction: 42
     })
-      .ready(err => {
-        t.strictSame(err.message, 'options.generateStateFunction should be a function')
-      })
+      .ready(), undefined, 'options.generateStateFunction should be a function')
   })
 
-  t.test('with signing key', t => {
+  await t.test('with signing key', (t, end) => {
     t.plan(5)
     const fastify = createFastify()
 
@@ -2498,7 +2453,7 @@ t.test('options.generateStateFunction', t => {
       callbackUri: '/callback',
       generateStateFunction: (request) => {
         const state = crypto.createHmac('sha1', hmacKey).update(request.headers.foo).digest('hex')
-        t.ok(request, 'the request param has been set')
+        t.assert.ok(request, 'the request param has been set')
         return state
       },
       checkStateFunction: (request) => {
@@ -2508,25 +2463,26 @@ t.test('options.generateStateFunction', t => {
       scope: ['notifications']
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.listen({ port: 0 }, function (err) {
-      t.error(err)
+      t.assert.ifError(err)
       fastify.inject({
         method: 'GET',
         url: '/login/github',
         query: { code: expectedState },
         headers: { foo: 'foo' }
       }, function (err, responseStart) {
-        t.error(err)
-        t.equal(responseStart.statusCode, 302)
+        t.assert.ifError(err)
+        t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=1e864fbd840212c1ed9ce60175d373f3a48681b2/)
-        t.ok(matched)
+        t.assert.ok(matched)
+        end()
       })
     })
   })
 
-  t.test('should accept fastify instance as this', t => {
+  await t.test('should accept fastify instance as this', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2540,7 +2496,7 @@ t.test('options.generateStateFunction', t => {
       },
       callbackUri: '/callback',
       generateStateFunction: function (request) {
-        t.strictSame(this, fastify)
+        t.assert.strictEqual(this, fastify)
         return request.query.code
       },
       checkStateFunction: () => true,
@@ -2552,22 +2508,22 @@ t.test('options.generateStateFunction', t => {
       return reply.redirect(redirectUrl)
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.inject({
       method: 'GET',
       url: '/gh',
       query: { code: 'generated_code' }
     }, function (err, responseStart) {
-      t.error(err)
-      t.equal(responseStart.statusCode, 302)
+      t.assert.ifError(err)
+      t.assert.strictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
-      t.ok(matched)
-      t.end()
+      t.assert.ok(matched)
+      end()
     })
   })
 
-  t.test('should accept async function', t => {
+  await t.test('should accept async function', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2592,22 +2548,22 @@ t.test('options.generateStateFunction', t => {
       return reply.redirect(redirectUrl)
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.inject({
       method: 'GET',
       url: '/gh',
       query: { code: 'generated_code' }
     }, function (err, responseStart) {
-      t.error(err)
-      t.equal(responseStart.statusCode, 302)
+      t.assert.ifError(err)
+      t.assert.strictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
-      t.ok(matched)
-      t.end()
+      t.assert.ok(matched)
+      end()
     })
   })
 
-  t.test('should accept callback function', t => {
+  await t.test('should accept callback function', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2632,22 +2588,22 @@ t.test('options.generateStateFunction', t => {
       return reply.redirect(redirectUrl)
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.inject({
       method: 'GET',
       url: '/gh',
       query: { code: 'generated_code' }
     }, function (err, responseStart) {
-      t.error(err)
-      t.equal(responseStart.statusCode, 302)
+      t.assert.ifError(err)
+      t.assert.strictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=notifications&state=generated_code/)
-      t.ok(matched)
-      t.end()
+      t.assert.ok(matched)
+      end()
     })
   })
 
-  t.test('throws', t => {
+  await t.test('throws', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2674,21 +2630,21 @@ t.test('options.generateStateFunction', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.inject({
       method: 'GET',
       url: '/gh',
       query: { code: 'generated_code' }
     }, function (err, responseStart) {
-      t.error(err)
-      t.equal(responseStart.statusCode, 500)
-      t.strictSame(responseStart.body, 'generate state failed')
-      t.end()
+      t.assert.ifError(err)
+      t.assert.strictEqual(responseStart.statusCode, 500)
+      t.assert.strictEqual(responseStart.body, 'generate state failed')
+      end()
     })
   })
 
-  t.test('throws with start redirect path', t => {
+  await t.test('throws with start redirect path', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2709,30 +2665,28 @@ t.test('options.generateStateFunction', t => {
       scope: ['notifications']
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.inject({
       method: 'GET',
       url: '/gh',
       query: { code: 'generated_code' }
     }, function (err, responseStart) {
-      t.error(err)
-      t.equal(responseStart.statusCode, 500)
-      t.strictSame(responseStart.body, 'generate state failed')
-      t.end()
+      t.assert.ifError(err)
+      t.assert.strictEqual(responseStart.statusCode, 500)
+      t.assert.strictEqual(responseStart.body, 'generate state failed')
+      end()
     })
   })
-
-  t.end()
 })
 
-t.test('options.checkStateFunction', t => {
-  t.test('should be an object', t => {
+test('options.checkStateFunction', async t => {
+  await t.test('should be an object', (t) => {
     t.plan(1)
 
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify.register(fastifyOauth2, {
+    return t.assert.rejects(fastify.register(fastifyOauth2, {
       name: 'the-name',
       credentials: {
         client: {
@@ -2745,12 +2699,10 @@ t.test('options.checkStateFunction', t => {
       generateStateFunction: () => { },
       checkStateFunction: 42
     })
-      .ready(err => {
-        t.strictSame(err.message, 'options.checkStateFunction should be a function')
-      })
+      .ready(), undefined, 'options.checkStateFunction should be a function')
   })
 
-  t.test('should accept fastify instance as this', t => {
+  await t.test('should accept fastify instance as this', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2768,7 +2720,7 @@ t.test('options.checkStateFunction', t => {
         return request.query.code
       },
       checkStateFunction: function () {
-        t.strictSame(this, fastify)
+        t.assert.strictEqual(this, fastify)
         return true
       },
       scope: ['notifications']
@@ -2790,12 +2742,12 @@ t.test('options.checkStateFunction', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
-  t.test('should accept async function', t => {
+  await t.test('should accept async function', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2834,12 +2786,12 @@ t.test('options.checkStateFunction', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
-  t.test('returns true', t => {
+  await t.test('returns true', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2878,12 +2830,12 @@ t.test('options.checkStateFunction', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
-    makeRequests(t, fastify)
+    makeRequests(t, end, fastify)
   })
 
-  t.test('returns false', t => {
+  await t.test('returns false', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     fastify.register(fastifyOauth2, {
@@ -2914,22 +2866,22 @@ t.test('options.checkStateFunction', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.inject({
       method: 'GET',
       url: '/?code=my-code&state=wrong-state'
     }, function (err, responseEnd) {
-      t.error(err)
+      t.assert.ifError(err)
 
-      t.equal(responseEnd.statusCode, 400)
-      t.strictSame(responseEnd.payload, 'Invalid state')
+      t.assert.strictEqual(responseEnd.statusCode, 400)
+      t.assert.strictEqual(responseEnd.payload, 'Invalid state')
 
-      t.end()
+      end()
     })
   })
 
-  t.test('throws', t => {
+  await t.test('throws', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
     const error = new Error('state is invalid')
@@ -2961,33 +2913,31 @@ t.test('options.checkStateFunction', t => {
         })
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.inject({
       method: 'GET',
       url: '/?code=my-code&state=wrong-state'
     }, function (err, responseEnd) {
-      t.error(err)
+      t.assert.ifError(err)
 
-      t.equal(responseEnd.statusCode, 400)
-      t.strictSame(responseEnd.payload, 'state is invalid')
+      t.assert.strictEqual(responseEnd.statusCode, 400)
+      t.assert.strictEqual(responseEnd.payload, 'state is invalid')
 
-      t.end()
+      end()
     })
   })
-
-  t.end()
 })
 
-t.test('options.redirectStateCookieName', (t) => {
+test('options.redirectStateCookieName', async (t) => {
   t.plan(2)
 
-  t.test('should be a string', (t) => {
+  await t.test('should be a string', (t) => {
     t.plan(1)
 
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify
+    return t.assert.rejects(fastify
       .register(
         fastifyOauth2, {
           name: 'the-name',
@@ -3002,15 +2952,10 @@ t.test('options.redirectStateCookieName', (t) => {
           redirectStateCookieName: 42
         }
       )
-      .ready((err) => {
-        t.strictSame(
-          err.message,
-          'options.redirectStateCookieName should be a string'
-        )
-      })
+      .ready(), undefined, 'options.redirectStateCookieName should be a string')
   })
 
-  t.test('with custom cookie name', (t) => {
+  await t.test('with custom cookie name', (t, end) => {
     t.plan(4)
 
     const fastify = createFastify({ logger: { level: 'silent' } })
@@ -3029,7 +2974,7 @@ t.test('options.redirectStateCookieName', (t) => {
       redirectStateCookieName: 'custom-redirect-state'
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.inject(
       {
@@ -3037,27 +2982,27 @@ t.test('options.redirectStateCookieName', (t) => {
         url: '/login'
       },
       function (err, responseEnd) {
-        t.error(err)
+        t.assert.ifError(err)
 
-        t.equal(responseEnd.statusCode, 302)
-        t.matchStrict(responseEnd.cookies[0].name, 'custom-redirect-state')
-        t.matchStrict(responseEnd.cookies[0].value, String)
+        t.assert.strictEqual(responseEnd.statusCode, 302)
+        t.assert.strictEqual(responseEnd.cookies[0].name, 'custom-redirect-state')
+        t.assert.ok(typeof responseEnd.cookies[0].value === 'string')
 
-        t.end()
+        end()
       }
     )
   })
 })
 
-t.test('options.verifierCookieName', (t) => {
+test('options.verifierCookieName', async (t) => {
   t.plan(2)
 
-  t.test('should be a string', (t) => {
+  await t.test('should be a string', (t) => {
     t.plan(1)
 
     const fastify = createFastify({ logger: { level: 'silent' } })
 
-    fastify
+    return t.assert.rejects(fastify
       .register(fastifyOauth2, {
         name: 'the-name',
         credentials: {
@@ -3070,15 +3015,10 @@ t.test('options.verifierCookieName', (t) => {
         callbackUri: '/callback',
         verifierCookieName: 42
       })
-      .ready((err) => {
-        t.strictSame(
-          err.message,
-          'options.verifierCookieName should be a string'
-        )
-      })
+      .ready(), undefined, 'options.verifierCookieName should be a string')
   })
 
-  t.test('with custom cookie name', (t) => {
+  await t.test('with custom cookie name', (t, end) => {
     t.plan(4)
 
     const fastify = createFastify({ logger: { level: 'silent' } })
@@ -3098,7 +3038,7 @@ t.test('options.verifierCookieName', (t) => {
       pkce: 'plain'
     })
 
-    t.teardown(fastify.close.bind(fastify))
+    after(() => fastify.close())
 
     fastify.inject(
       {
@@ -3106,13 +3046,13 @@ t.test('options.verifierCookieName', (t) => {
         url: '/login'
       },
       function (err, responseEnd) {
-        t.error(err)
+        t.assert.ifError(err)
 
-        t.equal(responseEnd.statusCode, 302)
-        t.matchStrict(responseEnd.cookies[1].name, 'custom-verifier')
-        t.matchStrict(responseEnd.cookies[1].value, String)
+        t.assert.strictEqual(responseEnd.statusCode, 302)
+        t.assert.strictEqual(responseEnd.cookies[1].name, 'custom-verifier')
+        t.assert.ok(typeof responseEnd.cookies[1].value === 'string')
 
-        t.end()
+        end()
       }
     )
   })
