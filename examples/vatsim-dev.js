@@ -1,7 +1,6 @@
 'use strict'
 
 const fastify = require('fastify')({ logger: { level: 'trace' } })
-const sget = require('simple-get')
 
 // const oauthPlugin = require('fastify-oauth2')
 const oauthPlugin = require('..')
@@ -23,29 +22,25 @@ fastify.register(oauthPlugin, {
 fastify.get('/login/vatsim/callback', function (request, reply) {
   this.vatsimoauthdev.getAccessTokenFromAuthorizationCodeFlow(
     request,
-    (err, result) => {
+    async (err, result) => {
       if (err) {
         reply.send(err)
         return
       }
 
-      sget.concat(
-        {
-          url: 'https://auth-dev.vatsim.net/api/user',
-          method: 'GET',
-          headers: {
-            Authorization: 'Bearer ' + result.access_token
-          },
-          json: true
-        },
-        function (err, _res, data) {
-          if (err) {
-            reply.send(err)
-            return
-          }
-          reply.send(data)
+      const fetchResult = await fetch('https://auth-dev.vatsim.net/api/user', {
+        headers: {
+          Authorization: 'Bearer ' + result.token.access_token
         }
-      )
+      })
+
+      if (!fetchResult.ok) {
+        reply.send(new Error('Failed to fetch user info'))
+        return
+      }
+
+      const data = await fetchResult.json()
+      reply.send(data)
     }
   )
 })

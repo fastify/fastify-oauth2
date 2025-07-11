@@ -1,7 +1,6 @@
 'use strict'
 
 const fastify = require('fastify')({ logger: { level: 'trace' } })
-const sget = require('simple-get')
 
 const cookieOpts = {
   // domain: 'localhost',
@@ -62,26 +61,25 @@ fastify.register(oauthPlugin, {
 fastify.get('/interaction/callback/google', function (request, reply) {
   // Note that in this example a "reply" is also passed, it's so that code verifier cookie can be cleaned before
   // token is requested from token endpoint
-  this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply, (err, result) => {
+  this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply, async (err, result) => {
     if (err) {
       reply.send(err)
       return
     }
 
-    sget.concat({
-      url: 'https://www.googleapis.com/oauth2/v2/userinfo',
-      method: 'GET',
+    const fetchResult = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: {
         Authorization: 'Bearer ' + result.token.access_token
-      },
-      json: true
-    }, function (err, _res, data) {
-      if (err) {
-        reply.send(err)
-        return
       }
-      reply.send(data)
     })
+
+    if (!result.ok) {
+      reply.send(new Error('Failed to fetch user info'))
+      return
+    }
+
+    const data = await fetchResult.json()
+    reply.send(data)
   })
 })
 

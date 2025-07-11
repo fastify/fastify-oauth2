@@ -1,7 +1,6 @@
 'use strict'
 
 const fastify = require('fastify')({ logger: { level: 'trace' } })
-const sget = require('simple-get')
 
 // const oauthPlugin = require('fastify-oauth2')
 const oauthPlugin = require('..')
@@ -62,31 +61,28 @@ fastify.get('/login/github/refreshAccessToken', async function (request, reply) 
 })
 
 // Check access token: https://docs.github.com/en/rest/apps/oauth-applications#check-a-token
-fastify.get('/login/github/verifyAccessToken', function (request, reply) {
+fastify.get('/login/github/verifyAccessToken', async function (request, reply) {
   const { accessToken } = request.query
 
-  sget.concat(
-    {
-      url: 'https://api.github.com/applications/<CLIENT_ID>/token',
-      method: 'POST',
-      headers: {
-        Authorization:
-          'Basic ' +
-          Buffer.from('<CLIENT_ID>' + ':' + '<CLIENT_SECRET').toString(
-            'base64'
-          )
-      },
-      body: JSON.stringify({ access_token: accessToken }),
-      json: true
+  const result = await fetch('https://api.github.com/applications/<CLIENT_ID>/token', {
+    method: 'POST',
+    headers: {
+      Authorization:
+        'Basic ' +
+        Buffer.from('<CLIENT_ID>' + ':' + '<CLIENT_SECRET').toString(
+          'base64'
+        )
     },
-    function (err, _res, data) {
-      if (err) {
-        reply.send(err)
-        return
-      }
-      reply.send(data)
-    }
-  )
+    body: JSON.stringify({ access_token: accessToken }),
+  })
+
+  if (!result.ok) {
+    reply.send(new Error('Failed to verify access token'))
+    return
+  }
+
+  const data = await result.json()
+  reply.send(data)
 })
 
 fastify.listen({ port: 3000 })
