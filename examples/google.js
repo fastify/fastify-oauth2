@@ -1,7 +1,6 @@
 'use strict'
 
 const fastify = require('fastify')({ logger: { level: 'trace' } })
-const sget = require('simple-get')
 
 // const oauthPlugin = require('fastify-oauth2')
 const oauthPlugin = require('..')
@@ -21,26 +20,25 @@ fastify.register(oauthPlugin, {
 })
 
 fastify.get('/login/google/callback', function (request, reply) {
-  this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
+  this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, async (err, result) => {
     if (err) {
       reply.send(err)
       return
     }
 
-    sget.concat({
-      url: 'https://www.googleapis.com/oauth2/v2/userinfo',
-      method: 'GET',
+    const fetchResult = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: {
         Authorization: 'Bearer ' + result.token.access_token
-      },
-      json: true
-    }, function (err, _res, data) {
-      if (err) {
-        reply.send(err)
-        return
       }
-      reply.send(data)
     })
+
+    if (!fetchResult.ok) {
+      reply.send(new Error('Failed to fetch user info'))
+      return
+    }
+
+    const data = await fetchResult.json()
+    reply.send(data)
   })
 })
 
