@@ -1,7 +1,6 @@
 'use strict'
 
 const fastify = require('fastify')({ logger: { level: 'trace' } })
-const sget = require('simple-get')
 
 // const oauthPlugin = require('fastify-oauth2')
 const oauthPlugin = require('..')
@@ -20,26 +19,25 @@ fastify.register(oauthPlugin, {
 })
 
 fastify.get('/login/facebook/callback', function (request, reply) {
-  this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, (err, result) => {
+  this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, async (err, result) => {
     if (err) {
       reply.send(err)
       return
     }
 
-    sget.concat({
-      url: 'https://graph.facebook.com/v6.0/me',
-      method: 'GET',
+    const fetchResult = await fetch('https://graph.facebook.com/v6.0/me', {
       headers: {
-        Authorization: 'Bearer ' + result.access_token
-      },
-      json: true
-    }, function (err, _res, data) {
-      if (err) {
-        reply.send(err)
-        return
+        Authorization: 'Bearer ' + result.token.access_token
       }
-      reply.send(data)
     })
+
+    if (!fetchResult.ok) {
+      reply.send(new Error('Failed to fetch user info'))
+      return
+    }
+
+    const data = await fetchResult.json()
+    reply.send(data)
   })
 })
 
