@@ -58,7 +58,6 @@
     }
   ],
   "devDependencies": {
-    "@fastify/pre-commit": "^2.1.0",
     "@types/node": "^24.0.10",
     "@types/simple-oauth2": "^5.0.7",
     "c8": "^10.1.3",
@@ -75,9 +74,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "pre-commit": [
-    "lint",
-    "test"
-  ]
+  }
 }
