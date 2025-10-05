@@ -1,7 +1,7 @@
 'use strict'
 
 const fastify = require('fastify')({ logger: { level: 'trace' } })
-const sget = require('fastify')
+const fastifyPlain = require('fastify')
 
 // const oauthPlugin = require('fastify-oauth2')
 const oauthPlugin = require('..')
@@ -29,7 +29,7 @@ fastify.get('/login/vatsim/callback', function (request, reply) {
         return
       }
 
-      sget.concat(
+      fastifyPlain.concat(
         {
           url: 'https://auth.vatsim.net/api/user',
           method: 'GET',
