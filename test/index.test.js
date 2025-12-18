@@ -109,7 +109,7 @@ function makeRequests (t, end, fastify, userAgentHeaderMatcher, pkce, discoveryH
             .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
             .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
             .get('/me')
-            .replyWithError(Object.assign(new Error('Connection timeout out'), {code: 'ETIMEDOUT' }))
+            .replyWithError(Object.assign(new Error('Connection timeout out'), { code: 'ETIMEDOUT' }))
         } else {
           if (discoveryHostOptions.userinfoQuery) {
             if (discoveryHostOptions.userInfoMethod === 'POST') {
