@@ -24,7 +24,7 @@ function makeRequests (t, end, fastify, userAgentHeaderMatcher, pkce, discoveryH
       .get('/.well-known/openid-configuration')
 
     if (discoveryHostOptions.error) {
-      discoveryScope = discoveryScope.replyWithError(discoveryHostOptions.error)
+      discoveryScope = discoveryScope.replyWithError(Object.assign(new Error('Connection refused'), { message: discoveryHostOptions.error }))
     } else if (discoveryHostOptions.noRevocation) {
       discoveryScope = discoveryScope.reply(200, { ...METADATA_BODY, revocation_endpoint: undefined })
     } else if (discoveryHostOptions.noAuthorization) {
@@ -46,7 +46,7 @@ function makeRequests (t, end, fastify, userAgentHeaderMatcher, pkce, discoveryH
 
     if (discoveryHostOptions.error) {
       t.assert.strictEqual(err.message, 'Problem calling discovery endpoint. See innerError for details.')
-      t.assert.strictEqual(err.innerError.code, 'ETIMEDOUT')
+      t.assert.strictEqual(err.innerError.message.code, 'ETIMEDOUT')
       discoveryScope?.done()
       end()
       return
@@ -109,7 +109,7 @@ function makeRequests (t, end, fastify, userAgentHeaderMatcher, pkce, discoveryH
             .matchHeader('Authorization', 'Bearer my-access-token-refreshed')
             .matchHeader('User-Agent', userAgentHeaderMatcher || 'fastify-oauth2')
             .get('/me')
-            .replyWithError({ code: 'ETIMEDOUT' })
+            .replyWithError(Object.assign(new Error('Connection timeout out'), { code: 'ETIMEDOUT' }))
         } else {
           if (discoveryHostOptions.userinfoQuery) {
             if (discoveryHostOptions.userInfoMethod === 'POST') {
