@@ -10,7 +10,7 @@ const cookieOpts = {
   httpOnly: true
 }
 
-// const oauthPlugin = require('fastify-oauth2')
+// const oauthPlugin = require('@fastify/oauth2')
 fastify.register(require('@fastify/cookie'), {
   secret: ['my-secret'],
   parseOptions: cookieOpts
