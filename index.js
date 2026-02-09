@@ -726,6 +726,13 @@ fastifyOauth2.YANDEX_CONFIGURATION = {
   revokePath: '/revoke_token'
 }
 
+fastifyOauth2.X_CONFIGURATION = {
+  authorizeHost: 'https://x.com',
+  authorizePath: '/i/oauth2/authorize',
+  tokenHost: 'https://api.x.com',
+  tokenPath: '/2/oauth2/token'
+}
+
 module.exports = fp(fastifyOauth2, {
   fastify: '5.x',
   name: '@fastify/oauth2'
