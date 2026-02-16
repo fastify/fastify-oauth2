@@ -49,6 +49,8 @@ declare namespace fastifyOauth2 {
     discovery?: { issuer: string; }
     redirectStateCookieName?: string;
     verifierCookieName?: string;
+    usePushedAuthorizationRequests?: boolean;
+    parRequestParams?: Object;
   }
 
   export type TToken = 'access_token' | 'refresh_token'
@@ -97,6 +99,10 @@ declare namespace fastifyOauth2 {
     authorizeHost?: string | undefined;
     /** String path to request an authorization code. Default to /oauth/authorize. */
     authorizePath?: string | undefined;
+    /** String used to set the host to request pushed authorization requests. If par enabled, default to the value set on auth.tokenHost. */
+    parHost?: string | undefined;
+    /** String path to request pushed authorization requests. Default to /oauth/par. */
+    parPath?: string | undefined;
   }
 
   export interface Credentials {
