@@ -3,7 +3,7 @@
 const fastify = require('fastify')({ logger: { level: 'trace' } })
 const fastifyPlain = require('fastify')
 
-// const oauthPlugin = require('fastify-oauth2')
+// const oauthPlugin = require('@fastify/oauth2')
 const oauthPlugin = require('..')
 
 fastify.register(oauthPlugin, {

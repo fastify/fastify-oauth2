@@ -2,7 +2,7 @@
 
 const fastify = require('fastify')({ logger: true })
 
-// const oauthPlugin = require('fastify-oauth2')
+// const oauthPlugin = require('@fastify/oauth2')
 const oauthPlugin = require('..')
 
 fastify.register(oauthPlugin, {
