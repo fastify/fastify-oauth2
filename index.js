@@ -117,6 +117,14 @@ function fastifyOauth2 (fastify, options, next) {
       new Error('options.redirectStateCookieName should be a string')
     )
   }
+  if (options.usePushedAuthorizationRequests && !options.discovery) {
+    if (!options.credentials.auth?.parPath) {
+      return next(new Error('options.credentials.auth.parPath is required when usePushedAuthorizationRequests is enabled without discovery'))
+    }
+  }
+  if (options.parRequestParams && typeof options.parRequestParams !== 'object') {
+    return next(new Error('options.parRequestParams should be an object'))
+  }
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))
   }
@@ -125,6 +133,62 @@ function fastifyOauth2 (fastify, options, next) {
   const userAgent = options.userAgent === false
     ? undefined
     : (options.userAgent || USER_AGENT)
+
+  function pushAuthorizationRequest (parPath, parHost, params, credentials, httpHeaders, callback) {
+    const parUrl = new URL(parPath, parHost)
+
+    const body = new URLSearchParams()
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) {
+        body.append(k, Array.isArray(v) ? v.join(' ') : String(v))
+      }
+    })
+
+    // Add client authentication
+    const auth = Buffer.from(`${credentials.client.id}:${credentials.client.secret}`).toString('base64')
+
+    const httpOpts = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${auth}`,
+        ...httpHeaders
+      }
+    }
+
+    const aClient = (parHost.startsWith('https://') ? https : http)
+    const req = aClient.request(parUrl, httpOpts, onParResponse)
+      .on('error', errHandler)
+
+    req.write(body.toString())
+    req.end()
+
+    function onParResponse (res) {
+      let rawData = ''
+      res.on('data', (chunk) => { rawData += chunk })
+      res.on('end', () => {
+        try {
+          const data = JSON.parse(rawData)
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            callback(null, data)
+          } else {
+            const err = new Error(`PAR request failed: ${data.error_description || data.error || 'Unknown error'}`)
+            err.statusCode = res.statusCode
+            err.data = data
+            callback(err)
+          }
+        } catch (err) {
+          callback(err)
+        }
+      })
+    }
+
+    function errHandler (e) {
+      const err = new Error('Problem calling PAR endpoint. See innerError for details.')
+      err.innerError = e
+      callback(err)
+    }
+  }
 
   const configure = (configured, fetchedMetadata) => {
     const {
@@ -156,6 +220,25 @@ function fastifyOauth2 (fastify, options, next) {
         }
       }
     }
+
+    // NEW: Extract PAR configuration before passing to simple-oauth2
+    const parConfig = {
+      parPath: credentials.auth?.parPath,
+      parHost: credentials.auth?.parHost || credentials.auth?.tokenHost || credentials.auth?.authorizeHost
+    }
+
+    // NEW: Create credentials without PAR fields for simple-oauth2
+    const oauth2Credentials = {
+      ...configured.credentials,
+      auth: {
+        ...configured.credentials.auth
+      }
+    }
+
+    // Remove PAR-specific fields from auth config
+    delete oauth2Credentials.auth.parPath
+    delete oauth2Credentials.auth.parHost
+
     const generateCallbackUriParams = credentials.auth?.[kGenerateCallbackUriParams] || defaultGenerateCallbackUriParams
     const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
 
@@ -192,13 +275,55 @@ function fastifyOauth2 (fastify, options, next) {
           reply.setCookie(verifierCookieName, verifier, cookieOpts)
         }
 
-        const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
-          redirect_uri: typeof callbackUri === 'function' ? callbackUri(request) : callbackUri,
-          scope,
-          state
-        }, pkceParams)
+        // Use PAR if enabled
+        if (configured.usePushedAuthorizationRequests) {
+          // Parameters to send to PAR endpoint
+          const baseParams = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
+            redirect_uri: typeof callbackUri === 'function' ? callbackUri(request) : callbackUri,
+            scope: Array.isArray(scope) ? scope.join(' ') : scope,
+            state,
+            response_type: 'code',
+            client_id: credentials.client.id
+          }, pkceParams, configured.parRequestParams || {})
 
-        callback(null, oauth2.authorizeURL(urlOptions))
+          const httpHeaders = {
+            ...credentials.http?.headers
+          }
+
+          if (userAgent) {
+            httpHeaders['User-Agent'] = userAgent
+          }
+
+          if (omitUserAgent) {
+            delete httpHeaders['User-Agent']
+          }
+
+          pushAuthorizationRequest(parConfig.parPath, parConfig.parHost, baseParams, credentials, httpHeaders, function (err, parResponse) {
+            if (err) {
+              callback(err, null)
+              return
+            }
+
+            // Build authorization URL with just client_id and request_uri
+            // We need to construct the URL manually to avoid simple-oauth2 adding unwanted parameters
+            const authorizeHost = credentials.auth?.authorizeHost || credentials.auth?.tokenHost
+            const authorizePath = credentials.auth?.authorizePath || '/oauth/authorize'
+            const authUrl = new URL(authorizePath, authorizeHost)
+            authUrl.searchParams.set('client_id', credentials.client.id)
+            authUrl.searchParams.set('request_uri', parResponse.request_uri)
+
+            callback(null, authUrl.toString())
+          })
+        } else {
+          // Traditional flow without PAR
+          const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
+            redirect_uri: typeof callbackUri === 'function' ? callbackUri(request) : callbackUri,
+            scope,
+            state
+          }, pkceParams)
+
+          callback(null, oauth2.authorizeURL(urlOptions))
+        }
       })
     }
 
@@ -372,7 +497,7 @@ function fastifyOauth2 (fastify, options, next) {
       fetchUserInfo(fetchedMetadata.userinfo_endpoint, token, { method: _method, params, via }, callback)
     }
 
-    const oauth2 = new AuthorizationCode(configured.credentials)
+    const oauth2 = new AuthorizationCode(oauth2Credentials)
 
     if (startRedirectPath) {
       fastify.get(startRedirectPath, { schema }, startRedirectHandler)
@@ -417,6 +542,20 @@ function fastifyOauth2 (fastify, options, next) {
         // otherwise select optimal pkce method for them,
         discoveredOptions.pkce = selectPkceFromMetadata(fetchedMetadata)
       }
+
+      // if the provider requires pushed authorization requests and the user didn't explicitly disable it, enable it for them
+      if (options.usePushedAuthorizationRequests === true ||
+          (fetchedMetadata.require_pushed_authorization_requests &&
+          options.usePushedAuthorizationRequests !== false)) {
+        discoveredOptions.usePushedAuthorizationRequests = true
+
+        // Validate that PAR endpoint was discovered
+        if (!authFromMetadata.parPath) {
+          next(new Error('PAR is enabled but pushed_authorization_request_endpoint was not found in discovery metadata'))
+          return
+        }
+      }
+
       configure(discoveredOptions, fetchedMetadata)
       next()
     })
@@ -586,6 +725,21 @@ function getAuthFromMetadata (metadata) {
   if (metadata.revocation_endpoint) {
     const { path } = formatEndpoint(metadata.revocation_endpoint)
     processedResponse.revokePath = path
+  }
+
+  /*
+    pushed_authorization_request_endpoint
+      OPTIONAL.  URL of the authorization server's pushed authorization
+      request endpoint [RFC9126].  This endpoint allows clients to push
+      authorization request parameters directly to the authorization server
+      via a backchannel POST request, receiving a request_uri to use in
+      the subsequent authorization request. Enhances security by preventing
+      parameter tampering and reducing exposure in browser URLs.
+  */
+  if (metadata.pushed_authorization_request_endpoint) {
+    const { path, host } = formatEndpoint(metadata.pushed_authorization_request_endpoint)
+    processedResponse.parPath = path
+    processedResponse.parHost = host
   }
 
   return processedResponse
