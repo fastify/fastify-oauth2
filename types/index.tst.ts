@@ -61,27 +61,27 @@ const OAuth2Options: FastifyOAuth2Options = {
   verifierCookieName: 'verifier-cookie',
 }
 
-expect({
+expect<FastifyOAuth2Options>().type.toBeAssignableFrom({
   name: 'testOAuthName',
   scope,
   credentials,
   callbackUri: 'http://localhost/testOauth/callback',
   callbackUriParams: {},
   startRedirectPath: '/login/testOauth',
-  pkce: 'S256'
-} as const).type.toBeAssignableTo<FastifyOAuth2Options>()
+  pkce: 'S256' as const
+})
 
-expect({
+expect<FastifyOAuth2Options>().type.toBeAssignableFrom({
   name: 'testOAuthName',
   scope,
   credentials,
   callbackUri: (req: FastifyRequest) => `${req.protocol}://${req.hostname}/callback`,
   callbackUriParams: {},
   startRedirectPath: '/login/testOauth',
-  pkce: 'S256'
-} as const).type.toBeAssignableTo<FastifyOAuth2Options>()
+  pkce: 'S256' as const
+})
 
-expect({
+expect<FastifyOAuth2Options>().type.toBeAssignableFrom({
   name: 'testOAuthName',
   scope,
   credentials,
@@ -89,9 +89,9 @@ expect({
   callbackUriParams: {},
   startRedirectPath: '/login/testOauth',
   discovery: { issuer: 'https://idp.mycompany.com' }
-} as const).type.toBeAssignableTo<FastifyOAuth2Options>()
+})
 
-expect({
+expect<FastifyOAuth2Options>().type.not.toBeAssignableFrom({
   name: 'testOAuthName',
   scope,
   credentials,
@@ -99,31 +99,30 @@ expect({
   callbackUriParams: {},
   startRedirectPath: '/login/testOauth',
   discovery: { issuer: 1 }
-}).type.not.toBeAssignableTo<FastifyOAuth2Options>()
+})
 
-expect({
+expect<FastifyOAuth2Options>().type.toBeAssignableFrom({
   name: 'testOAuthName',
   scope,
   credentials,
   callbackUri: 'http://localhost/testOauth/callback',
   callbackUriParams: {},
   startRedirectPath: '/login/testOauth',
-  pkce: 'plain'
-} as const).type.toBeAssignableTo<FastifyOAuth2Options>()
+  pkce: 'plain' as const
+})
 
-expect({
-  name: 'testOAuthName',
-  scope,
-  credentials,
-  callbackUri: 'http://localhost/testOauth/callback',
-  callbackUriParams: {},
-  generateStateFunction: () => {
-  },
-  checkStateFunction: () => {
-  },
-  startRedirectPath: '/login/testOauth',
-  pkce: 'SOMETHING'
-}).type.not.toBeAssignableTo<FastifyOAuth2Options>()
+expect<FastifyOAuth2Options>()
+  .type.not.toBeAssignableFrom({
+    name: 'testOAuthName',
+    scope,
+    credentials,
+    callbackUri: 'http://localhost/testOauth/callback',
+    callbackUriParams: {},
+    generateStateFunction: () => {},
+    checkStateFunction: () => {},
+    startRedirectPath: '/login/testOauth',
+    pkce: 'SOMETHING' as const
+  })
 
 const server = fastify()
 
@@ -138,14 +137,13 @@ server.register(fastifyOauth2, {
   checkStateFunction: () => true,
 })
 
-// @ts-expect-error!
-server.register(fastifyOauth2, {
+expect(server.register).type.not.toBeCallableWith(fastifyOauth2, {
   name: 'testOAuthName',
   scope,
   credentials,
   callbackUri: 'http://localhost/testOauth/callback',
   checkStateFunction: () => true,
-  startRedirectPath: 2,
+  startRedirectPath: 2
 })
 
 declare module 'fastify' {
@@ -170,35 +168,37 @@ expect(auth).type.toBeAssignableTo<ModuleOptions['auth']>()
 expect(simpleOauth2Options).type.toBeAssignableTo<Credentials>()
 expect(simpleOauth2Options.auth).type.toBeAssignableTo<ProviderConfiguration>()
 
-// @ts-expect-error!
-fastifyOauth2()
+expect(fastifyOauth2).type.not.toBeCallableWith()
+expect(fastifyOauth2).type.not.toBeCallableWith(server, {}, () => {})
 
-// @ts-expect-error!
-fastifyOauth2(server, {}, () => {})
-
-expect(fastifyOauth2.DISCORD_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.FACEBOOK_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.GITHUB_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.GITLAB_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.GOOGLE_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.LINKEDIN_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.MICROSOFT_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.SPOTIFY_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.VKONTAKTE_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.TWITCH_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.VATSIM_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.VATSIM_DEV_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.EPIC_GAMES_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
-expect(fastifyOauth2.YANDEX_CONFIGURATION).type.toBeAssignableTo<ProviderConfiguration>()
+expect(fastifyOauth2.DISCORD_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.FACEBOOK_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.GITHUB_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.GITLAB_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.GOOGLE_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.LINKEDIN_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(
+  fastifyOauth2.MICROSOFT_CONFIGURATION
+).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.SPOTIFY_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(
+  fastifyOauth2.VKONTAKTE_CONFIGURATION
+).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.TWITCH_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.VATSIM_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(
+  fastifyOauth2.VATSIM_DEV_CONFIGURATION
+).type.toBe<ProviderConfiguration>()
+expect(
+  fastifyOauth2.EPIC_GAMES_CONFIGURATION
+).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.YANDEX_CONFIGURATION).type.toBe<ProviderConfiguration>()
 
 server.get('/testOauth/callback', async (request, reply) => {
-  expect(server.testOAuthName).type.toBe<OAuth2Namespace>()
   expect(server.oauth2TestOAuthName).type.toBe<OAuth2Namespace | undefined>()
 
-  expect(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)).type.toBe<OAuth2Token>()
   expect(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)).type.toBe<Promise<OAuth2Token>>()
 
-  expect(await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply)).type.toBe<OAuth2Token>()
   expect(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request, reply)).type.toBe<Promise<OAuth2Token>>()
 
   expect(
@@ -211,25 +211,8 @@ server.get('/testOauth/callback', async (request, reply) => {
     })
   ).type.toBe<void>()
 
-  expect(
-    await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)
-  ).type.not.toBe<void>()
-
-  expect(
-    server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(
-      request,
-      (_err: any, _t: OAuth2Token): void => {}
-    )
-  ).type.not.toBe<OAuth2Token>()
-
-  expect(server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)).type.not.toBe<void>()
-
   const token = await server.testOAuthName.getAccessTokenFromAuthorizationCodeFlow(request)
   if (token.token.refresh_token) {
-    expect(
-      await server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {})
-    ).type.toBe<OAuth2Token>()
-
     expect(
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {})
     ).type.toBe<Promise<OAuth2Token>>()
@@ -243,23 +226,25 @@ server.get('/testOauth/callback', async (request, reply) => {
       )
     ).type.toBe<void>()
 
-    expect(server.testOAuthName.revokeToken(token.token, 'access_token', undefined)).type.not.toBe<void>()
-
     expect(server.testOAuthName.revokeToken(token.token, 'access_token', undefined)).type.toBe<Promise<void>>()
 
-    // @ts-expect-error!
-    server.testOAuthName.revokeToken(token.token, 'test', undefined)
-
+    expect(server.testOAuthName.revokeToken).type.not.toBeCallableWith(
+      token.token,
+      'test',
+      undefined
+    )
     expect(
       server.testOAuthName.revokeToken(token.token, 'refresh_token', undefined, (_err: any): void => {
       })
     ).type.toBe<void>()
 
-    // @ts-expect-error!
-    server.testOAuthName.revokeToken(token.token, 'test', undefined, (_err: any): void => {})
-
-    // @ts-expect-error!
-    server.testOAuthName.revokeToken(token.token, 'access_token', undefined, undefined)
+    expect(server.testOAuthName.revokeToken).type.not.toBeCallableWith(
+      token.token,
+      'test',
+      undefined,
+      (_err: any): void => {}
+    )
+    expect(server.testOAuthName.revokeToken).type.not.toBeCallableWith(token.token, 'test', undefined)
 
     expect(server.testOAuthName.revokeAllToken(token.token, undefined)).type.not.toBe<void>()
 
@@ -268,19 +253,24 @@ server.get('/testOauth/callback', async (request, reply) => {
     expect(server.testOAuthName.revokeAllToken(token.token, undefined, (_err: any): void => {
     })).type.toBe<void>()
 
-    // @ts-expect-error!
-    server.testOAuthName.revokeAllToken(token.token, undefined, undefined)
+    expect(server.testOAuthName.revokeToken).type.not.toBeCallableWith(
+      token.token,
+      'access_token',
+      undefined,
+      undefined
+    )
 
-    expect(await server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {})).type.not.toBe<void>()
+    expect(
+      server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {})
+    ).type.toBe<Promise<OAuth2Token>>()
 
     expect(
       server.testOAuthName.getNewAccessTokenUsingRefreshToken(
         token.token,
         {},
-        (_err: any, _t: OAuth2Token): void => {
-        }
+        (_err: any, _t: OAuth2Token): void => {}
       )
-    ).type.not.toBe<OAuth2Token>()
+    ).type.toBe<void>()
 
     expect(server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {})).type.not.toBe<void>()
   }
@@ -291,22 +281,27 @@ server.get('/testOauth/callback', async (request, reply) => {
   // BEGIN userinfo tests
   expect(server.testOAuthName.userinfo(token.token)).type.toBe<Promise<Object>>()
   expect(server.testOAuthName.userinfo(token.token.access_token)).type.toBe<Promise<Object>>()
-  expect(await server.testOAuthName.userinfo(token.token.access_token)).type.toBe<Object>()
   expect(server.testOAuthName.userinfo(token.token.access_token, () => {})).type.toBe<void>()
   expect(server.testOAuthName.userinfo(token.token.access_token, undefined, () => {})).type.toBe<void>()
 
-  expect({ method: 'GET', params: {}, via: 'header' } as const).type.toBeAssignableTo<UserInfoExtraOptions>()
-  expect({ method: 'POST', params: { a: 1 }, via: 'header' } as const).type.toBeAssignableTo<UserInfoExtraOptions>()
-  expect({ via: 'body' } as const).type.toBeAssignableTo<UserInfoExtraOptions>()
-
-  expect({ via: 'donkey' }).type.not.toBeAssignableTo<UserInfoExtraOptions>()
-  expect({ something: 1 }).type.not.toBeAssignableTo<UserInfoExtraOptions>()
+  expect<UserInfoExtraOptions>().type.toBeAssignableFrom({ method: 'GET' as const, params: {}, via: 'header' as const })
+  expect<UserInfoExtraOptions>().type.toBeAssignableFrom({ method: 'POST' as const, params: { a: 1 }, via: 'header' as const })
+  expect<UserInfoExtraOptions>().type.toBeAssignableFrom({ via: 'body' as const })
+  expect<UserInfoExtraOptions>().type.not.toBeAssignableFrom({
+    via: 'donkey' as const
+  })
+  expect<UserInfoExtraOptions>().type.not.toBeAssignableFrom({
+    something: 1
+  })
   // END userinfo tests
 
-  expect(await server.testOAuthName.generateAuthorizationUri(request, reply)).type.toBe<string>()
+  expect(
+    server.testOAuthName.generateAuthorizationUri(request, reply)
+  ).type.toBe<Promise<string>>()
 
-  // @ts-expect-error!
-  server.testOAuthName.generateAuthorizationUri(request)
+  expect(
+    server.testOAuthName.generateAuthorizationUri
+  ).type.not.toBeCallableWith(request)
 
   return {
     access_token: token.token.access_token,
