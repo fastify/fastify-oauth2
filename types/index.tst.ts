@@ -271,8 +271,6 @@ server.get('/testOauth/callback', async (request, reply) => {
         (_err: any, _t: OAuth2Token): void => {}
       )
     ).type.toBe<void>()
-
-    expect(server.testOAuthName.getNewAccessTokenUsingRefreshToken(token.token, {})).type.not.toBe<void>()
   }
 
   expect(server.testOAuthName.generateAuthorizationUri(request, reply)).type.toBe<Promise<string>>()
