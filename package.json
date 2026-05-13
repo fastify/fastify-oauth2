@@ -10,7 +10,7 @@
     "lint:fix": "eslint --fix",
     "test": "npm run test:unit && npm run test:typescript",
     "test:coverage": "npm run test:unit -- --cov --coverage-report=html",
-    "test:typescript": "tsd",
+    "test:typescript": "tstyche",
     "test:unit": "c8 --100 node --test"
   },
   "repository": {
@@ -65,7 +65,7 @@
     "fastify": "^5.6.2",
     "neostandard": "^0.13.0",
     "nock": "^14.0.10",
-    "tsd": "^0.33.0"
+    "tstyche": "^7.0.0"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
