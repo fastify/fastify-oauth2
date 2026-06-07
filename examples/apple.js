@@ -12,7 +12,7 @@
 const fastify = require('fastify')({ logger: { level: 'trace' } })
 const appleSignin = require('apple-signin-auth')
 
-// const oauthPlugin = require('fastify-oauth2')
+// const oauthPlugin = require('@fastify/oauth2')
 const oauthPlugin = require('..')
 
 // All fields below must come from environment variables
