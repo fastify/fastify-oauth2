@@ -125,6 +125,7 @@ You can choose some default setup to assign to `auth` option.
 - `VATSIM_DEV_CONFIGURATION`
 - `EPIC_GAMES_CONFIGURATION`
 - `YANDEX_CONFIGURATION`
+- `X_CONFIGURATION`
 
 ### Custom configuration
 
