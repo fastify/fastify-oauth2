@@ -69,7 +69,7 @@
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
-    "fastify-plugin": "^5.1.0",
+    "fastify-plugin": "^6.0.0",
     "simple-oauth2": "^5.1.0"
   },
   "publishConfig": {
