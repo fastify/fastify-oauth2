@@ -3057,3 +3057,62 @@ test('options.verifierCookieName', async (t) => {
     )
   })
 })
+test('PAR - Pushed Authorization Requests', async t => {
+  await t.test('options.usePushedAuthorizationRequests should be a boolean', t => {
+    t.plan(1)
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    return t.assert.rejects(fastify.register(fastifyOauth2, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      usePushedAuthorizationRequests: 'invalid'
+    })
+      .ready(), undefined, 'options.usePushedAuthorizationRequests should be a boolean')
+  })
+
+  await t.test('options.parRequestParams should be an object', t => {
+    t.plan(1)
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    return t.assert.rejects(fastify.register(fastifyOauth2, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      usePushedAuthorizationRequests: true,
+      parRequestParams: 'invalid'
+    })
+      .ready(), undefined, 'options.parRequestParams should be an object')
+  })
+
+  await t.test('PAR requires parPath when enabled', t => {
+    t.plan(1)
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    return t.assert.rejects(fastify.register(fastifyOauth2, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: '/callback',
+      usePushedAuthorizationRequests: true
+    })
+      .ready(), undefined, 'options.credentials.auth.parPath is required when usePushedAuthorizationRequests is enabled')
+  })
+})
