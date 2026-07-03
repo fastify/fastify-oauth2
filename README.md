@@ -191,6 +191,139 @@ Important notes for discovery:
 - When your provider supports it, plugin will also select appropriate PKCE method in authorization code grant
 - In case you still want to select method yourself, and know exactly what you are doing; you can still do it explicitly.
 
+## Pushed Authorization Requests (PAR)
+
+[RFC 9126](https://www.rfc-editor.org/rfc/rfc9126.html) defines Pushed Authorization Requests (PAR), an enhancement to OAuth 2.0 that improves security by moving authorization request parameters from the front-channel (browser URL) to a back-channel (direct server-to-server) communication.
+
+### Benefits of PAR
+
+- **Enhanced Security**: Authorization parameters are sent directly from your server to the authorization server via a secure back-channel, preventing parameter tampering and exposure in browser URLs
+- **Reduced URL Length**: Only a short-lived `request_uri` is passed in the authorization redirect, avoiding issues with long URLs
+- **Parameter Integrity**: Authorization parameters cannot be modified by the end-user or intermediaries
+
+### Usage with Discovery
+
+When using OpenID Connect Discovery, PAR support can be automatically detected:
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'secureOAuth2',
+  scope: ['profile', 'email'],
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>',
+    },
+  },
+  startRedirectPath: '/login',
+  callbackUri: 'http://localhost:3000/callback',
+  discovery: { issuer: 'https://identity.mycustomdomain.com' },
+  // Explicitly enable PAR (optional if provider supports it)
+  usePushedAuthorizationRequests: true
+});
+```
+
+**Automatic PAR enablement:**
+- If the authorization server advertises `require_pushed_authorization_requests: true` in its discovery metadata, PAR will be automatically enabled unless you explicitly set `usePushedAuthorizationRequests: false`
+- The `pushed_authorization_request_endpoint` is automatically discovered from the metadata
+
+### Usage without Discovery
+
+For providers that support PAR but don't provide OpenID Connect Discovery, you can configure it manually:
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'customOauth2',
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>'
+    },
+    auth: {
+      authorizeHost: 'https://my-site.com',
+      authorizePath: '/authorize',
+      tokenHost: 'https://token.my-site.com',
+      tokenPath: '/api/token',
+      // PAR endpoint configuration
+      parHost: 'https://my-site.com',
+      parPath: '/oauth/par'
+    }
+  },
+  startRedirectPath: '/login',
+  callbackUri: 'http://localhost:3000/login/callback',
+  // Enable PAR
+  usePushedAuthorizationRequests: true
+});
+```
+
+### Additional PAR Parameters
+
+You can pass additional parameters to the PAR endpoint using `parRequestParams`:
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'customOauth2',
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>'
+    },
+    auth: {
+      authorizeHost: 'https://my-site.com',
+      authorizePath: '/authorize',
+      tokenHost: 'https://token.my-site.com',
+      tokenPath: '/api/token',
+      parHost: 'https://my-site.com',
+      parPath: '/oauth/par'
+    }
+  },
+  startRedirectPath: '/login',
+  callbackUri: 'http://localhost:3000/login/callback',
+  usePushedAuthorizationRequests: true,
+  // Additional parameters for PAR request
+  parRequestParams: {
+    resource: 'https://api.example.com',
+    audience: 'https://api.example.com'
+  }
+});
+```
+
+### PAR with PKCE
+
+PAR works seamlessly with PKCE for even stronger security:
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'secureOAuth2',
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>'
+    },
+    auth: {
+      authorizeHost: 'https://my-site.com',
+      authorizePath: '/authorize',
+      tokenHost: 'https://token.my-site.com',
+      tokenPath: '/api/token',
+      parHost: 'https://my-site.com',
+      parPath: '/oauth/par'
+    }
+  },
+  startRedirectPath: '/login',
+  callbackUri: 'http://localhost:3000/login/callback',
+  usePushedAuthorizationRequests: true,
+  pkce: 'S256'
+});
+```
+
+**Important notes for PAR:**
+
+- PAR requires client authentication at the PAR endpoint (client_id and client_secret are sent via Basic Authentication)
+- The PAR endpoint returns a `request_uri` that expires quickly (typically 60-90 seconds)
+- Only `client_id` and `request_uri` are included in the authorization redirect URL
+- When using discovery, the PAR endpoint is automatically configured from `pushed_authorization_request_endpoint` in the metadata
+- If `parHost` is not explicitly provided, it defaults to the `tokenHost` or `authorizeHost`
+
 ### Schema configuration
 
 You can specify your own schema for the `startRedirectPath` end-point. It allows you to create a well-documented document when using `@fastify/swagger` together.
@@ -320,7 +453,7 @@ fastify.register(oauthPlugin, {
 ## Set custom tokenRequest body Parameters
 
 The `tokenRequestParams` parameter accepts an object that will be translated to additional parameters in the POST body
-when requesting access tokens via the service’s token endpoint.
+when requesting access tokens via the service's token endpoint.
 
 ## Examples
 
@@ -366,7 +499,6 @@ This fastify plugin adds 6 utility decorators to your fastify instance using the
 
   *Important to note*: if your provider supports `S256` as code_challenge_method, always prefer that.
   Only use `plain` when your provider doesn't support `S256`.
-
 
 - `getNewAccessTokenUsingRefreshToken(Token, params, callback)`: A function that takes a `AccessToken`-Object as `Token` and retrieves a new `AccessToken`-Object. This is generally useful with background processing workers to re-issue a new AccessToken when the previous AccessToken has expired. The `params` argument is optional and it is an object that can be used to pass in additional parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a Promise. The object resulting from the callback call or the resolved Promise is a new `AccessToken` object (see above). Example of how you would use it for `name:googleOAuth2`:
 ```js
