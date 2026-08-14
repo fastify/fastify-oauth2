@@ -89,7 +89,6 @@ Cookies are by default `httpOnly`, `sameSite: Lax`. If this does not suit your u
 fastify.register(oauthPlugin, {
   ...,
   cookie: {
-    secure: true,
     sameSite: 'none'
   }
 })
@@ -105,6 +104,89 @@ fastify.register(oauthPlugin, {
   verifierCookieName: 'custom-code-verifier'
 })
 ```
+
+#### Signed cookies
+
+`cookie: { signed: true }` is supported: the state and verifier cookies are unsigned
+before the state is compared and before the verifier is sent to the token endpoint. A
+cookie whose signature does not verify is discarded rather than used as-is.
+
+Signing is only ever applied when it is requested through `options.cookie`. If you
+register `@fastify/cookie` yourself with `parseOptions: { signed: true }`, that setting
+does **not** silently extend to these two cookies, because the plugin has to know whether
+to unsign what it reads.
+
+Note that signing is not what protects these cookies. It does not prevent an attacker
+from planting a state, since a valid signed state can simply be obtained from your own
+login endpoint. Use it if it fits your conventions, not as a security control.
+
+#### `hostPrefixedCookies`
+
+`hostPrefixedCookies: true` switches the two default cookie names to their
+`__Host-` prefixed forms, `__Host-oauth2-redirect-state` and
+`__Host-oauth2-code-verifier`:
+
+```js
+fastify.register(oauthPlugin, {
+  ...,
+  hostPrefixedCookies: true
+})
+```
+
+It defaults to `false`, because the prefixed names require the application to be served
+over HTTPS and enabling them by default would break deployments that are not. **You
+should turn it on.** It only selects the defaults — an explicit
+`redirectStateCookieName` or `verifierCookieName` always wins.
+
+##### When you should turn it on
+
+Turn it on whenever **any host under your registrable domain is outside your full
+control**. Cookies are scoped by host, not by origin: a cookie set by
+`blog.example.com` with `Domain=example.com` is sent to `app.example.com`. So an XSS on
+a marketing subdomain, a subdomain takeover, a dangling CNAME, a partner-operated
+subdomain, or a forgotten staging box is enough for someone to write
+`oauth2-redirect-state` and `oauth2-code-verifier` for your application's host.
+
+That matters because the default state check compares the `state` query parameter with
+the state cookie. Someone who can write those two cookies can plant a `state` and PKCE
+verifier of their own, then have a victim's browser complete a callback carrying an
+authorization code for the *attacker's* identity — logging the victim into the
+attacker's account, where anything they subsequently do is recorded. This is login CSRF;
+it does not expose the victim's own account or tokens.
+
+`cookie: { secure: true }` does not prevent it. The server receives only cookie names and
+values, and cannot tell which attributes were present when a cookie was stored, so a
+cookie written from a non-secure context is indistinguishable from one you set yourself.
+
+A `__Host-` cookie can only be written by a secure origin, host-only, so neither a
+sibling subdomain nor a party answering a plaintext HTTP request for your host can create
+one. If you run a single hostname with no subdomains at all, the flag is defense in depth
+rather than a fix for a reachable problem — but there is no cost to enabling it.
+
+##### What it requires
+
+**The browser** must reach your application over HTTPS. What matters is the URL in the
+address bar, not what Node itself is serving: `Secure` is emitted by the server but
+enforced by the browser, so **terminating TLS at a reverse proxy and running Fastify over
+plain HTTP works exactly the same**. You do not need `https` options on the Fastify
+instance, and you do not need `trustProxy`.
+
+Browsers also treat `http://localhost` as a secure context, so local development works
+unchanged.
+
+The flag is only unusable when the browser genuinely reaches the application over plain
+HTTP on a non-loopback hostname. There the cookies cannot be stored at all and every login
+fails with `Invalid state`; leave the flag off, or set unprefixed names explicitly.
+
+##### Prefix handling in general
+
+When a cookie name starts with `__Host-` or `__Secure-` — whether from this flag or from
+a name you set yourself — `@fastify/oauth2` derives the attributes that prefix requires
+from the name, overriding whatever `options.cookie` says: `__Host-` forces `secure: true`
+and `path: '/'` and removes `domain`, `__Secure-` forces `secure: true`. The prefixes are
+matched case-insensitively, as browsers match them. Browsers silently drop a cookie whose
+attributes contradict its prefix, so deriving them is what keeps the flow working rather
+than failing with `Invalid state`.
 
 ### Preset configurations
 
@@ -221,8 +303,19 @@ fastify.register(oauthPlugin, {
 
 ## Set custom state
 
-The `generateStateFunction` accepts a function to generate the `state` parameter for the OAUTH flow. This function receives the Fastify instance's `request` object as a parameter.
-The `state` parameter will be also set into a `httpOnly`, `sameSite: Lax` cookie.
+By default `@fastify/oauth2` generates a random `state`, stores it in a cookie, and at the
+callback accepts the request when the `state` query parameter equals the cookie value. This
+is a double-submit cookie: it proves the two values match, not that the same browser started
+the flow. What keeps another party from writing those cookies in the first place is
+[`hostPrefixedCookies`](#hostprefixedcookies), which you should enable unless you are pinned
+to plain HTTP; the state and verifier cookies are also cleared once a callback has been
+processed, so a state cannot be replayed.
+
+For a stronger guarantee, bind the state to the session of the browser that started the flow
+and consume it at the callback. `generateStateFunction` accepts a function to generate the
+`state` parameter for the OAUTH flow. This function receives the Fastify instance's `request`
+object as a parameter. The `state` parameter will be also set into a `httpOnly`,
+`sameSite: Lax` cookie.
 When you set it, it is required to provide the function `checkStateFunction` in order to validate the states generated.
 
 ```js
@@ -361,8 +454,8 @@ This fastify plugin adds 6 utility decorators to your fastify instance using the
   - `token_type` (generally `'Bearer'`)
   - `expires_in` (number of seconds for the token to expire, e.g. `240000`)
 
-- OR `getAccessTokenFromAuthorizationCodeFlow(request, reply, callback)` variant with 3 arguments, which should be used when PKCE extension is used.
-  This allows fastify-oauth2 to delete PKCE code_verifier cookie so it doesn't stay in browser in case server has issue when fetching token. See [Google With PKCE example for more](./examples/google-with-pkce.js).
+- OR `getAccessTokenFromAuthorizationCodeFlow(request, reply, callback)` variant with 3 arguments, which is the recommended form and required when the PKCE extension is used.
+  Passing `reply` allows fastify-oauth2 to delete the state and PKCE code_verifier cookies, so that they do not stay in the browser if the server has an issue when fetching the token, and so that a state which already reached the callback cannot be replayed. See [Google With PKCE example for more](./examples/google-with-pkce.js).
 
   *Important to note*: if your provider supports `S256` as code_challenge_method, always prefer that.
   Only use `plain` when your provider doesn't support `S256`.

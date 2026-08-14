@@ -49,6 +49,7 @@ declare namespace fastifyOauth2 {
     discovery?: { issuer: string; }
     redirectStateCookieName?: string;
     verifierCookieName?: string;
+    hostPrefixedCookies?: boolean;
   }
 
   export type TToken = 'access_token' | 'refresh_token'

@@ -3057,3 +3057,423 @@ test('options.verifierCookieName', async (t) => {
     )
   })
 })
+
+test('cookie prefixes', async (t) => {
+  const baseOptions = {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    startRedirectPath: '/login',
+    pkce: 'S256'
+  }
+
+  const login = async (t, options) => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+    fastify.register(fastifyOauth2, Object.assign({}, baseOptions, options))
+    after(() => fastify.close())
+
+    const response = await fastify.inject({ method: 'GET', url: '/login' })
+    t.assert.strictEqual(response.statusCode, 302)
+    return response.cookies
+  }
+
+  await t.test('hostPrefixedCookies selects __Host- names, Secure and Path=/', async (t) => {
+    t.plan(9)
+
+    const [state, verifier] = await login(t, { hostPrefixedCookies: true })
+
+    t.assert.strictEqual(state.name, '__Host-oauth2-redirect-state')
+    t.assert.strictEqual(state.secure, true)
+    t.assert.strictEqual(state.path, '/')
+    t.assert.strictEqual(state.domain, undefined)
+
+    t.assert.strictEqual(verifier.name, '__Host-oauth2-code-verifier')
+    t.assert.strictEqual(verifier.secure, true)
+    t.assert.strictEqual(verifier.path, '/')
+    t.assert.strictEqual(verifier.domain, undefined)
+  })
+
+  await t.test('__Host- prefix overrides conflicting options.cookie values', async (t) => {
+    t.plan(7)
+
+    // a __Host- cookie carrying any of these attributes is dropped by the
+    // browser, which would silently break the flow instead of securing it
+    const [state, verifier] = await login(t, {
+      hostPrefixedCookies: true,
+      cookie: { secure: false, path: '/callback', domain: 'example.com' }
+    })
+
+    for (const cookie of [state, verifier]) {
+      t.assert.strictEqual(cookie.secure, true)
+      t.assert.strictEqual(cookie.path, '/')
+      t.assert.strictEqual(cookie.domain, undefined)
+    }
+  })
+
+  await t.test('__Secure- prefix forces Secure only', async (t) => {
+    t.plan(5)
+
+    const [state, verifier] = await login(t, {
+      redirectStateCookieName: '__Secure-state',
+      verifierCookieName: '__Secure-verifier',
+      cookie: { secure: false, path: '/callback' }
+    })
+
+    t.assert.strictEqual(state.secure, true)
+    t.assert.strictEqual(state.path, '/callback')
+    t.assert.strictEqual(verifier.secure, true)
+    t.assert.strictEqual(verifier.path, '/callback')
+  })
+
+  await t.test('the prefixes are matched case-insensitively, as browsers do', async (t) => {
+    t.plan(7)
+
+    const [state, verifier] = await login(t, {
+      redirectStateCookieName: '__HOST-state',
+      verifierCookieName: '__secure-verifier',
+      cookie: { secure: false, path: '/callback', domain: 'example.com' }
+    })
+
+    t.assert.strictEqual(state.secure, true)
+    t.assert.strictEqual(state.path, '/')
+    t.assert.strictEqual(state.domain, undefined)
+
+    t.assert.strictEqual(verifier.secure, true)
+    t.assert.strictEqual(verifier.path, '/callback')
+    t.assert.strictEqual(verifier.domain, 'example.com')
+  })
+
+  await t.test('unprefixed cookie names keep options.cookie as given', async (t) => {
+    t.plan(5)
+
+    const [state, verifier] = await login(t, {
+      redirectStateCookieName: 'custom-state',
+      verifierCookieName: 'custom-verifier',
+      cookie: { secure: false, path: '/callback' }
+    })
+
+    t.assert.strictEqual(state.secure, undefined)
+    t.assert.strictEqual(state.path, '/callback')
+    t.assert.strictEqual(verifier.secure, undefined)
+    t.assert.strictEqual(verifier.path, '/callback')
+  })
+})
+
+test('the state and verifier cookies are cleared at the callback', async (t) => {
+  t.plan(7)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'githubOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: 'http://localhost:3000/callback',
+    startRedirectPath: '/login/github',
+    pkce: 'S256',
+    // clearing a __Host- cookie needs the same attributes it was written with,
+    // so the prefixed names are the interesting case here
+    hostPrefixedCookies: true
+  })
+
+  fastify.get('/callback', function (request, reply) {
+    return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      .catch((err) => {
+        reply.code(400)
+        return err.message
+      })
+  })
+
+  after(() => fastify.close())
+
+  // a state that reached the callback must not be replayable, whatever the
+  // outcome of the exchange
+  const response = await fastify.inject({
+    method: 'GET',
+    url: '/callback?code=my-code&state=planted',
+    cookies: { '__Host-oauth2-redirect-state': 'not-the-planted-state' }
+  })
+
+  t.assert.strictEqual(response.statusCode, 400)
+  t.assert.strictEqual(response.payload, 'Invalid state')
+
+  const cleared = response.cookies
+  t.assert.deepStrictEqual(
+    cleared.map(cookie => cookie.name).sort(),
+    ['__Host-oauth2-code-verifier', '__Host-oauth2-redirect-state']
+  )
+
+  for (const cookie of cleared) {
+    // cleared with the same attributes, otherwise the browser keeps the cookie
+    t.assert.strictEqual(cookie.secure, true)
+    t.assert.ok(cookie.expires <= new Date())
+  }
+})
+
+test('signed cookies', async (t) => {
+  const SECRET = 'a-secret-with-more-than-enough-entropy'
+
+  const build = (t, { signed = true, withSecret = true, pkce } = {}) => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+    if (withSecret) {
+      fastify.register(require('@fastify/cookie'), { secret: SECRET })
+    }
+    fastify.register(fastifyOauth2, Object.assign({
+      name: 'githubOAuth2',
+      credentials: {
+        client: { id: 'my-client-id', secret: 'my-secret' },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      callbackUri: 'http://localhost:3000/callback',
+      startRedirectPath: '/login',
+      cookie: { signed }
+    }, pkce ? { pkce } : {}))
+
+    fastify.get('/callback', function (request, reply) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .then(result => ({ access_token: result.token.access_token }))
+        .catch((err) => {
+          reply.code(400)
+          return err.message
+        })
+    })
+
+    after(() => fastify.close())
+    return fastify
+  }
+
+  await t.test('a signed state cookie is unsigned before it is compared', async (t) => {
+    t.plan(4)
+
+    const fastify = build(t)
+    await fastify.ready()
+
+    const login = await fastify.inject({ method: 'GET', url: '/login' })
+    const state = new URL(login.headers.location).searchParams.get('state')
+    const cookie = login.cookies[0]
+
+    // the cookie really is signed: it is not the bare state
+    t.assert.notStrictEqual(cookie.value, state)
+    t.assert.ok(cookie.value.startsWith(state + '.'))
+
+    nock('https://github.com')
+      .post('/login/oauth/access_token')
+      .reply(200, { access_token: 'my-access-token', token_type: 'Bearer' })
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/callback?code=my-code&state=' + encodeURIComponent(state),
+      cookies: { [cookie.name]: cookie.value }
+    })
+
+    t.assert.strictEqual(response.statusCode, 200)
+    t.assert.strictEqual(JSON.parse(response.payload).access_token, 'my-access-token')
+  })
+
+  await t.test('a signed verifier is unsigned before the token request', async (t) => {
+    t.plan(2)
+
+    const fastify = build(t, { pkce: 'plain' })
+    await fastify.ready()
+
+    const login = await fastify.inject({ method: 'GET', url: '/login' })
+    const url = new URL(login.headers.location)
+    const state = url.searchParams.get('state')
+    const challenge = url.searchParams.get('code_challenge')
+    const [stateCookie, verifierCookie] = login.cookies
+
+    // with pkce: 'plain' the challenge is the verifier, so the unsigned value
+    // that must reach the token endpoint is known
+    const scope = nock('https://github.com')
+      .post('/login/oauth/access_token', body => body.code_verifier === challenge)
+      .reply(200, { access_token: 'my-access-token', token_type: 'Bearer' })
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/callback?code=my-code&state=' + encodeURIComponent(state),
+      cookies: {
+        [stateCookie.name]: stateCookie.value,
+        [verifierCookie.name]: verifierCookie.value
+      }
+    })
+
+    t.assert.strictEqual(response.statusCode, 200)
+    scope.done()
+    t.assert.ok(true, 'the token endpoint received the unsigned verifier')
+  })
+
+  await t.test('a tampered signature is rejected, not used unsigned', async (t) => {
+    t.plan(2)
+
+    const fastify = build(t)
+    await fastify.ready()
+
+    const login = await fastify.inject({ method: 'GET', url: '/login' })
+    const state = new URL(login.headers.location).searchParams.get('state')
+    const cookie = login.cookies[0]
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/callback?code=my-code&state=' + encodeURIComponent(state),
+      cookies: { [cookie.name]: cookie.value.slice(0, -1) + 'X' }
+    })
+
+    t.assert.strictEqual(response.statusCode, 400)
+    t.assert.strictEqual(response.payload, 'Invalid state')
+  })
+
+  await t.test('an unsigned cookie is not accepted when signing is configured', async (t) => {
+    t.plan(2)
+
+    const fastify = build(t)
+    await fastify.ready()
+
+    const login = await fastify.inject({ method: 'GET', url: '/login' })
+    const state = new URL(login.headers.location).searchParams.get('state')
+
+    // the planted value matches the state exactly, but carries no signature
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/callback?code=my-code&state=' + encodeURIComponent(state),
+      cookies: { 'oauth2-redirect-state': state }
+    })
+
+    t.assert.strictEqual(response.statusCode, 400)
+    t.assert.strictEqual(response.payload, 'Invalid state')
+  })
+
+  await t.test('a missing cookie is rejected when signing is configured', async (t) => {
+    t.plan(2)
+
+    const fastify = build(t)
+    await fastify.ready()
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/callback?code=my-code&state=some-state'
+    })
+
+    t.assert.strictEqual(response.statusCode, 400)
+    t.assert.strictEqual(response.payload, 'Invalid state')
+  })
+
+  await t.test('signing without a secret cannot be downgraded at the callback', async (t) => {
+    t.plan(2)
+
+    // no @fastify/cookie secret, so request.unsignCookie is not decorated
+    const fastify = build(t, { withSecret: false })
+    await fastify.ready()
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/callback?code=my-code&state=some-state',
+      cookies: { 'oauth2-redirect-state': 'some-state' }
+    })
+
+    t.assert.strictEqual(response.statusCode, 400)
+    t.assert.strictEqual(response.payload, 'Invalid state')
+  })
+})
+
+test('options.hostPrefixedCookies', async (t) => {
+  const baseOptions = {
+    name: 'the-name',
+    credentials: {
+      client: { id: 'my-client-id', secret: 'my-secret' },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    startRedirectPath: '/login',
+    pkce: 'S256'
+  }
+
+  await t.test('should be a boolean', (t) => {
+    t.plan(1)
+
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    return t.assert.rejects(
+      fastify.register(fastifyOauth2, Object.assign({}, baseOptions, {
+        hostPrefixedCookies: 'yes'
+      })).ready(),
+      undefined,
+      'options.hostPrefixedCookies should be a boolean'
+    )
+  })
+
+  await t.test('defaults to off, keeping the historical cookie names', async (t) => {
+    t.plan(3)
+
+    const fastify = createFastify({ logger: { level: 'silent' } })
+    fastify.register(fastifyOauth2, baseOptions)
+    after(() => fastify.close())
+
+    const response = await fastify.inject({ method: 'GET', url: '/login' })
+
+    t.assert.strictEqual(response.statusCode, 302)
+    t.assert.strictEqual(response.cookies[0].name, 'oauth2-redirect-state')
+    t.assert.strictEqual(response.cookies[1].name, 'oauth2-code-verifier')
+  })
+
+  await t.test('the state check follows the selected names', async (t) => {
+    t.plan(2)
+
+    const fastify = createFastify({ logger: { level: 'silent' } })
+    fastify.register(fastifyOauth2, Object.assign({}, baseOptions, {
+      hostPrefixedCookies: true
+    }))
+    fastify.get('/callback', function (request, reply) {
+      return this['the-name'].getAccessTokenFromAuthorizationCodeFlow(request, reply)
+        .catch((err) => {
+          reply.code(400)
+          return err.message
+        })
+    })
+    after(() => fastify.close())
+
+    // the historical name must no longer satisfy the check once opted in
+    const stale = await fastify.inject({
+      method: 'GET',
+      url: '/callback?code=my-code&state=some-state',
+      cookies: { 'oauth2-redirect-state': 'some-state' }
+    })
+    t.assert.strictEqual(stale.payload, 'Invalid state')
+
+    const current = await fastify.inject({
+      method: 'GET',
+      url: '/callback?code=my-code&state=some-state',
+      cookies: { '__Host-oauth2-redirect-state': 'some-state' }
+    })
+    // the state is accepted, so the failure is the offline token exchange
+    t.assert.notStrictEqual(current.payload, 'Invalid state')
+  })
+
+  await t.test('explicit cookie names win over the flag', async (t) => {
+    t.plan(3)
+
+    const fastify = createFastify({ logger: { level: 'silent' } })
+    fastify.register(fastifyOauth2, Object.assign({}, baseOptions, {
+      hostPrefixedCookies: true,
+      redirectStateCookieName: 'custom-state',
+      verifierCookieName: 'custom-verifier'
+    }))
+    after(() => fastify.close())
+
+    const response = await fastify.inject({ method: 'GET', url: '/login' })
+
+    t.assert.strictEqual(response.statusCode, 302)
+    t.assert.strictEqual(response.cookies[0].name, 'custom-state')
+    t.assert.strictEqual(response.cookies[1].name, 'custom-verifier')
+  })
+})

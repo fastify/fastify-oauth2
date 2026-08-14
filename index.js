@@ -14,6 +14,8 @@ const { promisify, callbackify } = require('node:util')
 
 const DEFAULT_VERIFIER_COOKIE_NAME = 'oauth2-code-verifier'
 const DEFAULT_REDIRECT_STATE_COOKIE_NAME = 'oauth2-redirect-state'
+const HOST_PREFIXED_VERIFIER_COOKIE_NAME = '__Host-oauth2-code-verifier'
+const HOST_PREFIXED_REDIRECT_STATE_COOKIE_NAME = '__Host-oauth2-redirect-state'
 const USER_AGENT = 'fastify-oauth2'
 const PKCE_METHODS = ['S256', 'plain']
 
@@ -25,12 +27,30 @@ function defaultGenerateStateFunction (_request, callback) {
   callback(null, random(16))
 }
 
+// The state and verifier cookies carry a signature when they are written with
+// `cookie: { signed: true }`, so they have to be unsigned before use: the
+// signed state can never equal the unsigned `state` query parameter, and a
+// signed verifier is rejected by the token endpoint. A cookie that fails to
+// unsign is discarded rather than used as-is, so that a bad signature cannot
+// be downgraded into an unsigned comparison.
+function readCookieValue (request, name, signed) {
+  const value = request.cookies[name]
+  if (!signed || value === undefined) {
+    return value
+  }
+  const unsigned = typeof request.unsignCookie === 'function'
+    ? request.unsignCookie(value)
+    : { valid: false }
+  return unsigned.valid ? unsigned.value : undefined
+}
+
 function defaultCheckStateFunction (request, callback) {
   const state = request.query.state
-  const stateCookie =
-    request.cookies[
-      this.redirectStateCookieName
-    ]
+  const stateCookie = readCookieValue(
+    request,
+    this.redirectStateCookieName,
+    this.signed
+  )
   if (stateCookie && state === stateCookie) {
     callback()
     return
@@ -40,6 +60,32 @@ function defaultCheckStateFunction (request, callback) {
 
 function defaultGenerateCallbackUriParams (callbackUriParams) {
   return callbackUriParams
+}
+
+// The default state check compares the state in the callback query with the
+// state cookie. That only proves the two values match, not that the same
+// browser started the flow, so a party able to write a cookie for the host
+// (an on-path attacker answering a plaintext request, or a sibling subdomain)
+// can plant both the state and the PKCE verifier and force a login CSRF.
+// The `__Host-` prefix closes that write vector: browsers only accept such a
+// cookie from a secure origin, host-only, with `Path=/`. A cookie whose
+// attributes contradict its prefix is silently dropped, so the attributes are
+// derived from the name rather than taken from the user options.
+// Browsers match these prefixes case-insensitively, so `__host-` is enforced
+// exactly like `__Host-`; matching case-sensitively here would leave such a
+// cookie without the attributes its prefix requires and the browser would
+// drop it, breaking the flow.
+function cookieOptsForName (name, baseOpts) {
+  const prefix = name.toLowerCase()
+  if (prefix.startsWith('__host-')) {
+    const opts = Object.assign({}, baseOpts, { secure: true, path: '/' })
+    delete opts.domain
+    return opts
+  }
+  if (prefix.startsWith('__secure-')) {
+    return Object.assign({}, baseOpts, { secure: true })
+  }
+  return baseOpts
 }
 
 /**
@@ -117,9 +163,30 @@ function fastifyOauth2 (fastify, options, next) {
       new Error('options.redirectStateCookieName should be a string')
     )
   }
+  if (
+    options.hostPrefixedCookies !== undefined &&
+    typeof options.hostPrefixedCookies !== 'boolean'
+  ) {
+    return next(new Error('options.hostPrefixedCookies should be a boolean'))
+  }
   if (!fastify.hasReplyDecorator('cookie')) {
     fastify.register(require('@fastify/cookie'))
   }
+  // Opt-in to `__Host-` prefixed default cookie names. It only selects the
+  // defaults: an explicit `redirectStateCookieName`/`verifierCookieName`
+  // always wins, and gets the attributes its own prefix requires anyway.
+  const hostPrefixedCookies = options.hostPrefixedCookies === true
+  const defaultRedirectStateCookieName = hostPrefixedCookies
+    ? HOST_PREFIXED_REDIRECT_STATE_COOKIE_NAME
+    : DEFAULT_REDIRECT_STATE_COOKIE_NAME
+  const defaultVerifierCookieName = hostPrefixedCookies
+    ? HOST_PREFIXED_VERIFIER_COOKIE_NAME
+    : DEFAULT_VERIFIER_COOKIE_NAME
+
+  // `signed` is resolved here and always written explicitly, so that an
+  // externally registered @fastify/cookie cannot sign these cookies through
+  // its own `parseOptions` without this plugin knowing to unsign them
+  const cookieSigned = options.cookie?.signed === true
   const omitUserAgent = options.userAgent === false
   const discovery = options.discovery
   const userAgent = options.userAgent === false
@@ -138,13 +205,14 @@ function fastifyOauth2 (fastify, options, next) {
       checkStateFunction = defaultCheckStateFunction.bind({
         redirectStateCookieName:
           configured.redirectStateCookieName ||
-          DEFAULT_REDIRECT_STATE_COOKIE_NAME
+          defaultRedirectStateCookieName,
+        signed: cookieSigned
       }),
       startRedirectPath,
       tags = [],
       schema = { tags },
-      redirectStateCookieName = DEFAULT_REDIRECT_STATE_COOKIE_NAME,
-      verifierCookieName = DEFAULT_VERIFIER_COOKIE_NAME
+      redirectStateCookieName = defaultRedirectStateCookieName,
+      verifierCookieName = defaultVerifierCookieName
     } = configured
 
     if (userAgent) {
@@ -157,7 +225,9 @@ function fastifyOauth2 (fastify, options, next) {
       }
     }
     const generateCallbackUriParams = credentials.auth?.[kGenerateCallbackUriParams] || defaultGenerateCallbackUriParams
-    const cookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie)
+    const baseCookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie, { signed: cookieSigned })
+    const redirectStateCookieOpts = cookieOptsForName(redirectStateCookieName, baseCookieOpts)
+    const verifierCookieOpts = cookieOptsForName(verifierCookieName, baseCookieOpts)
 
     const generateStateFunctionCallbacked = function (request, callback) {
       const boundGenerateStateFunction = generateStateFunction.bind(fastify)
@@ -178,7 +248,7 @@ function fastifyOauth2 (fastify, options, next) {
           return
         }
 
-        reply.setCookie(redirectStateCookieName, state, cookieOpts)
+        reply.setCookie(redirectStateCookieName, state, redirectStateCookieOpts)
 
         // when PKCE extension is used
         let pkceParams = {}
@@ -189,7 +259,7 @@ function fastifyOauth2 (fastify, options, next) {
             code_challenge: challenge,
             code_challenge_method: configured.pkce
           }
-          reply.setCookie(verifierCookieName, verifier, cookieOpts)
+          reply.setCookie(verifierCookieName, verifier, verifierCookieOpts)
         }
 
         const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
@@ -252,13 +322,15 @@ function fastifyOauth2 (fastify, options, next) {
 
     function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, reply, callback) {
       const code = request.query.code
-      const pkceParams = configured.pkce ? { code_verifier: request.cookies[verifierCookieName] } : {}
+      const pkceParams = configured.pkce
+        ? { code_verifier: readCookieValue(request, verifierCookieName, cookieSigned) }
+        : {}
 
       const _callback = typeof reply === 'function' ? reply : callback
 
       if (reply && typeof reply !== 'function') {
-        // cleanup a cookie if plugin user uses (req, res, cb) signature variant of getAccessToken fn
-        clearCodeVerifierCookie(reply)
+        // cleanup the cookies if plugin user uses (req, res, cb) signature variant of getAccessToken fn
+        clearOAuth2Cookies(reply)
       }
 
       checkStateFunctionCallbacked(request, function (err) {
@@ -323,8 +395,13 @@ function fastifyOauth2 (fastify, options, next) {
       revokeAllTokenCallbacked(token, params, callback)
     }
 
-    function clearCodeVerifierCookie (reply) {
-      reply.clearCookie(verifierCookieName, cookieOpts)
+    // The state and the verifier are single-use: clearing them keeps a state
+    // that has already reached the callback from being replayed. This is
+    // defense in depth, not a substitute for binding the state to the browser
+    // that started the flow — see `generateStateFunction`/`checkStateFunction`.
+    function clearOAuth2Cookies (reply) {
+      reply.clearCookie(verifierCookieName, verifierCookieOpts)
+      reply.clearCookie(redirectStateCookieName, redirectStateCookieOpts)
     }
 
     const pUserInfo = promisify(userInfoCallbacked)
