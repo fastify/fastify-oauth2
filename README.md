@@ -150,7 +150,7 @@ subdomain, or a forgotten staging box is enough for someone to write
 That matters because the default state check compares the `state` query parameter with
 the state cookie. Someone who can write those two cookies can plant a `state` and PKCE
 verifier of their own, then have a victim's browser complete a callback carrying an
-authorization code for the *attacker's* identity — logging the victim into the
+authorization code for the _attacker's_ identity — logging the victim into the
 attacker's account, where anything they subsequently do is recorded. This is login CSRF;
 it does not expose the victim's own account or tokens.
 
@@ -457,14 +457,14 @@ This fastify plugin adds 6 utility decorators to your fastify instance using the
 - OR `getAccessTokenFromAuthorizationCodeFlow(request, reply, callback)` variant with 3 arguments, which is the recommended form and required when the PKCE extension is used.
   Passing `reply` allows fastify-oauth2 to delete the state and PKCE code_verifier cookies, so that they do not stay in the browser if the server has an issue when fetching the token, and so that a state which already reached the callback cannot be replayed. See [Google With PKCE example for more](./examples/google-with-pkce.js).
 
-  *Important to note*: if your provider supports `S256` as code_challenge_method, always prefer that.
+  _Important to note_: if your provider supports `S256` as code_challenge_method, always prefer that.
   Only use `plain` when your provider doesn't support `S256`.
 
+- `getNewAccessTokenUsingRefreshToken(token, params, callback)`: A function that takes the plain token object (the `token` property of an `AccessToken` object, or any object with a `refresh_token` property) and retrieves a new `AccessToken`-Object. This is generally useful with background processing workers to re-issue a new AccessToken when the previous AccessToken has expired. The `params` argument is optional and it is an object that can be used to pass in additional parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a Promise. The object resulting from the callback call or the resolved Promise is a new `AccessToken` object (see above). Example of how you would use it for `name:googleOAuth2`:
 
-- `getNewAccessTokenUsingRefreshToken(Token, params, callback)`: A function that takes a `AccessToken`-Object as `Token` and retrieves a new `AccessToken`-Object. This is generally useful with background processing workers to re-issue a new AccessToken when the previous AccessToken has expired. The `params` argument is optional and it is an object that can be used to pass in additional parameters to the refresh request (e.g. a stricter set of scopes). If the callback is not passed this function will return a Promise. The object resulting from the callback call or the resolved Promise is a new `AccessToken` object (see above). Example of how you would use it for `name:googleOAuth2`:
 ```js
-fastify.googleOAuth2.getNewAccessTokenUsingRefreshToken(currentAccessToken, (err, newAccessToken) => {
-   // Handle the new accessToken
+fastify.googleOAuth2.getNewAccessTokenUsingRefreshToken(currentAccessToken.token, {}, (err, newAccessToken) => {
+   // Handle the new accessToken, e.g. newAccessToken.token.access_token
 });
 ```
 
@@ -479,12 +479,15 @@ fastify.get('/external', { /* Hooks can be used here */ }, (req, reply) => {
 ```
 
 - `revokeToken(Token, tokenType, params, callback)`: A function to revoke the current access_token or refresh_token on the authorization server. If the callback is not passed it will return a promise. The callback call or promise resolution returns `void`
+
 ```js
 fastify.googleOAuth2.revokeToken(currentAccessToken, 'access_token', undefined, (err) => {
    // Handle the reply here
 });
 ```
+
 - `revokeAllToken(Token, params, callback)`: A function to revoke the current access_token and refresh_token on the authorization server. If the callback is not passed it will return a promise. The callback call or promise resolution returns `void`
+
 ```js
 fastify.googleOAuth2.revokeAllToken(currentAccessToken, undefined, (err) => {
    // Handle the reply here
@@ -581,8 +584,12 @@ fastify.register(oauthPlugin, {
 })
 ```
 
+### LinkedIn
+
+LinkedIn also requires `client_id` and `client_secret` in the body of the token request, otherwise the token exchange fails with `400 Bad Request`. Pass them via `tokenRequestParams` as shown for Twitch above. See [examples/linkedin.js](./examples/linkedin.js).
+
 ## License
 
 Licensed under [MIT](./LICENSE).
 
-*NB* See [`simple-oauth2`](https://github.com/lelylan/simple-oauth2) license too
+_NB_ See [`simple-oauth2`](https://github.com/lelylan/simple-oauth2) license too
