@@ -83,7 +83,7 @@ fastify.register(require('@fastify/cookie'), cookieOptions)
 fastify.register(oauthPlugin, oauthOptions)
 ```
 
-Cookies are by default `httpOnly`, `sameSite: Lax`. If this does not suit your use case, it is possible to override the default cookie settings by providing options in the configuration object, for example
+Cookies are by default `httpOnly`, `sameSite: Lax`, `path: '/'`. If this does not suit your use case, it is possible to override the default cookie settings by providing options in the configuration object, for example
 
 ```js
 fastify.register(oauthPlugin, {
@@ -93,6 +93,10 @@ fastify.register(oauthPlugin, {
   }
 })
 ```
+
+Since the cookies use `path: '/'`, multiple providers registered with the default cookie names share the same
+state and verifier cookies. If users may run more than one login flow in parallel (e.g. in different tabs),
+set distinct `redirectStateCookieName` and `verifierCookieName` for each provider.
 
 Additionally, you can customize the names of the cookies by setting the `redirectStateCookieName` and `verifierCookieName` options.
 The default values for these cookies are `oauth2-code-verifier` for `verifierCookieName` and `oauth2-redirect-state` for `redirectStateCookieName`.
@@ -414,6 +418,10 @@ fastify.register(oauthPlugin, {
 
 The `tokenRequestParams` parameter accepts an object that will be translated to additional parameters in the POST body
 when requesting access tokens via the service’s token endpoint.
+
+These parameters are sent both when exchanging the authorization code and when refreshing a token, either through
+`getNewAccessTokenUsingRefreshToken` or by calling `refresh()` on an `AccessToken` returned by the plugin.
+Parameters passed explicitly to the refresh call take precedence over `tokenRequestParams`.
 
 ## Examples
 

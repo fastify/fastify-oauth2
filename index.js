@@ -225,7 +225,8 @@ function fastifyOauth2 (fastify, options, next) {
       }
     }
     const generateCallbackUriParams = credentials.auth?.[kGenerateCallbackUriParams] || defaultGenerateCallbackUriParams
-    const baseCookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie, { signed: cookieSigned })
+    // `path: '/'` so the state/verifier cookies reach any callback path (RFC 6265 §5.1.4)
+    const baseCookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax', path: '/' }, options.cookie, { signed: cookieSigned })
     const redirectStateCookieOpts = cookieOptsForName(redirectStateCookieName, baseCookieOpts)
     const verifierCookieOpts = cookieOptsForName(verifierCookieName, baseCookieOpts)
 
@@ -293,13 +294,32 @@ function fastifyOauth2 (fastify, options, next) {
       })
     }
 
+    // Make `accessToken.refresh()` send `tokenRequestParams` too, with explicit
+    // `params` taking precedence. `refresh()` returns a fresh AccessToken, so
+    // the wrapper is applied again to keep the behaviour on chained refreshes.
+    function withTokenRequestParams (accessToken) {
+      const refresh = accessToken.refresh
+      Object.defineProperty(accessToken, 'refresh', {
+        configurable: true,
+        writable: true,
+        enumerable: false,
+        value: function (params, httpOptions) {
+          return refresh.call(this, Object.assign({}, tokenRequestParams, params), httpOptions)
+            .then(withTokenRequestParams)
+        }
+      })
+      return accessToken
+    }
+
     const cbk = function (o, request, code, pkceParams, callback) {
       const body = Object.assign({}, tokenRequestParams, {
         code,
         redirect_uri: typeof callbackUri === 'function' ? callbackUri(request) : callbackUri
       }, pkceParams)
 
-      return callbackify(o.oauth2.getToken.bind(o.oauth2, body))(callback)
+      return callbackify(function () {
+        return o.oauth2.getToken(body).then(withTokenRequestParams)
+      })(callback)
     }
 
     function checkStateFunctionCallbacked (request, callback) {
@@ -354,7 +374,7 @@ function fastifyOauth2 (fastify, options, next) {
     }
 
     function getNewAccessTokenUsingRefreshTokenCallbacked (refreshToken, params, callback) {
-      const accessToken = fastify[name].oauth2.createToken(refreshToken)
+      const accessToken = withTokenRequestParams(fastify[name].oauth2.createToken(refreshToken))
       callbackify(accessToken.refresh.bind(accessToken, params))(callback)
     }
 
