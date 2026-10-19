@@ -418,6 +418,10 @@ fastify.register(oauthPlugin, {
 The `tokenRequestParams` parameter accepts an object that will be translated to additional parameters in the POST body
 when requesting access tokens via the service’s token endpoint.
 
+These parameters are sent both when exchanging the authorization code and when refreshing a token, either through
+`getNewAccessTokenUsingRefreshToken` or by calling `refresh()` on an `AccessToken` returned by the plugin.
+Parameters passed explicitly to the refresh call take precedence over `tokenRequestParams`.
+
 ## Examples
 
 See the [`example/`](./examples/) folder for more examples.

@@ -1650,6 +1650,119 @@ test('options.tokenRequestParams', async t => {
   githubScope.done()
 })
 
+test('options.tokenRequestParams are sent on refresh too', async t => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'githubOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: 'http://localhost:3000/callback',
+    tokenRequestParams: {
+      client_id: 'my-client-id',
+      client_secret: 'my-secret'
+    }
+  })
+
+  const githubScope = nock('https://github.com')
+    .post('/login/oauth/access_token', {
+      grant_type: 'refresh_token',
+      client_id: 'my-client-id',
+      client_secret: 'my-secret',
+      extra: '1',
+      refresh_token: 'my-refresh-token'
+    })
+    .reply(200, { access_token: 'new-token', token_type: 'Bearer', expires_in: 3600 })
+
+  after(() => fastify.close())
+  await fastify.ready()
+
+  const result = await fastify.githubOAuth2.getNewAccessTokenUsingRefreshToken(
+    { refresh_token: 'my-refresh-token' },
+    { extra: 1 }
+  )
+
+  t.assert.strictEqual(result.token.access_token, 'new-token')
+  githubScope.done()
+})
+
+test('options.tokenRequestParams are sent when refreshing a token returned by getAccessTokenFromAuthorizationCodeFlow', async t => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'githubOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: 'http://localhost:3000/callback',
+    generateStateFunction: function () {
+      return 'dummy'
+    },
+    checkStateFunction: function (state, callback) {
+      callback()
+    },
+    tokenRequestParams: {
+      client_id: 'my-client-id',
+      client_secret: 'my-secret'
+    }
+  })
+
+  const githubScope = nock('https://github.com')
+    .post('/login/oauth/access_token', {
+      grant_type: 'authorization_code',
+      client_id: 'my-client-id',
+      client_secret: 'my-secret',
+      code: '123456789',
+      redirect_uri: 'http://localhost:3000/callback'
+    })
+    .reply(200, { access_token: 'first-token', refresh_token: 'first-refresh', token_type: 'Bearer', expires_in: 3600 })
+    .post('/login/oauth/access_token', {
+      grant_type: 'refresh_token',
+      client_id: 'my-client-id',
+      client_secret: 'overridden',
+      extra: '1',
+      refresh_token: 'first-refresh'
+    })
+    .reply(200, { access_token: 'second-token', refresh_token: 'second-refresh', token_type: 'Bearer', expires_in: 3600 })
+    .post('/login/oauth/access_token', {
+      grant_type: 'refresh_token',
+      client_id: 'my-client-id',
+      client_secret: 'my-secret',
+      refresh_token: 'second-refresh'
+    })
+    .reply(200, { access_token: 'third-token', token_type: 'Bearer', expires_in: 3600 })
+
+  fastify.get('/callback', async function (request) {
+    const first = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+    // explicit params still take precedence over tokenRequestParams
+    const second = await first.refresh({ client_secret: 'overridden', extra: 1 })
+    // refreshed tokens keep the behaviour on chained refreshes
+    const third = await second.refresh()
+    return [first.token.access_token, second.token.access_token, third.token.access_token]
+  })
+
+  after(() => fastify.close())
+  await fastify.ready()
+
+  const response = await fastify.inject({
+    method: 'GET',
+    url: '/callback?code=123456789'
+  })
+
+  t.assert.strictEqual(response.statusCode, 200)
+  t.assert.deepStrictEqual(response.json(), ['first-token', 'second-token', 'third-token'])
+  githubScope.done()
+})
+
 test('generateAuthorizationUri redirect with request object', (t, end) => {
   const fastify = createFastify()
 
@@ -3147,6 +3260,15 @@ test('cookie prefixes', async (t) => {
     t.assert.strictEqual(verifier.secure, true)
     t.assert.strictEqual(verifier.path, '/callback')
     t.assert.strictEqual(verifier.domain, 'example.com')
+  })
+
+  await t.test('cookies default to path=/ so they reach any callback path', async (t) => {
+    t.plan(3)
+
+    const [state, verifier] = await login(t, {})
+
+    t.assert.strictEqual(state.path, '/')
+    t.assert.strictEqual(verifier.path, '/')
   })
 
   await t.test('unprefixed cookie names keep options.cookie as given', async (t) => {
