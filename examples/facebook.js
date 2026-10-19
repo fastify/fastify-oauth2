@@ -19,7 +19,7 @@ fastify.register(oauthPlugin, {
 })
 
 fastify.get('/login/facebook/callback', function (request, reply) {
-  this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, async (err, result) => {
+  this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply, async (err, result) => {
     if (err) {
       reply.send(err)
       return

@@ -39,7 +39,7 @@ async function retrieveAccessToken (token) {
 }
 
 fastify.get('/login/github/callback', async function (request, reply) {
-  const token = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+  const token = await this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
 
   console.log(token.access_token)
 

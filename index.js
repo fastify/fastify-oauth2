@@ -225,7 +225,7 @@ function fastifyOauth2 (fastify, options, next) {
       }
     }
     const generateCallbackUriParams = credentials.auth?.[kGenerateCallbackUriParams] || defaultGenerateCallbackUriParams
-    const baseCookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax' }, options.cookie, { signed: cookieSigned })
+    const baseCookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax', path: '/' }, options.cookie, { signed: cookieSigned })
     const redirectStateCookieOpts = cookieOptsForName(redirectStateCookieName, baseCookieOpts)
     const verifierCookieOpts = cookieOptsForName(verifierCookieName, baseCookieOpts)
 

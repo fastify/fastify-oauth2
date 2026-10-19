@@ -66,7 +66,7 @@ fastify.get('/login/apple/callback', function (request, reply) {
   const authCodeFlow = { ...request, query: { code, state } }
 
   this.appleOAuth2
-    .getAccessTokenFromAuthorizationCodeFlow(authCodeFlow, (err, result) => {
+    .getAccessTokenFromAuthorizationCodeFlow(authCodeFlow, reply, (err, result) => {
       if (err) {
         reply.send(err)
         return
