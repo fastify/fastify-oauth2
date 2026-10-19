@@ -20,7 +20,7 @@ fastify.register(oauthPlugin, {
 })
 
 fastify.get('/login/eg/callback', async (req, reply) => {
-  const token = await fastify.egOAuth2.getAccessTokenFromAuthorizationCodeFlow(req)
+  const token = await fastify.egOAuth2.getAccessTokenFromAuthorizationCodeFlow(req, reply)
 
   req.log.info('The Epic Games token is %o', token)
   reply.send({ access_token: token.access_token })

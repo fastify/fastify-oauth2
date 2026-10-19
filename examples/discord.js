@@ -21,7 +21,7 @@ fastify.register(oauthPlugin, {
 fastify.get('/login/discord/callback', async function (request, reply) {
   try {
     const token =
-      await this.discordOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+      await this.discordOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
     return reply.send(token)
   } catch (error) {
     return reply.send(error)

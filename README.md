@@ -55,7 +55,7 @@ fastify.get('/login/facebook', {}, (req, reply) => {
 
 // The service provider redirect the user here after successful login
 fastify.get('/login/facebook/callback', async function (request, reply) {
-  const { token } = await this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+  const { token } = await this.facebookOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
 
   console.log(token.access_token)
 
@@ -94,11 +94,10 @@ fastify.register(oauthPlugin, {
 })
 ```
 
-Since the cookies use `path: '/'`, multiple providers registered with the default cookie names share the same
-state and verifier cookies. If users may run more than one login flow in parallel (e.g. in different tabs),
-set distinct `redirectStateCookieName` and `verifierCookieName` for each provider.
+Cookies created by older versions without an explicit `path` may remain under a narrower browser-derived path until the browser session ends.
 
-Additionally, you can customize the names of the cookies by setting the `redirectStateCookieName` and `verifierCookieName` options.
+Multiple OAuth providers registered with the default cookie names share the same state and verifier cookies. If users may run more than one provider's login flow in parallel, set distinct `redirectStateCookieName` and `verifierCookieName` values for each provider.
+
 The default values for these cookies are `oauth2-code-verifier` for `verifierCookieName` and `oauth2-redirect-state` for `redirectStateCookieName`.
 
 ```js

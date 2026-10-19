@@ -3287,7 +3287,83 @@ test('cookie prefixes', async (t) => {
   })
 })
 
-test('the state and verifier cookies are cleared at the callback', async (t) => {
+test('default state and verifier cookies use the same path when set and cleared', async (t) => {
+  t.plan(13)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'githubOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: 'http://localhost:3000/login/github/callback',
+    startRedirectPath: '/login/github',
+    pkce: 'S256'
+  })
+
+  fastify.get('/login/github/callback', function (request, reply) {
+    return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply)
+      .catch((err) => {
+        reply.code(400)
+        return err.message
+      })
+  })
+
+  after(() => fastify.close())
+
+  const login = await fastify.inject({
+    method: 'GET',
+    url: '/login/github'
+  })
+
+  t.assert.strictEqual(login.statusCode, 302)
+  t.assert.deepStrictEqual(
+    login.cookies.map(cookie => cookie.name).sort(),
+    ['oauth2-code-verifier', 'oauth2-redirect-state']
+  )
+
+  const setCookies = Object.fromEntries(
+    login.cookies.map(cookie => [cookie.name, cookie])
+  )
+
+  for (const cookie of login.cookies) {
+    t.assert.strictEqual(cookie.path, '/')
+  }
+
+  // A state that reached the callback must not be replayable, whatever the
+  // outcome of the exchange.
+  const response = await fastify.inject({
+    method: 'GET',
+    url: '/login/github/callback?code=my-code&state=planted',
+    cookies: Object.fromEntries(
+      login.cookies.map(cookie => [cookie.name, cookie.value])
+    )
+  })
+
+  t.assert.strictEqual(response.statusCode, 400)
+  t.assert.strictEqual(response.payload, 'Invalid state')
+
+  const cleared = response.cookies
+  t.assert.deepStrictEqual(
+    cleared.map(cookie => cookie.name).sort(),
+    ['oauth2-code-verifier', 'oauth2-redirect-state']
+  )
+
+  for (const cookie of cleared) {
+    // Cookies are identified by name, domain, and path. Clearing with a
+    // different path would leave the original cookie available for replay.
+    t.assert.strictEqual(cookie.path, setCookies[cookie.name].path)
+    t.assert.strictEqual(cookie.value, '')
+    t.assert.ok(cookie.expires <= new Date())
+  }
+})
+
+test('host-prefixed state and verifier cookies are cleared at the callback', async (t) => {
   t.plan(7)
 
   const fastify = createFastify({ logger: { level: 'silent' } })
@@ -3319,8 +3395,8 @@ test('the state and verifier cookies are cleared at the callback', async (t) => 
 
   after(() => fastify.close())
 
-  // a state that reached the callback must not be replayable, whatever the
-  // outcome of the exchange
+  // A state that reached the callback must not be replayable, whatever the
+  // outcome of the exchange.
   const response = await fastify.inject({
     method: 'GET',
     url: '/callback?code=my-code&state=planted',
@@ -3337,7 +3413,7 @@ test('the state and verifier cookies are cleared at the callback', async (t) => 
   )
 
   for (const cookie of cleared) {
-    // cleared with the same attributes, otherwise the browser keeps the cookie
+    // Cleared with the same attributes, otherwise the browser keeps the cookie.
     t.assert.strictEqual(cookie.secure, true)
     t.assert.ok(cookie.expires <= new Date())
   }

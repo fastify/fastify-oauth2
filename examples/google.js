@@ -20,7 +20,7 @@ fastify.register(oauthPlugin, {
 })
 
 fastify.get('/login/google/callback', function (request, reply) {
-  this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, async (err, result) => {
+  this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request, reply, async (err, result) => {
     if (err) {
       reply.send(err)
       return

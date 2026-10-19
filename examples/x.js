@@ -25,7 +25,8 @@ fastify.register(oauthPlugin, {
 
 fastify.get('/login/x/callback', async function (request, reply) {
   const { token } = await this.xOAuth2.getAccessTokenFromAuthorizationCodeFlow(
-    request
+    request,
+    reply
   )
 
   reply.send({ access_token: token.access_token })

@@ -23,6 +23,7 @@ fastify.register(oauthPlugin, {
 fastify.get('/login/vatsim/callback', function (request, reply) {
   this.vatsimoauthdev.getAccessTokenFromAuthorizationCodeFlow(
     request,
+    reply,
     (err, result) => {
       if (err) {
         reply.send(err)

@@ -26,6 +26,7 @@ fastify.register(oauthPlugin, {
 fastify.get('/login/linkedin/callback', function (request, reply) {
   this.linkedinOAuth2.getAccessTokenFromAuthorizationCodeFlow(
     request,
+    reply,
     async (err, result) => {
       if (err) {
         reply.send(err)

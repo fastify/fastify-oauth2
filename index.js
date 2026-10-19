@@ -225,7 +225,6 @@ function fastifyOauth2 (fastify, options, next) {
       }
     }
     const generateCallbackUriParams = credentials.auth?.[kGenerateCallbackUriParams] || defaultGenerateCallbackUriParams
-    // `path: '/'` so the state/verifier cookies reach any callback path (RFC 6265 §5.1.4)
     const baseCookieOpts = Object.assign({ httpOnly: true, sameSite: 'lax', path: '/' }, options.cookie, { signed: cookieSigned })
     const redirectStateCookieOpts = cookieOptsForName(redirectStateCookieName, baseCookieOpts)
     const verifierCookieOpts = cookieOptsForName(verifierCookieName, baseCookieOpts)
