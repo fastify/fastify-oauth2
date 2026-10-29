@@ -18,6 +18,7 @@ interface FastifyOauth2 extends FastifyPluginCallback<fastifyOauth2.FastifyOAuth
   EPIC_GAMES_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
   YANDEX_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
   X_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
+  KAKAO_CONFIGURATION: fastifyOauth2.ProviderConfiguration;
 }
 
 declare namespace fastifyOauth2 {
