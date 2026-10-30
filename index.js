@@ -810,6 +810,13 @@ fastifyOauth2.X_CONFIGURATION = {
   tokenPath: '/2/oauth2/token'
 }
 
+fastifyOauth2.KAKAO_CONFIGURATION = {
+  authorizeHost: 'https://kauth.kakao.com',
+  authorizePath: '/oauth/authorize',
+  tokenHost: 'https://kauth.kakao.com',
+  tokenPath: '/oauth/token'
+}
+
 module.exports = fp(fastifyOauth2, {
   fastify: '5.x',
   name: '@fastify/oauth2'

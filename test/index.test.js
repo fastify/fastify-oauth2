@@ -2133,7 +2133,7 @@ test('preset configuration generate-callback-uri-params', async t => {
 })
 
 test('preset configuration generate-callback-uri-params', t => {
-  t.plan(56)
+  t.plan(60)
 
   const presetConfigs = [
     'FACEBOOK_CONFIGURATION',
@@ -2149,7 +2149,8 @@ test('preset configuration generate-callback-uri-params', t => {
     'VATSIM_CONFIGURATION',
     'VATSIM_DEV_CONFIGURATION',
     'EPIC_GAMES_CONFIGURATION',
-    'YANDEX_CONFIGURATION'
+    'YANDEX_CONFIGURATION',
+    'KAKAO_CONFIGURATION'
   ]
 
   for (const configName of presetConfigs) {
