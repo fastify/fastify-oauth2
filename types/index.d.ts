@@ -31,12 +31,20 @@ declare namespace fastifyOauth2 {
     (this: FastifyInstance, request: FastifyRequest, callback: (err?: any) => void): void
   }
 
+  export type FastifyGenerateCallbackUriParamsFunction = (
+    callbackUriParams: Record<string, any>,
+    request: FastifyRequest,
+    scope?: string[],
+    state?: string
+  ) => Object
+
   export interface FastifyOAuth2Options {
     name: string;
     scope?: string[];
     credentials: Credentials;
     callbackUri: string | ((req: FastifyRequest) => string);
-    callbackUriParams?: Object;
+    callbackUriParams?: Object | ((req: FastifyRequest) => Object);
+    generateCallbackUriParams?: FastifyGenerateCallbackUriParamsFunction;
     tokenRequestParams?: Object;
     generateStateFunction?: FastifyGenerateStateFunction;
     checkStateFunction?: FastifyCheckStateFunction;

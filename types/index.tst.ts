@@ -86,6 +86,20 @@ expect<FastifyOAuth2Options>().type.toBeAssignableFrom({
   scope,
   credentials,
   callbackUri: 'http://localhost/testOauth/callback',
+  callbackUriParams: (req: FastifyRequest) => ({ login_hint: req.hostname }),
+  generateCallbackUriParams: (callbackUriParams: Record<string, any>, req: FastifyRequest, _scope?: string[], _state?: string) => ({
+    ...callbackUriParams,
+    login_hint: req.hostname
+  }),
+  startRedirectPath: '/login/testOauth',
+  pkce: 'S256' as const
+})
+
+expect<FastifyOAuth2Options>().type.toBeAssignableFrom({
+  name: 'testOAuthName',
+  scope,
+  credentials,
+  callbackUri: 'http://localhost/testOauth/callback',
   callbackUriParams: {},
   startRedirectPath: '/login/testOauth',
   discovery: { issuer: 'https://idp.mycompany.com' }
