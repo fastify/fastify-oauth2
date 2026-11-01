@@ -1572,6 +1572,113 @@ test('options.callbackUriParams', (t, end) => {
   })
 })
 
+test('options.callbackUriParams as a function', (t, end) => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    startRedirectPath: '/login/github',
+    callbackUri: '/callback',
+    callbackUriParams: (req) => ({
+      login_hint: req.query.hint
+    }),
+    scope: ['notifications']
+  })
+
+  after(() => fastify.close())
+
+  fastify.listen({ port: 0 }, function (err) {
+    t.assert.ifError(err)
+
+    fastify.inject({
+      method: 'GET',
+      url: '/login/github?hint=user%40example.com'
+    }, function (err, responseStart) {
+      t.assert.ifError(err)
+
+      t.assert.strictEqual(responseStart.statusCode, 302)
+      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&login_hint=user%40example\.com&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
+      t.assert.ok(matched)
+      end()
+    })
+  })
+})
+
+test('options.generateCallbackUriParams should be a function', t => {
+  t.plan(1)
+
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  return t.assert.rejects(fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    generateCallbackUriParams: 1
+  })
+    .ready(), undefined, 'options.generateCallbackUriParams should be a function')
+})
+
+test('options.generateCallbackUriParams', (t, end) => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    startRedirectPath: '/login/github',
+    callbackUri: '/callback',
+    callbackUriParams: {
+      prompt: 'login'
+    },
+    generateCallbackUriParams: function (callbackUriParams, request, _scope, _state) {
+      if (request.cookies.upn) {
+        callbackUriParams.login_hint = request.cookies.upn
+      }
+      return callbackUriParams
+    },
+    scope: ['notifications']
+  })
+
+  after(() => fastify.close())
+
+  fastify.listen({ port: 0 }, function (err) {
+    t.assert.ifError(err)
+
+    fastify.inject({
+      method: 'GET',
+      url: '/login/github',
+      cookies: {
+        upn: 'alice@example.com'
+      }
+    }, function (err, responseStart) {
+      t.assert.ifError(err)
+
+      t.assert.strictEqual(responseStart.statusCode, 302)
+      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&prompt=login&login_hint=alice%40example\.com&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
+      t.assert.ok(matched)
+      end()
+    })
+  })
+})
+
 test('options.tokenRequestParams should be an object', t => {
   t.plan(1)
 

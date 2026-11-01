@@ -386,7 +386,7 @@ Async functions are supported here, and the fastify instance can be accessed via
 
 ## Set custom callbackUri Parameters
 
-The `callbackUriParams` accepts an object that will be translated to query parameters for the callback OAUTH flow. The default value is {}.
+The `callbackUriParams` accepts an object or a `(request) => object` function that will be translated to query parameters for the callback OAUTH flow. The default value is `{}`. You may also provide `generateCallbackUriParams(callbackUriParams, request, scope, state)` to dynamically customize or augment the authorization URI parameters per request (including when using OpenID Connect discovery).
 
 ```js
 fastify.register(oauthPlugin, {

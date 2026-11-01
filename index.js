@@ -104,8 +104,11 @@ function fastifyOauth2 (fastify, options, next) {
   if (typeof options.callbackUri !== 'string' && typeof options.callbackUri !== 'function') {
     return next(new Error('options.callbackUri should be a string or a function'))
   }
-  if (options.callbackUriParams && typeof options.callbackUriParams !== 'object') {
-    return next(new Error('options.callbackUriParams should be a object'))
+  if (options.callbackUriParams && typeof options.callbackUriParams !== 'object' && typeof options.callbackUriParams !== 'function') {
+    return next(new Error('options.callbackUriParams should be a object or a function'))
+  }
+  if (options.generateCallbackUriParams && typeof options.generateCallbackUriParams !== 'function') {
+    return next(new Error('options.generateCallbackUriParams should be a function'))
   }
   if (options.tokenRequestParams && typeof options.tokenRequestParams !== 'object') {
     return next(new Error('options.tokenRequestParams should be a object'))
@@ -198,6 +201,7 @@ function fastifyOauth2 (fastify, options, next) {
       name,
       callbackUri,
       callbackUriParams = {},
+      generateCallbackUriParams: customGenerateCallbackUriParams = defaultGenerateCallbackUriParams,
       credentials,
       tokenRequestParams = {},
       scope,
@@ -262,7 +266,11 @@ function fastifyOauth2 (fastify, options, next) {
           reply.setCookie(verifierCookieName, verifier, verifierCookieOpts)
         }
 
-        const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
+        const resolvedCallbackUriParams = Object.assign(
+          {},
+          typeof callbackUriParams === 'function' ? callbackUriParams(request) : callbackUriParams
+        )
+        const urlOptions = Object.assign({}, customGenerateCallbackUriParams(generateCallbackUriParams(resolvedCallbackUriParams, request, scope, state), request, scope, state), {
           redirect_uri: typeof callbackUri === 'function' ? callbackUri(request) : callbackUri,
           scope,
           state
