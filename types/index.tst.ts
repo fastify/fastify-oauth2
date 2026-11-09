@@ -193,6 +193,8 @@ expect(
   fastifyOauth2.EPIC_GAMES_CONFIGURATION
 ).type.toBe<ProviderConfiguration>()
 expect(fastifyOauth2.YANDEX_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.X_CONFIGURATION).type.toBe<ProviderConfiguration>()
+expect(fastifyOauth2.KAKAO_CONFIGURATION).type.toBe<ProviderConfiguration>()
 
 server.get('/testOauth/callback', async (request, reply) => {
   expect(server.oauth2TestOAuthName).type.toBe<OAuth2Namespace | undefined>()
