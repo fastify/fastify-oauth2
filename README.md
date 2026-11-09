@@ -211,6 +211,7 @@ You can choose some default setup to assign to `auth` option.
 - `EPIC_GAMES_CONFIGURATION`
 - `YANDEX_CONFIGURATION`
 - `X_CONFIGURATION`
+- `KAKAO_CONFIGURATION`
 
 ### Custom configuration
 
