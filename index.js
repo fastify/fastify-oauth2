@@ -45,7 +45,7 @@ function readCookieValue (request, name, signed) {
 }
 
 function defaultCheckStateFunction (request, callback) {
-  const state = request.query.state
+  const state = request.query?.state || request.body?.state
   const stateCookie = readCookieValue(
     request,
     this.redirectStateCookieName,
@@ -321,7 +321,7 @@ function fastifyOauth2 (fastify, options, next) {
     }
 
     function getAccessTokenFromAuthorizationCodeFlowCallbacked (request, reply, callback) {
-      const code = request.query.code
+      const code = request.query?.code || request.body?.code
       const pkceParams = configured.pkce
         ? { code_verifier: readCookieValue(request, verifierCookieName, cookieSigned) }
         : {}

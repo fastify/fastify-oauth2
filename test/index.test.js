@@ -313,6 +313,71 @@ test('fastify-oauth2', async t => {
     makeRequests(t, end, fastify)
   })
 
+  await t.test('post callback with code and state in body', (t, end) => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'githubOAuth2',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.GITHUB_CONFIGURATION
+      },
+      startRedirectPath: '/login/github',
+      callbackUri: 'http://localhost:3000/callback',
+      scope: ['notifications']
+    })
+
+    fastify.post('/callback', function (request) {
+      return this.githubOAuth2.getAccessTokenFromAuthorizationCodeFlow(request)
+        .then(result => ({ access_token: result.token.access_token }))
+    })
+
+    after(() => fastify.close())
+
+    fastify.inject({
+      method: 'GET',
+      url: '/login/github'
+    }, function (err, response) {
+      t.assert.ifError(err)
+      const state = response.headers.location.match(/state=([^&]+)/)[1]
+
+      const RESPONSE_BODY = {
+        access_token: 'my-access-token',
+        refresh_token: 'my-refresh-token',
+        token_type: 'Bearer',
+        expires_in: '240000'
+      }
+
+      const githubScope = nock('https://github.com')
+        .matchHeader('Authorization', 'Basic bXktY2xpZW50LWlkOm15LXNlY3JldA==')
+        .matchHeader('User-Agent', 'fastify-oauth2')
+        .post('/login/oauth/access_token', 'grant_type=authorization_code&code=my-code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback')
+        .reply(200, RESPONSE_BODY)
+
+      fastify.inject({
+        method: 'POST',
+        url: '/callback',
+        payload: {
+          code: 'my-code',
+          state
+        },
+        cookies: {
+          'oauth2-redirect-state': state
+        }
+      }, function (err, responseEnd) {
+        t.assert.ifError(err)
+        t.assert.strictEqual(responseEnd.statusCode, 200)
+        t.assert.deepStrictEqual(JSON.parse(responseEnd.payload), { access_token: 'my-access-token' })
+
+        githubScope.done()
+        end()
+      })
+    })
+  })
+
   await t.test('wrong state', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
 
