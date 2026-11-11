@@ -383,7 +383,7 @@ function fastifyOauth2 (fastify, options, next) {
 
     function revokeAllTokenCallbacked (token, params, callback) {
       const accessToken = fastify[name].oauth2.createToken(token)
-      callbackify(accessToken.revokeAll.bind(accessToken, token, params))(callback)
+      callbackify(accessToken.revokeAll.bind(accessToken, params))(callback)
     }
 
     const revokeAllTokenPromisified = promisify(revokeAllTokenCallbacked)

@@ -2368,6 +2368,136 @@ test('revoke all token for linkedin callback', (t, end) => {
   })
 })
 
+test('revoke all token forwards params to httpOptions without leaking token properties (promisify)', async (t) => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'gitlabOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITLAB_CONFIGURATION
+    },
+    startRedirectPath: '/login/gitlab',
+    callbackUri: 'http://localhost:3000/callback',
+    scope: ['user']
+  })
+
+  fastify.get('/', async function (_request, reply) {
+    await this.gitlabOAuth2.revokeAllToken({
+      access_token: 'testToken',
+      token_type: 'access_token',
+      refresh_token: 'refreshToken',
+      headers: {
+        'x-leaked-header': 'should-not-be-sent'
+      }
+    }, {
+      headers: {
+        'x-custom-header': 'custom-value'
+      }
+    })
+    return reply.send('ok')
+  })
+
+  t.after(() => fastify.close())
+
+  const observedHeaders = []
+  const gitlabRevoke = nock('https://gitlab.com')
+    .post('/oauth/revoke', 'token=testToken&token_type_hint=access_token')
+    .reply(function () {
+      observedHeaders.push(this.req.headers)
+      return [200, { status: 'ok' }]
+    })
+    .post('/oauth/revoke', 'token=refreshToken&token_type_hint=refresh_token')
+    .reply(function () {
+      observedHeaders.push(this.req.headers)
+      return [200, { status: 'ok' }]
+    })
+
+  const responseStart = await fastify.inject({
+    method: 'GET',
+    url: '/'
+  })
+
+  t.assert.strictEqual(responseStart.statusCode, 200)
+  t.assert.strictEqual(observedHeaders.length, 2)
+  t.assert.strictEqual(observedHeaders[0]['x-custom-header'], 'custom-value')
+  t.assert.strictEqual(observedHeaders[1]['x-custom-header'], 'custom-value')
+  t.assert.strictEqual(observedHeaders[0]['x-leaked-header'], undefined)
+  t.assert.strictEqual(observedHeaders[1]['x-leaked-header'], undefined)
+  gitlabRevoke.done()
+})
+
+test('revoke all token forwards params to httpOptions without leaking token properties (callback)', (t, end) => {
+  t.plan(7)
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'linkedinOAuth2',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.LINKEDIN_CONFIGURATION
+    },
+    startRedirectPath: '/login/linkedin',
+    callbackUri: 'http://localhost:3000/callback',
+    scope: ['user']
+  })
+
+  fastify.get('/', function (_request, reply) {
+    this.linkedinOAuth2.revokeAllToken({
+      access_token: 'testToken',
+      token_type: 'access_token',
+      refresh_token: 'refreshToken',
+      headers: {
+        'x-leaked-header': 'should-not-be-sent'
+      }
+    }, {
+      headers: {
+        'x-custom-header': 'custom-value'
+      }
+    }, (err) => {
+      if (err) return reply.send(err)
+      return reply.send('ok')
+    })
+  })
+
+  t.after(() => fastify.close())
+
+  const observedHeaders = []
+  const linkedinRevoke = nock('https://www.linkedin.com')
+    .post('/oauth/v2/revoke', 'token=testToken&token_type_hint=access_token')
+    .reply(function () {
+      observedHeaders.push(this.req.headers)
+      return [200, { status: 'ok' }]
+    })
+    .post('/oauth/v2/revoke', 'token=refreshToken&token_type_hint=refresh_token')
+    .reply(function () {
+      observedHeaders.push(this.req.headers)
+      return [200, { status: 'ok' }]
+    })
+
+  fastify.inject({
+    method: 'GET',
+    url: '/'
+  }, function (err, responseStart) {
+    t.assert.ifError(err, 'No error should be thrown')
+    t.assert.strictEqual(responseStart.statusCode, 200)
+    t.assert.strictEqual(observedHeaders.length, 2)
+    t.assert.strictEqual(observedHeaders[0]['x-custom-header'], 'custom-value')
+    t.assert.strictEqual(observedHeaders[1]['x-custom-header'], 'custom-value')
+    t.assert.strictEqual(observedHeaders[0]['x-leaked-header'], undefined)
+    t.assert.strictEqual(observedHeaders[1]['x-leaked-header'], undefined)
+    linkedinRevoke.done()
+
+    end()
+  })
+})
+
 test('options.generateStateFunction', async t => {
   await t.test('with request', (t, end) => {
     t.plan(5)
