@@ -36,7 +36,7 @@ declare namespace fastifyOauth2 {
     scope?: string[];
     credentials: Credentials;
     callbackUri: string | ((req: FastifyRequest) => string);
-    callbackUriParams?: Object;
+    callbackUriParams?: Object | ((req: FastifyRequest) => Object);
     tokenRequestParams?: Object;
     generateStateFunction?: FastifyGenerateStateFunction;
     checkStateFunction?: FastifyCheckStateFunction;
