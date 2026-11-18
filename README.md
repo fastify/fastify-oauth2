@@ -386,7 +386,7 @@ Async functions are supported here, and the fastify instance can be accessed via
 
 ## Set custom callbackUri Parameters
 
-The `callbackUriParams` accepts an object that will be translated to query parameters for the callback OAUTH flow. The default value is {}.
+The `callbackUriParams` accepts an object (or a function returning one, see below) that will be translated to query parameters for the callback OAUTH flow. The default value is {}.
 
 ```js
 fastify.register(oauthPlugin, {
@@ -410,6 +410,28 @@ fastify.register(oauthPlugin, {
   // in case they do,
   // use of this parameter is highly encouraged
   // in order to prevent authorization code interception attacks
+});
+```
+
+`callbackUriParams` can also be a function that receives the request and returns the object. It is called every time an authorization uri is generated, so it can be used to set values that are only known per request, such as `login_hint`:
+
+```js
+fastify.register(oauthPlugin, {
+  name: 'myOAuth2',
+  scope: ['openid', 'profile', 'email'],
+  credentials: {
+    client: {
+      id: '<CLIENT_ID>',
+      secret: '<CLIENT_SECRET>',
+    },
+  },
+  discovery: { issuer: 'https://idp.mycompany.com' },
+  startRedirectPath: '/login',
+  callbackUri: 'http://localhost:3000/login/callback',
+  callbackUriParams: (request) => ({
+    prompt: 'login',
+    login_hint: request.cookies.upn
+  })
 });
 ```
 

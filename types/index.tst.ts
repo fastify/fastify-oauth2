@@ -91,6 +91,16 @@ expect<FastifyOAuth2Options>().type.toBeAssignableFrom({
   discovery: { issuer: 'https://idp.mycompany.com' }
 })
 
+expect<FastifyOAuth2Options>().type.toBeAssignableFrom({
+  name: 'testOAuthName',
+  scope,
+  credentials,
+  callbackUri: 'http://localhost/testOauth/callback',
+  callbackUriParams: (req: FastifyRequest) => ({ login_hint: req.hostname }),
+  startRedirectPath: '/login/testOauth',
+  discovery: { issuer: 'https://idp.mycompany.com' }
+})
+
 expect<FastifyOAuth2Options>().type.not.toBeAssignableFrom({
   name: 'testOAuthName',
   scope,

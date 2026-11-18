@@ -1530,7 +1530,7 @@ test('options.callbackUriParams should be an object', t => {
     callbackUri: '/callback',
     callbackUriParams: 1
   })
-    .ready(), undefined, 'options.callbackUriParams should be a object')
+    .ready(), undefined, 'options.callbackUriParams should be a object or a function')
 })
 
 test('options.callbackUriParams', (t, end) => {
@@ -1566,6 +1566,131 @@ test('options.callbackUriParams', (t, end) => {
 
       t.assert.strictEqual(responseStart.statusCode, 302)
       const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&access_type=offline&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
+      t.assert.ok(matched)
+      end()
+    })
+  })
+})
+
+test('options.callbackUriParams as a function', (t, end) => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    startRedirectPath: '/login/github',
+    callbackUri: '/callback',
+    callbackUriParams: function (request) {
+      return { login_hint: request.query.hint }
+    },
+    scope: ['notifications']
+  })
+
+  after(() => fastify.close())
+
+  fastify.listen({ port: 0 }, function (err) {
+    t.assert.ifError(err)
+
+    fastify.inject({
+      method: 'GET',
+      url: '/login/github?hint=alice%40example.com'
+    }, function (err, responseStart) {
+      t.assert.ifError(err)
+
+      t.assert.strictEqual(responseStart.statusCode, 302)
+      const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&login_hint=alice%40example\.com&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
+      t.assert.ok(matched)
+
+      fastify.inject({
+        method: 'GET',
+        url: '/login/github?hint=bob%40example.com'
+      }, function (err, responseStart) {
+        t.assert.ifError(err)
+
+        t.assert.strictEqual(responseStart.statusCode, 302)
+        const matched = responseStart.headers.location.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&login_hint=bob%40example\.com&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/)
+        t.assert.ok(matched)
+        end()
+      })
+    })
+  })
+})
+
+test('options.callbackUriParams as a function with generateAuthorizationUri', async t => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'theName',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.GITHUB_CONFIGURATION
+    },
+    callbackUri: '/callback',
+    callbackUriParams: (request) => ({ login_hint: request.headers['x-login-hint'] }),
+    scope: ['notifications']
+  })
+
+  fastify.get('/gh', async function (request, reply) {
+    return this.theName.generateAuthorizationUri(request, reply)
+  })
+
+  after(() => fastify.close())
+
+  await fastify.ready()
+
+  const response = await fastify.inject({
+    method: 'GET',
+    url: '/gh',
+    headers: { 'x-login-hint': 'carol' }
+  })
+
+  t.assert.strictEqual(response.statusCode, 200)
+  t.assert.ok(response.body.match(/https:\/\/github\.com\/login\/oauth\/authorize\?response_type=code&client_id=my-client-id&login_hint=carol&redirect_uri=%2Fcallback&scope=notifications&state=(.*)/))
+})
+
+test('options.callbackUriParams as a function keeps provider specific params', (t, end) => {
+  const fastify = createFastify({ logger: { level: 'silent' } })
+
+  fastify.register(fastifyOauth2, {
+    name: 'the-name',
+    credentials: {
+      client: {
+        id: 'my-client-id',
+        secret: 'my-secret'
+      },
+      auth: fastifyOauth2.APPLE_CONFIGURATION,
+      options: {
+        authorizationMethod: 'body'
+      }
+    },
+    startRedirectPath: '/login/apple',
+    callbackUri: '/callback',
+    callbackUriParams: () => ({ login_hint: 'dave' }),
+    scope: ['email']
+  })
+
+  after(() => fastify.close())
+
+  fastify.listen({ port: 0 }, function (err) {
+    t.assert.ifError(err)
+
+    fastify.inject({
+      method: 'GET',
+      url: '/login/apple'
+    }, function (err, responseStart) {
+      t.assert.ifError(err)
+
+      t.assert.strictEqual(responseStart.statusCode, 302)
+      const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&login_hint=dave&response_mode=form_post&redirect_uri=%2Fcallback&scope=email&state=(.*)/)
       t.assert.ok(matched)
       end()
     })

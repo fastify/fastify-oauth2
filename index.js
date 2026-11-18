@@ -104,8 +104,8 @@ function fastifyOauth2 (fastify, options, next) {
   if (typeof options.callbackUri !== 'string' && typeof options.callbackUri !== 'function') {
     return next(new Error('options.callbackUri should be a string or a function'))
   }
-  if (options.callbackUriParams && typeof options.callbackUriParams !== 'object') {
-    return next(new Error('options.callbackUriParams should be a object'))
+  if (options.callbackUriParams && typeof options.callbackUriParams !== 'object' && typeof options.callbackUriParams !== 'function') {
+    return next(new Error('options.callbackUriParams should be a object or a function'))
   }
   if (options.tokenRequestParams && typeof options.tokenRequestParams !== 'object') {
     return next(new Error('options.tokenRequestParams should be a object'))
@@ -262,7 +262,8 @@ function fastifyOauth2 (fastify, options, next) {
           reply.setCookie(verifierCookieName, verifier, verifierCookieOpts)
         }
 
-        const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
+        const params = typeof callbackUriParams === 'function' ? callbackUriParams(request) : callbackUriParams
+        const urlOptions = Object.assign({}, generateCallbackUriParams(params, request, scope, state), {
           redirect_uri: typeof callbackUri === 'function' ? callbackUri(request) : callbackUri,
           scope,
           state
